@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class SetupRequest {
     public enum Provider {
-        OPENAI, AZURE, OLLAMA
+        OPENAI, AZURE, OLLAMA, ANTHROPIC, GEMINI, MISTRAL
     }
 
     @NotNull

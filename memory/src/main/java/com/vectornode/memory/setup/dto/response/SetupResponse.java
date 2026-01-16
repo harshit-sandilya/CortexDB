@@ -12,5 +12,6 @@ public class SetupResponse {
     private boolean success;
     private String configuredProvider;
     private String configuredModel;
+    private String baseUrl;
     private Instant timestamp;
 }
