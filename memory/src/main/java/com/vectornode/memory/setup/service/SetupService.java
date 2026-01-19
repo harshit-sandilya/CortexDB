@@ -3,8 +3,6 @@ package com.vectornode.memory.setup.service;
 import com.vectornode.memory.setup.dto.request.SetupRequest;
 import com.vectornode.memory.setup.dto.response.SetupResponse;
 import lombok.extern.slf4j.Slf4j;
-// No Direct @Service annotation (created via @Bean in SetupConfiguration)
-
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -13,9 +11,6 @@ import java.time.Instant;
 @Service
 public class SetupService {
 
-    // No injection needed for Static Provider usage
-
-    // Runtime configuration endpoint (Validation & Echo)
     public SetupResponse configureLLM(SetupRequest request) {
         log.info("Received runtime setup request for Provider: {}", request.getProvider());
 
@@ -23,18 +18,7 @@ public class SetupService {
             throw new IllegalArgumentException("Provider is required");
         }
 
-        // 2. Dynamic Embedding Verification (The "Probe")
-        // Use static method on LLMProvider
-        log.info("Probing embedding model via LLMProvider (Static) for verification...");
-        LLMProvider.getEmbedding(
-                "Verification Probe",
-                request.getProvider().name(),
-                request.getApiKey(),
-                request.getBaseUrl(),
-                request.getModelName());
-        log.info("Probe successful.");
-
-        // 3. Determine Base URL
+        // Determine Base URL
         String effectiveBaseUrl = request.getBaseUrl();
         if (effectiveBaseUrl == null || effectiveBaseUrl.isBlank()) {
             switch (request.getProvider()) {
@@ -57,6 +41,24 @@ public class SetupService {
                     effectiveBaseUrl = "N/A";
             }
         }
+
+        // Initialize LLMProvider with request parameters
+        log.info("Initializing LLMProvider...");
+        new LLMProvider(
+                request.getProvider().name(),
+                request.getApiKey(),
+                effectiveBaseUrl,
+                request.getModelName());
+
+        // Test embedding
+        log.info("Testing embedding model...");
+        LLMProvider.getEmbedding("test");
+        log.info("Embedding test successful.");
+
+        // Test LLM call
+        log.info("Testing LLM call...");
+        LLMProvider.callLLM("Hello");
+        log.info("LLM call test successful.");
 
         return SetupResponse.builder()
                 .message("Setup params validated and probed successfully. Backend is ready.")

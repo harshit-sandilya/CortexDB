@@ -1,16 +1,13 @@
 package com.vectornode.memory.setup.dto.request;
 
+import com.vectornode.memory.entity.enums.LLMApiProvider;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
 public class SetupRequest {
-    public enum Provider {
-        OPENAI, AZURE, OLLAMA, ANTHROPIC, GEMINI, MISTRAL
-    }
-
     @NotNull
-    private Provider provider;
+    private LLMApiProvider provider;
 
     private String apiKey;
 

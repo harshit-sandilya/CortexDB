@@ -2,67 +2,129 @@ package com.vectornode.memory.setup.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.embedding.EmbeddingModel;
-import org.springframework.stereotype.Component;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.ai.ollama.OllamaChatModel;
+import org.springframework.ai.ollama.OllamaChatOptions;
+import org.springframework.ai.ollama.OllamaEmbeddingModel;
+import org.springframework.ai.ollama.OllamaEmbeddingOptions;
+import org.springframework.ai.ollama.api.OllamaApi;
+import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
+import org.springframework.ai.azure.openai.AzureOpenAiChatOptions;
+import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingModel;
+import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingOptions;
+import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel;
+import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions;
+import org.springframework.ai.vertexai.embedding.VertexAiTextEmbeddingModel;
+import org.springframework.ai.vertexai.embedding.VertexAiTextEmbeddingOptions;
+import org.springframework.ai.vertexai.embedding.VertexAiEmbeddingConnectionDetails;
+import com.azure.ai.openai.OpenAIClientBuilder;
+import com.azure.core.credential.AzureKeyCredential;
+import com.google.cloud.vertexai.VertexAI;
+import io.micrometer.observation.ObservationRegistry;
 
-import jakarta.annotation.PostConstruct;
-
-@Component
 @Slf4j
 public class LLMProvider {
 
-    private static ChatClient.Builder chatClientBuilder;
-    private static EmbeddingModel defaultEmbeddingModel;
+    private static ChatClient chatClient;
+    private static EmbeddingModel embeddingModel;
 
-    public LLMProvider(ChatClient.Builder builder, EmbeddingModel embeddingModel) {
-        LLMProvider.chatClientBuilder = builder;
-        LLMProvider.defaultEmbeddingModel = embeddingModel;
-    }
+    public LLMProvider(String provider, String apiKey, String baseUrl, String model) {
+        log.info("Initializing LLMProvider with provider: {}, model: {}, baseUrl: {}", provider, model, baseUrl);
 
-    @PostConstruct
-    public void init() {
-        log.info("LLMProvider initialized (Dynamic instantiation disabled due to API mismatch)");
-    }
-
-    public static float[] getEmbedding(String text, String provider, String apiKey, String baseUrl, String model) {
-        log.debug("Generating embedding via Provider request: {}", provider);
-        // FIXME: Dynamic OpenAiApi instantiation removed due to constructor mismatch in Spring AI 1.1.2.
-        // Falling back to the default injected model.
-        
         try {
-            if (defaultEmbeddingModel == null) {
-                throw new IllegalStateException("Default EmbeddingModel not initialized");
+            ChatModel chatModel;
+
+            switch (provider.toUpperCase()) {
+                case "OPENAI":
+                    OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
+                    embeddingModel = OpenAiEmbeddingModel.builder().openAiApi(openAiApi)
+                            .options(OpenAiEmbeddingOptions.builder().model(model).build()).build();
+                    chatModel = OpenAiChatModel.builder().openAiApi(openAiApi)
+                            .defaultOptions(OpenAiChatOptions.builder().model(model).build()).build();
+                    break;
+                case "GEMINI":
+                    String geminiParams[] = baseUrl.split(":");
+                    String projectId = geminiParams.length > 0 ? geminiParams[0] : "default-project";
+                    String location = geminiParams.length > 1 ? geminiParams[1] : "us-central1";
+
+                    VertexAI vertexAI = VertexAI.Builder().setProjectId(projectId).setLocation(location).build();
+
+                    embeddingModel = new VertexAiTextEmbeddingModel(
+                            new VertexAiTextEmbeddingConnectionDetails(projectId, location),
+                            VertexAiTextEmbeddingOptions.builder().model(model).build());
+
+                    chatModel = VertexAiTextEmbeddingModel(
+                            new VertexAiEmbeddingConnectionDetails(projectId, location),
+                            VertexAiTextEmbeddingOptions.builder().model(model).build()).build();
+                    break;
+                case "AZURE":
+                    OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder().endpoint(baseUrl)
+                            .credential(new AzureKeyCredential(apikey));
+                    embeddingModel = new AzureOpenAiEmbeddingModel(azureClientBuilder.buildClient(),
+                            AzureOpenAiEmbeddingOptions.builder().deployementName(model).build());
+                    chatModel = new AzureOpenAiChatModel(azureClientBuilder,
+                            AzureOpenAiChatOptions.builder().deployementName(model).build(), null,
+                            ObservationRegistry.NOOP);
+                    break;
+                case "OLLAMA":
+                    OllamaApi ollamaApi = new OllamaApi(baseUrl);
+                    embeddingModel = new OllamaEmbeddingModel(ollamaApi,
+                            OllamaEmbeddingOptions.builder().model(model).build());
+                    chatModel = new OllamaChatModel(ollamaApi, OllamaChatOptions.builder().model(model).build());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported provider: " + provider);
             }
-            return defaultEmbeddingModel.embed(text);
+
+            // Build ChatClient
+            chatClient = ChatClient.builder(chatModel).build();
+
+            log.info("LLMProvider initialized successfully");
         } catch (Exception e) {
-            log.error("Embedding generation failed: {}", e.getMessage());
-            throw new IllegalArgumentException("Embedding logic failed: " + e.getMessage());
+            log.error("Failed to initialize LLMProvider: {}", e.getMessage());
+            throw new IllegalStateException("LLMProvider initialization failed: " + e.getMessage(), e);
         }
     }
 
-    public static String callLLM(String prompt, String provider, String apiKey, String baseUrl, String model) {
-        log.debug("Calling LLM via Provider request: {}", provider);
-        
+    public static float[] getEmbedding(String text) {
+        log.debug("Generating embedding for text");
+
         try {
-            if (chatClientBuilder == null) {
-                throw new IllegalStateException("ChatClient.Builder not initialized");
+            if (embeddingModel == null) {
+                throw new IllegalStateException("EmbeddingModel not initialized");
             }
-            // Use the injected builder (configured via application.properties)
-            ChatResponse chatResponse = chatClientBuilder.build()
+            return embeddingModel.embed(text);
+        } catch (Exception e) {
+            log.error("Embedding generation failed: {}", e.getMessage());
+            throw new IllegalArgumentException("Embedding generation failed: " + e.getMessage(), e);
+        }
+    }
+
+    public static String callLLM(String prompt) {
+        log.debug("Calling LLM with prompt");
+
+        try {
+            if (chatClient == null) {
+                throw new IllegalStateException("ChatClient not initialized");
+            }
+
+            ChatResponse chatResponse = chatClient
                     .prompt()
                     .user(prompt)
                     .call()
                     .chatResponse();
 
             return chatResponse.getResult().getOutput().getText();
-
         } catch (Exception e) {
             log.error("LLM Call failed: {}", e.getMessage());
-            throw new IllegalArgumentException("LLM Call failed: " + e.getMessage());
+            throw new IllegalArgumentException("LLM Call failed: " + e.getMessage(), e);
         }
     }
 }
-
-
-                
