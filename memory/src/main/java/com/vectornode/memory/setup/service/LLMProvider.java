@@ -6,17 +6,17 @@ import com.vectornode.memory.setup.exception.custom.LlmProviderException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.document.MetadataMode;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.ai.ollama.OllamaChatModel;
-import org.springframework.ai.ollama.OllamaChatOptions;
-import org.springframework.ai.ollama.OllamaEmbeddingModel;
-import org.springframework.ai.ollama.OllamaEmbeddingOptions;
-import org.springframework.ai.ollama.api.OllamaApi;
+// import org.springframework.ai.ollama.OllamaChatModel;
+// import org.springframework.ai.ollama.OllamaEmbeddingModel;
+// import org.springframework.ai.ollama.api.OllamaApi;
+// import org.springframework.ai.ollama.api.OllamaOptions;
 import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
 import org.springframework.ai.azure.openai.AzureOpenAiChatOptions;
 import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingModel;
@@ -40,37 +40,61 @@ public class LLMProvider {
             switch (provider.toUpperCase()) {
                 case "OPENAI":
                     OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
-                    embeddingModel = OpenAiEmbeddingModel.builder().openAiApi(openAiApi)
-                            .options(OpenAiEmbeddingOptions.builder().model(model).build()).build();
-                    chatModel = OpenAiChatModel.builder().openAiApi(openAiApi)
-                            .defaultOptions(OpenAiChatOptions.builder().model(model).build()).build();
-                    break;
-                case "GEMINI":
-                    String geminiBaseUrl = baseUrl;
-                    if (geminiBaseUrl == null || geminiBaseUrl.isBlank()) {
-                        geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
-                        OpenAiApi geminiApi = OpenAiApi.builder().apiKey(apiKey).baseUrl(geminiBaseUrl).build();
-                        embeddingModel = new OpenAiApi.EmbeddingModel(geminiApi,
-                                OpenAiEmbeddingOptions.builder().model(model).build());
-                        chatModel = new OpenAiApi.ChatModel(geminiApi,
-                                OpenAiChatOptions.builder().model(model).build());
-                    }
-                    break;
-                case "AZURE":
-                    OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder().endpoint(baseUrl)
-                            .credential(new AzureKeyCredential(apiKey));
-                    embeddingModel = new AzureOpenAiEmbeddingModel(azureClientBuilder.buildClient(),
-                            AzureOpenAiEmbeddingOptions.builder().deployementName(model).build());
-                    chatModel = new AzureOpenAiChatModel(azureClientBuilder,
-                            AzureOpenAiChatOptions.builder().deployementName(model).build(), null,
+
+                    embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
+                            OpenAiEmbeddingOptions.builder().model(model).build(),
+                            null);
+
+                    chatModel = new OpenAiChatModel(openAiApi,
+                            OpenAiChatOptions.builder().model(model).build(),
+                            null, // ToolCallingManager
+                            null, // RetryTemplate
                             ObservationRegistry.NOOP);
                     break;
-                case "OLLAMA":
-                    OllamaApi ollamaApi = new OllamaApi(baseUrl);
-                    embeddingModel = new OllamaEmbeddingModel(ollamaApi,
-                            OllamaEmbeddingOptions.builder().model(model).build());
-                    chatModel = new OllamaChatModel(ollamaApi, OllamaChatOptions.builder().model(model).build());
+                case "GEMINI":
+                    String geminiBaseUrl = (baseUrl == null || baseUrl.isBlank())
+                            ? "https://generativelanguage.googleapis.com/v1beta/openai/"
+                            : baseUrl;
+
+                    OpenAiApi geminiApi = OpenAiApi.builder()
+                            .baseUrl(geminiBaseUrl)
+                            .apiKey(apiKey)
+                            .build();
+
+                    embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
+                            OpenAiEmbeddingOptions.builder().model(model).build(),
+                            null);
+
+                    chatModel = new OpenAiChatModel(geminiApi,
+                            OpenAiChatOptions.builder().model(model).build(),
+                            null,
+                            null,
+                            ObservationRegistry.NOOP);
                     break;
+                case "AZURE":
+                    OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder()
+                            .endpoint(baseUrl)
+                            .credential(new AzureKeyCredential(apiKey));
+
+                    embeddingModel = new AzureOpenAiEmbeddingModel(azClientBuilder.buildClient(),
+                            MetadataMode.EMBED,
+                            AzureOpenAiEmbeddingOptions.builder().deploymentName(model).build(),
+                            null);
+
+                    chatModel = new AzureOpenAiChatModel(azClientBuilder,
+                            AzureOpenAiChatOptions.builder().deploymentName(model).build(),
+                            null,
+                            ObservationRegistry.NOOP);
+                    break;
+                /*
+                 * case "OLLAMA":
+                 * OllamaApi ollamaApi = new OllamaApi(baseUrl);
+                 * embeddingModel = new OllamaEmbeddingModel(ollamaApi,
+                 * OllamaOptions.builder().model(model).build());
+                 * chatModel = new OllamaChatModel(ollamaApi,
+                 * OllamaOptions.builder().model(model).build());
+                 * break;
+                 */
                 default:
                     throw new IllegalArgumentException("Unsupported provider: " + provider);
             }
