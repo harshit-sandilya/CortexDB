@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import com.vectornode.memory.setup.exception.custom.LlmAuthenticationException;
+import com.vectornode.memory.setup.exception.custom.LlmProviderException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {

@@ -1,4 +1,4 @@
-package com.vectornode.memory.setup.exception;
+package com.vectornode.memory.setup.exception.custom;
 
 //initialization errors, connection issues to the AI provider, execution failures during embedding/chat calls.
 public class LlmProviderException extends RuntimeException {

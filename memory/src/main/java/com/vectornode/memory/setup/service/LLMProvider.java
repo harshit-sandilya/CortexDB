@@ -1,6 +1,8 @@
 package com.vectornode.memory.setup.service;
 
 import lombok.extern.slf4j.Slf4j;
+import com.vectornode.memory.setup.exception.custom.LlmAuthenticationException;
+import com.vectornode.memory.setup.exception.custom.LlmProviderException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -19,14 +21,8 @@ import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
 import org.springframework.ai.azure.openai.AzureOpenAiChatOptions;
 import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingModel;
 import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingOptions;
-import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatModel;
-import org.springframework.ai.vertexai.gemini.VertexAiGeminiChatOptions;
-import org.springframework.ai.vertexai.embedding.VertexAiTextEmbeddingModel;
-import org.springframework.ai.vertexai.embedding.VertexAiTextEmbeddingOptions;
-import org.springframework.ai.vertexai.embedding.VertexAiEmbeddingConnectionDetails;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
-import com.google.cloud.vertexai.VertexAI;
 import io.micrometer.observation.ObservationRegistry;
 
 @Slf4j
@@ -50,23 +46,19 @@ public class LLMProvider {
                             .defaultOptions(OpenAiChatOptions.builder().model(model).build()).build();
                     break;
                 case "GEMINI":
-                    String geminiParams[] = baseUrl.split(":");
-                    String projectId = geminiParams.length > 0 ? geminiParams[0] : "default-project";
-                    String location = geminiParams.length > 1 ? geminiParams[1] : "us-central1";
-
-                    VertexAI vertexAI = VertexAI.Builder().setProjectId(projectId).setLocation(location).build();
-
-                    embeddingModel = new VertexAiTextEmbeddingModel(
-                            new VertexAiTextEmbeddingConnectionDetails(projectId, location),
-                            VertexAiTextEmbeddingOptions.builder().model(model).build());
-
-                    chatModel = VertexAiTextEmbeddingModel(
-                            new VertexAiEmbeddingConnectionDetails(projectId, location),
-                            VertexAiTextEmbeddingOptions.builder().model(model).build()).build();
+                    String geminiBaseUrl = baseUrl;
+                    if (geminiBaseUrl == null || geminiBaseUrl.isBlank()) {
+                        geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
+                        OpenAiApi geminiApi = OpenAiApi.builder().apiKey(apiKey).baseUrl(geminiBaseUrl).build();
+                        embeddingModel = new OpenAiApi.EmbeddingModel(geminiApi,
+                                OpenAiEmbeddingOptions.builder().model(model).build());
+                        chatModel = new OpenAiApi.ChatModel(geminiApi,
+                                OpenAiChatOptions.builder().model(model).build());
+                    }
                     break;
                 case "AZURE":
                     OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder().endpoint(baseUrl)
-                            .credential(new AzureKeyCredential(apikey));
+                            .credential(new AzureKeyCredential(apiKey));
                     embeddingModel = new AzureOpenAiEmbeddingModel(azureClientBuilder.buildClient(),
                             AzureOpenAiEmbeddingOptions.builder().deployementName(model).build());
                     chatModel = new AzureOpenAiChatModel(azureClientBuilder,
