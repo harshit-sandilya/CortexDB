@@ -24,6 +24,7 @@ import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingOptions;
 import com.azure.ai.openai.OpenAIClientBuilder;
 import com.azure.core.credential.AzureKeyCredential;
 import io.micrometer.observation.ObservationRegistry;
+import org.springframework.retry.support.RetryTemplate;
 
 @Slf4j
 public class LLMProvider {
@@ -40,16 +41,17 @@ public class LLMProvider {
             switch (provider.toUpperCase()) {
                 case "OPENAI":
                     OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
-
+                    //using the builder pattern instead of constructor
                     embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder().model(model).build(),
-                            null);
+                            RetryTemplate.builder().build());
 
-                    chatModel = new OpenAiChatModel(openAiApi,
-                            OpenAiChatOptions.builder().model(model).build(),
-                            null, // ToolCallingManager
-                            null, // RetryTemplate
-                            ObservationRegistry.NOOP);
+                    chatModel = OpenAiChatModel.builder()
+                            .openAiApi(openAiApi)
+                            .defaultOptions(OpenAiChatOptions.builder().model(model).build())
+                            .retryTemplate(RetryTemplate.builder().build())
+                            .observationRegistry(ObservationRegistry.NOOP)
+                            .build();
                     break;
                 case "GEMINI":
                     String geminiBaseUrl = (baseUrl == null || baseUrl.isBlank())
@@ -63,13 +65,14 @@ public class LLMProvider {
 
                     embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder().model(model).build(),
-                            null);
+                            RetryTemplate.builder().build());
 
-                    chatModel = new OpenAiChatModel(geminiApi,
-                            OpenAiChatOptions.builder().model(model).build(),
-                            null,
-                            null,
-                            ObservationRegistry.NOOP);
+                    chatModel = OpenAiChatModel.builder()
+                            .openAiApi(geminiApi)
+                            .defaultOptions(OpenAiChatOptions.builder().model(model).build())
+                            .retryTemplate(RetryTemplate.builder().build())
+                            .observationRegistry(ObservationRegistry.NOOP)
+                            .build();
                     break;
                 case "AZURE":
                     OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder()

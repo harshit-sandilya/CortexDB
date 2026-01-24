@@ -1,35 +1,150 @@
-HELP.md
+# ========================
+# Build outputs
+# ========================
 target/
-.mvn/wrapper/maven-wrapper.jar
+build/
 !**/src/main/**/target/
 !**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
+# ========================
+# Environment & Secrets
+# ========================
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+credentials/
 
-### STS ###
+# ========================
+# Maven
+# ========================
+.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ========================
+# Gradle
+# ========================
+.gradle/
+**/build/
+!src/**/build/
+
+# ========================
+# IDE - IntelliJ IDEA
+# ========================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# ========================
+# IDE - Eclipse / STS
+# ========================
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
+bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
+# ========================
+# IDE - NetBeans
+# ========================
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
 
-### VS Code ###
+# ========================
+# IDE - VS Code
+# ========================
 .vscode/
+*.code-workspace
+
+# ========================
+# OS generated files
+# ========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================
+# Java
+# ========================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ========================
+# Spring Boot
+# ========================
+HELP.md
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# ========================
+# Docker
+# ========================
+docker-compose.override.yml
+
+# ========================
+# Test outputs
+# ========================
+test-output/
+surefire-reports/
+jacoco.exec
+*.exec
+
+# ========================
+# Node (if applicable)
+# ========================
+node_modules/
+npm-debug.log
+package-lock.json
+
+# ========================
+# Misc
+# ========================
+*.bak
+*.swp
+*.swo
+*~
+.cache/
+tmp/
+temp/

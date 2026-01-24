@@ -35,7 +35,7 @@ public class SetupService {
                     effectiveBaseUrl = "https://api.mistral.com";
                     break;
                 case GEMINI:
-                    effectiveBaseUrl = "https://api.gemini.com";
+                    effectiveBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
                     break;
                 default:
                     effectiveBaseUrl = "N/A";
