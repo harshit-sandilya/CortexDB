@@ -12,7 +12,10 @@ public class SetupRequest {
     private String apiKey;
 
     @NotNull
-    private String modelName;
+    private String chatModelName;
+
+    @NotNull
+    private String embedModelName;
 
     private String baseUrl;
 }

@@ -32,8 +32,18 @@ public class LLMProvider {
     private static ChatClient chatClient;
     private static EmbeddingModel embeddingModel;
 
-    public LLMProvider(String provider, String apiKey, String baseUrl, String model) {
-        log.info("Initializing LLMProvider with provider: {}, model: {}, baseUrl: {}", provider, model, baseUrl);
+    /**
+     * Initialize LLMProvider with separate chat and embedding models.
+     * 
+     * @param provider
+     * @param apiKey
+     * @param baseUrl
+     * @param chatModelName
+     * @param embedModelName
+     */
+    public LLMProvider(String provider, String apiKey, String baseUrl, String chatModelName, String embedModelName) {
+        log.info("Initializing LLMProvider with provider: {}, chatModel: {}, embedModel: {}, baseUrl: {}",
+                provider, chatModelName, embedModelName, baseUrl);
 
         try {
             ChatModel chatModel;
@@ -41,14 +51,14 @@ public class LLMProvider {
             switch (provider.toUpperCase()) {
                 case "OPENAI":
                     OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
-                    //using the builder pattern instead of constructor
+
                     embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder().model(model).build(),
+                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
                             RetryTemplate.builder().build());
 
                     chatModel = OpenAiChatModel.builder()
                             .openAiApi(openAiApi)
-                            .defaultOptions(OpenAiChatOptions.builder().model(model).build())
+                            .defaultOptions(OpenAiChatOptions.builder().model(chatModelName).build())
                             .retryTemplate(RetryTemplate.builder().build())
                             .observationRegistry(ObservationRegistry.NOOP)
                             .build();
@@ -63,13 +73,15 @@ public class LLMProvider {
                             .apiKey(apiKey)
                             .build();
 
+                    // Use embedModelName for embeddings (e.g., "text-embedding-004")
                     embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder().model(model).build(),
+                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
                             RetryTemplate.builder().build());
 
+                    // Use chatModelName for chat (e.g., "gemini-2.0-flash")
                     chatModel = OpenAiChatModel.builder()
                             .openAiApi(geminiApi)
-                            .defaultOptions(OpenAiChatOptions.builder().model(model).build())
+                            .defaultOptions(OpenAiChatOptions.builder().model(chatModelName).build())
                             .retryTemplate(RetryTemplate.builder().build())
                             .observationRegistry(ObservationRegistry.NOOP)
                             .build();
@@ -81,11 +93,11 @@ public class LLMProvider {
 
                     embeddingModel = new AzureOpenAiEmbeddingModel(azClientBuilder.buildClient(),
                             MetadataMode.EMBED,
-                            AzureOpenAiEmbeddingOptions.builder().deploymentName(model).build(),
+                            AzureOpenAiEmbeddingOptions.builder().deploymentName(embedModelName).build(),
                             null);
 
                     chatModel = new AzureOpenAiChatModel(azClientBuilder,
-                            AzureOpenAiChatOptions.builder().deploymentName(model).build(),
+                            AzureOpenAiChatOptions.builder().deploymentName(chatModelName).build(),
                             null,
                             ObservationRegistry.NOOP);
                     break;
@@ -93,9 +105,9 @@ public class LLMProvider {
                  * case "OLLAMA":
                  * OllamaApi ollamaApi = new OllamaApi(baseUrl);
                  * embeddingModel = new OllamaEmbeddingModel(ollamaApi,
-                 * OllamaOptions.builder().model(model).build());
+                 * OllamaOptions.builder().model(embedModelName).build());
                  * chatModel = new OllamaChatModel(ollamaApi,
-                 * OllamaOptions.builder().model(model).build());
+                 * OllamaOptions.builder().model(chatModelName).build());
                  * break;
                  */
                 default:
@@ -110,6 +122,18 @@ public class LLMProvider {
             log.error("Failed to initialize LLMProvider: {}", e.getMessage());
             throw new IllegalStateException("LLMProvider initialization failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Legacy constructor for backward compatibility.
+     * Uses the same model for both chat and embeddings.
+     * 
+     * @deprecated Use the constructor with separate chatModel and embedModel
+     *             parameters.
+     */
+    @Deprecated
+    public LLMProvider(String provider, String apiKey, String baseUrl, String model) {
+        this(provider, apiKey, baseUrl, model, model);
     }
 
     public static float[] getEmbedding(String text) {

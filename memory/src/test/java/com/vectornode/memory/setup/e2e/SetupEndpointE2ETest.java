@@ -24,9 +24,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * These tests make REAL API calls to Gemini and require a valid API key.
  * 
  * This test class directly tests the SetupService without loading the full
- * Spring context,
- * avoiding the ErrorMvcAutoConfiguration conflict while still making real API
- * calls.
+ * Spring context, avoiding the ErrorMvcAutoConfiguration conflict while still
+ * making real API calls.
  */
 class SetupEndpointE2ETest {
 
@@ -104,16 +103,25 @@ class SetupEndpointE2ETest {
                 "GEMINI_API_KEY not found in .env or environment variables. Skipping E2E test.");
     }
 
+    /**
+     * Helper method to create a SetupRequest with proper chat and embed models
+     */
+    private SetupRequest createGeminiRequest() {
+        SetupRequest request = new SetupRequest();
+        request.setProvider(LLMApiProvider.GEMINI);
+        request.setApiKey(apiKey);
+        request.setChatModelName(chatModel);
+        request.setEmbedModelName(embedModel);
+        return request;
+    }
+
     @Test
     @DisplayName("E2E: Should successfully configure Gemini provider and return success response")
     void shouldConfigureGeminiProviderSuccessfully() {
         assumeApiKeyPresent();
 
-        // Arrange
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey(apiKey);
-        request.setModelName(chatModel);
+        // Arrange - use separate chat and embed models
+        SetupRequest request = createGeminiRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -126,7 +134,8 @@ class SetupEndpointE2ETest {
         assertNotNull(response, "Response should not be null");
         assertTrue(response.isSuccess(), "Response should indicate success");
         assertEquals("GEMINI", response.getConfiguredProvider(), "Provider should be GEMINI");
-        assertEquals(chatModel, response.getConfiguredModel(), "Model should match request");
+        assertEquals(chatModel, response.getConfiguredChatModel(), "Chat model should match request");
+        assertEquals(embedModel, response.getConfiguredEmbedModel(), "Embed model should match request");
         assertNotNull(response.getBaseUrl(), "Base URL should be set");
         assertNotNull(response.getTimestamp(), "Timestamp should be set");
         assertNotNull(response.getMessage(), "Message should be set");
@@ -142,7 +151,8 @@ class SetupEndpointE2ETest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.GEMINI);
         request.setApiKey("invalid-api-key-12345");
-        request.setModelName(chatModel);
+        request.setChatModelName(chatModel);
+        request.setEmbedModelName(embedModel);
 
         // Act & Assert - should throw an exception
         Exception exception = assertThrows(Exception.class, () -> {
@@ -163,7 +173,8 @@ class SetupEndpointE2ETest {
         SetupRequest request = new SetupRequest();
         request.setProvider(null);
         request.setApiKey(apiKey);
-        request.setModelName(chatModel);
+        request.setChatModelName(chatModel);
+        request.setEmbedModelName(embedModel);
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -183,10 +194,7 @@ class SetupEndpointE2ETest {
         assumeApiKeyPresent();
 
         // Arrange
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey(apiKey);
-        request.setModelName(chatModel);
+        SetupRequest request = createGeminiRequest();
         request.setBaseUrl("https://generativelanguage.googleapis.com/v1beta/openai/");
 
         // Act
@@ -210,10 +218,7 @@ class SetupEndpointE2ETest {
         assumeApiKeyPresent();
 
         // Arrange
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey(apiKey);
-        request.setModelName(chatModel);
+        SetupRequest request = createGeminiRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -225,7 +230,8 @@ class SetupEndpointE2ETest {
         assertAll("Response should contain all expected fields",
                 () -> assertNotNull(response.getMessage(), "message should not be null"),
                 () -> assertNotNull(response.getConfiguredProvider(), "configuredProvider should not be null"),
-                () -> assertNotNull(response.getConfiguredModel(), "configuredModel should not be null"),
+                () -> assertNotNull(response.getConfiguredChatModel(), "configuredChatModel should not be null"),
+                () -> assertNotNull(response.getConfiguredEmbedModel(), "configuredEmbedModel should not be null"),
                 () -> assertNotNull(response.getBaseUrl(), "baseUrl should not be null"),
                 () -> assertNotNull(response.getTimestamp(), "timestamp should not be null"),
                 () -> assertTrue(response.isSuccess(), "success should be true"));
@@ -237,10 +243,7 @@ class SetupEndpointE2ETest {
         assumeApiKeyPresent();
 
         // Arrange - no baseUrl set
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey(apiKey);
-        request.setModelName(chatModel);
+        SetupRequest request = createGeminiRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);

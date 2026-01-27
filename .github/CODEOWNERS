@@ -1,0 +1,11 @@
+# Code Owners
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owners for everything in the repo
+* @harshit-sandilya
+
+# Memory module
+/memory/ @harshit-sandilya
+
+# CI/CD configuration
+/.github/ @harshit-sandilya

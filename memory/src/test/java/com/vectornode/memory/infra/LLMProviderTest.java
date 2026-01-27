@@ -92,14 +92,14 @@ class LLMProviderTest {
     }
 
     @Test
-    @DisplayName("Should initialize LLMProvider with Gemini configuration")
+    @DisplayName("Should initialize LLMProvider with Gemini configuration using separate models")
     void shouldInitializeLLMProviderWithGemini() {
         assumeApiKeyPresent();
 
-        // Constructor should not throw an exception
+        // Constructor should not throw an exception - using new 5-parameter constructor
         assertDoesNotThrow(() -> {
-            new LLMProvider("GEMINI", apiKey, null, chatModel);
-        }, "LLMProvider should initialize successfully with Gemini");
+            new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
+        }, "LLMProvider should initialize successfully with Gemini using separate chat and embed models");
     }
 
     @Test
@@ -110,7 +110,7 @@ class LLMProviderTest {
         String customBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
 
         assertDoesNotThrow(() -> {
-            new LLMProvider("GEMINI", apiKey, customBaseUrl, chatModel);
+            new LLMProvider("GEMINI", apiKey, customBaseUrl, chatModel, embedModel);
         }, "LLMProvider should initialize with custom base URL");
     }
 
@@ -121,7 +121,7 @@ class LLMProviderTest {
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new LLMProvider("UNSUPPORTED_PROVIDER", apiKey, null, chatModel));
+                () -> new LLMProvider("UNSUPPORTED_PROVIDER", apiKey, null, chatModel, embedModel));
 
         assertTrue(exception.getMessage().contains("Unsupported provider"));
     }
@@ -131,7 +131,7 @@ class LLMProviderTest {
     void shouldThrowExceptionForNullApiKey() {
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new LLMProvider("GEMINI", null, null, chatModel));
+                () -> new LLMProvider("GEMINI", null, null, chatModel, embedModel));
 
         assertNotNull(exception.getMessage());
     }
@@ -141,8 +141,8 @@ class LLMProviderTest {
     void shouldGenerateEmbeddingsForText() {
         assumeApiKeyPresent();
 
-        // Initialize provider with embedding model
-        new LLMProvider("GEMINI", apiKey, null, embedModel);
+        // Initialize provider with SEPARATE chat and embedding models
+        new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
 
         String testText = "This is a test sentence for embedding generation.";
 
@@ -161,8 +161,8 @@ class LLMProviderTest {
     void shouldCallLLMAndGetResponse() {
         assumeApiKeyPresent();
 
-        // Initialize provider with chat model
-        new LLMProvider("GEMINI", apiKey, null, chatModel);
+        // Initialize provider with SEPARATE chat and embedding models
+        new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
 
         String prompt = "Reply with exactly one word: Hello";
 
@@ -183,12 +183,12 @@ class LLMProviderTest {
 
         // Test lowercase
         assertDoesNotThrow(() -> {
-            new LLMProvider("gemini", apiKey, null, chatModel);
+            new LLMProvider("gemini", apiKey, null, chatModel, embedModel);
         }, "Provider should accept lowercase");
 
         // Test mixed case
         assertDoesNotThrow(() -> {
-            new LLMProvider("Gemini", apiKey, null, chatModel);
+            new LLMProvider("Gemini", apiKey, null, chatModel, embedModel);
         }, "Provider should accept mixed case");
     }
 
@@ -254,6 +254,17 @@ class LLMProviderTest {
             assertNotNull(provider);
             assertFalse(provider.isEmpty());
         }
+    }
+
+    @Test
+    @DisplayName("Should use legacy 4-parameter constructor for backward compatibility")
+    void shouldUseLegacyConstructorForBackwardCompatibility() {
+        assumeApiKeyPresent();
+
+        // The 4-parameter constructor should still work (uses same model for both)
+        assertDoesNotThrow(() -> {
+            new LLMProvider("GEMINI", apiKey, null, embedModel);
+        }, "Legacy 4-parameter constructor should still work");
     }
 
     // Helper method to skip tests when API key is not available

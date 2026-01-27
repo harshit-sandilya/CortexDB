@@ -42,13 +42,15 @@ public class SetupService {
             }
         }
 
-        // Initialize LLMProvider with request parameters
-        log.info("Initializing LLMProvider...");
+        // Initialize LLMProvider with SEPARATE chat and embedding models
+        log.info("Initializing LLMProvider with chatModel: {} and embedModel: {}...",
+                request.getChatModelName(), request.getEmbedModelName());
         new LLMProvider(
                 request.getProvider().name(),
                 request.getApiKey(),
                 effectiveBaseUrl,
-                request.getModelName());
+                request.getChatModelName(),
+                request.getEmbedModelName());
 
         // Test embedding
         log.info("Testing embedding model...");
@@ -64,7 +66,8 @@ public class SetupService {
                 .message("Setup params validated and probed successfully. Backend is ready.")
                 .success(true)
                 .configuredProvider(request.getProvider().name())
-                .configuredModel(request.getModelName())
+                .configuredChatModel(request.getChatModelName())
+                .configuredEmbedModel(request.getEmbedModelName())
                 .baseUrl(effectiveBaseUrl)
                 .timestamp(Instant.now())
                 .build();

@@ -50,20 +50,30 @@ class SetupServiceTest {
         }
     }
 
-    @Test
-    @DisplayName("Should configure LLM successfully with GEMINI provider")
-    void shouldConfigureLLMWithGeminiProvider() {
+    /**
+     * Helper to create a Gemini SetupRequest with separate chat and embed models
+     */
+    private SetupRequest createGeminiRequest(String chatModel, String embedModel) {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.GEMINI);
         request.setApiKey("test-api-key");
-        request.setModelName("gemini-2.0-flash");
+        request.setChatModelName(chatModel);
+        request.setEmbedModelName(embedModel);
+        return request;
+    }
+
+    @Test
+    @DisplayName("Should configure LLM successfully with GEMINI provider")
+    void shouldConfigureLLMWithGeminiProvider() {
+        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "text-embedding-004");
 
         SetupResponse response = setupService.configureLLM(request);
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
         assertEquals("GEMINI", response.getConfiguredProvider());
-        assertEquals("gemini-2.0-flash", response.getConfiguredModel());
+        assertEquals("gemini-2.0-flash", response.getConfiguredChatModel());
+        assertEquals("text-embedding-004", response.getConfiguredEmbedModel());
         assertNotNull(response.getTimestamp());
         assertEquals("Setup params validated and probed successfully. Backend is ready.", response.getMessage());
 
@@ -78,14 +88,16 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.OPENAI);
         request.setApiKey("test-openai-key");
-        request.setModelName("gpt-4");
+        request.setChatModelName("gpt-4");
+        request.setEmbedModelName("text-embedding-ada-002");
 
         SetupResponse response = setupService.configureLLM(request);
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
         assertEquals("OPENAI", response.getConfiguredProvider());
-        assertEquals("gpt-4", response.getConfiguredModel());
+        assertEquals("gpt-4", response.getConfiguredChatModel());
+        assertEquals("text-embedding-ada-002", response.getConfiguredEmbedModel());
         assertEquals("https://api.openai.com", response.getBaseUrl());
     }
 
@@ -95,7 +107,8 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.AZURE);
         request.setApiKey("test-azure-key");
-        request.setModelName("gpt-35-turbo");
+        request.setChatModelName("gpt-35-turbo");
+        request.setEmbedModelName("text-embedding-ada-002");
 
         SetupResponse response = setupService.configureLLM(request);
 
@@ -111,7 +124,8 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(null);
         request.setApiKey("test-api-key");
-        request.setModelName("test-model");
+        request.setChatModelName("test-model");
+        request.setEmbedModelName("test-embed-model");
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -125,7 +139,8 @@ class SetupServiceTest {
     void shouldUseDefaultBaseUrlForOllama() {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.OLLAMA);
-        request.setModelName("llama2");
+        request.setChatModelName("llama2");
+        request.setEmbedModelName("nomic-embed-text");
 
         SetupResponse response = setupService.configureLLM(request);
 
@@ -137,10 +152,7 @@ class SetupServiceTest {
     @Test
     @DisplayName("Should use custom base URL when provided")
     void shouldUseCustomBaseUrlWhenProvided() {
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey("test-api-key");
-        request.setModelName("gemini-pro");
+        SetupRequest request = createGeminiRequest("gemini-pro", "text-embedding-004");
         request.setBaseUrl("https://custom.gemini.api/v1");
 
         SetupResponse response = setupService.configureLLM(request);
@@ -156,7 +168,8 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.MISTRAL);
         request.setApiKey("test-mistral-key");
-        request.setModelName("mistral-large");
+        request.setChatModelName("mistral-large");
+        request.setEmbedModelName("mistral-embed");
 
         SetupResponse response = setupService.configureLLM(request);
 
@@ -169,10 +182,7 @@ class SetupServiceTest {
     @Test
     @DisplayName("Should create LLMProvider with correct parameters")
     void shouldCreateLLMProviderWithCorrectParameters() {
-        SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
-        request.setApiKey("my-api-key");
-        request.setModelName("gemini-2.0-flash");
+        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "text-embedding-004");
         request.setBaseUrl("https://my-custom-url.com");
 
         setupService.configureLLM(request);
@@ -187,7 +197,8 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.OPENAI);
         request.setApiKey("test-key");
-        request.setModelName("gpt-4");
+        request.setChatModelName("gpt-4");
+        request.setEmbedModelName("text-embedding-ada-002");
 
         SetupResponse response = setupService.configureLLM(request);
 
