@@ -43,7 +43,16 @@ jobs:
         run: mvn -B compile --file pom.xml
 
       - name: Run Tests
-        run: mvn -B test --file pom.xml
+        id: test
+        run: |
+          # Run tests and capture exit code
+          mvn -B test --file pom.xml || TEST_EXIT_CODE=$?
+          
+          # Store exit code for later
+          echo "test_exit_code=${TEST_EXIT_CODE:-0}" >> $GITHUB_OUTPUT
+          
+          # Exit with the test exit code (this will mark the step as failed if tests fail)
+          exit ${TEST_EXIT_CODE:-0}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_CHAT_MODEL: gemini-2.0-flash
@@ -53,9 +62,73 @@ jobs:
         if: always()
         run: mvn -B surefire-report:report-only --file pom.xml
 
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Parse surefire reports for test counts
+          TESTS_RUN=0
+          TESTS_FAILED=0
+          TESTS_ERRORS=0
+          TESTS_SKIPPED=0
+          
+          for file in target/surefire-reports/*.txt; do
+            if [ -f "$file" ]; then
+              # Extract test counts from surefire text files
+              if grep -q "Tests run:" "$file"; then
+                LINE=$(grep "Tests run:" "$file" | head -1)
+                RUN=$(echo "$LINE" | sed -n 's/.*Tests run: \([0-9]*\).*/\1/p')
+                FAILED=$(echo "$LINE" | sed -n 's/.*Failures: \([0-9]*\).*/\1/p')
+                ERRORS=$(echo "$LINE" | sed -n 's/.*Errors: \([0-9]*\).*/\1/p')
+                SKIPPED=$(echo "$LINE" | sed -n 's/.*Skipped: \([0-9]*\).*/\1/p')
+                
+                TESTS_RUN=$((TESTS_RUN + ${RUN:-0}))
+                TESTS_FAILED=$((TESTS_FAILED + ${FAILED:-0}))
+                TESTS_ERRORS=$((TESTS_ERRORS + ${ERRORS:-0}))
+                TESTS_SKIPPED=$((TESTS_SKIPPED + ${SKIPPED:-0}))
+              fi
+            fi
+          done
+          
+          TESTS_PASSED=$((TESTS_RUN - TESTS_FAILED - TESTS_ERRORS - TESTS_SKIPPED))
+          
+          echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Passed | $TESTS_PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Failed | $TESTS_FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Errors | $TESTS_ERRORS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped | $TESTS_SKIPPED |" >> $GITHUB_STEP_SUMMARY
+          echo "| Total | $TESTS_RUN |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Show overall status
+          if [ $TESTS_FAILED -gt 0 ] || [ $TESTS_ERRORS -gt 0 ]; then
+            echo "### Some tests failed or had errors!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### All tests passed!" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: memory/target/surefire-reports/
+
+      - name: Publish Test Report
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: 'memory/target/surefire-reports/TEST-*.xml'
+          fail_on_failure: true
+          require_tests: true
+          detailed_summary: true
+          include_passed: true
+
+      - name: Fail if Tests Failed
+        if: always() && steps.test.outputs.test_exit_code != '0'
+        run: |
+          echo "Tests failed with exit code ${{ steps.test.outputs.test_exit_code }}"
+          exit 1
