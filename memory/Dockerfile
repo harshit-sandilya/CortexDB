@@ -5,7 +5,7 @@ RUN mvn dependency:go-offline
 COPY src ./src
 RUN mvn package -D skipTests
 
-FROM eclipse-temurin:21-alpine
+FROM eclipse-temurin:25-alpine
 WORKDIR /app
 RUN addgroup --system spring && adduser --system --ingroup spring spring
 USER spring
