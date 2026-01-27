@@ -167,7 +167,7 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-cache</artifactId>
-			<version>4.0.0</version>
+			<version>4.0.2</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
