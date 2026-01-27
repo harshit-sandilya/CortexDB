@@ -72,6 +72,8 @@ services:
     volumes:
       - ./:/app
       - maven_repo:/root/.m2
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: test
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydatabase
@@ -79,7 +81,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: secret
     command: >
       mvn test
-      -Dmaven.test.failure.ignore=true
       jacoco:report
       surefire-report:report
 
