@@ -11,7 +11,8 @@ public class SetupResponse {
     private String message;
     private boolean success;
     private String configuredProvider;
-    private String configuredModel;
+    private String configuredChatModel;
+    private String configuredEmbedModel;
     private String baseUrl;
     private Instant timestamp;
 }
