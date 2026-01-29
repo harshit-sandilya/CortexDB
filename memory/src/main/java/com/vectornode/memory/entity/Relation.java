@@ -2,6 +2,7 @@ package com.vectornode.memory.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Entity
 @Table(name = "relations", indexes = {
@@ -11,7 +12,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Relation extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)

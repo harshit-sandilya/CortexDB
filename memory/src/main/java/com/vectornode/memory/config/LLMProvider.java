@@ -1,4 +1,4 @@
-package com.vectornode.memory.setup.service;
+package com.vectornode.memory.config;
 
 import lombok.extern.slf4j.Slf4j;
 import com.vectornode.memory.setup.exception.custom.LlmAuthenticationException;

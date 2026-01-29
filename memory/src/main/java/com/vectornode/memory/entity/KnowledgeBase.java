@@ -3,6 +3,7 @@ package com.vectornode.memory.entity;
 import com.vectornode.memory.entity.enums.ConverserRole;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -18,7 +19,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class KnowledgeBase extends BaseEntity {
     @Column(nullable = false)
     private String uid;
