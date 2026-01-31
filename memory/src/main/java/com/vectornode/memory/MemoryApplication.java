@@ -2,7 +2,9 @@ package com.vectornode.memory;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
+@EnableAsync
 @SpringBootApplication(excludeName = {
 		"org.springframework.ai.autoconfigure.azure.openai.AzureOpenAiAutoConfiguration",
 		"org.springframework.ai.model.azure.openai.autoconfigure.AzureOpenAiAutoConfiguration",

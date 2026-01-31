@@ -3,26 +3,29 @@ package com.vectornode.memory.entity;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @MappedSuperclass
 @Getter
 @Setter
+@NoArgsConstructor
+@SuperBuilder
 public abstract class BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ DEFAULT NOW()")
     private Instant createdAt;
 
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "JSONB")
     @JdbcTypeCode(SqlTypes.JSON)
     private JsonNode metadata;
 

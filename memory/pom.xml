@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<!-- No scope = compile scope, needed for PGConnection/PGNotification -->
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
