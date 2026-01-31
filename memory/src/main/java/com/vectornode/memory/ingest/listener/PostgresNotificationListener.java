@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -111,7 +110,7 @@ public class PostgresNotificationListener {
 
             JsonNode json = objectMapper.readTree(payload);
             String type = json.get("type").asText();
-            UUID id = UUID.fromString(json.get("id").asText());
+            Integer id = json.get("id").asInt();
 
             switch (type) {
                 case "KB_CREATED":

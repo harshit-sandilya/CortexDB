@@ -19,18 +19,15 @@ import java.util.List;
 public class Context extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "kb_id", nullable = false)
+    @JoinColumn(name = "kb_id")
     private KnowledgeBase knowledgeBase;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String textChunk;
+    @Column(name = "context_data", columnDefinition = "TEXT")
+    private String contextData;
 
-    @Column(columnDefinition = "vector(1536)", nullable = false)
+    @Column(name = "vector", columnDefinition = "vector(1536)")
     @JdbcTypeCode(SqlTypes.VECTOR)
-    private float[] vectorEmbedding;
-
-    @Column(name = "chunk_index")
-    private int chunkIndex;
+    private float[] vector;
 
     @ManyToMany(mappedBy = "contexts")
     @Builder.Default

@@ -2,66 +2,83 @@ package com.vectornode.memory.ingest.service;
 
 import com.vectornode.memory.config.LLMProvider;
 import com.vectornode.memory.entity.KnowledgeBase;
-import com.vectornode.memory.entity.enums.ConverserRole;
 import com.vectornode.memory.ingest.dto.request.IngestDocumentRequest;
 import com.vectornode.memory.ingest.dto.response.IngestResponse;
-import com.vectornode.memory.repository.KnowledgeBaseRepository;
+import com.vectornode.memory.ingest.dto.response.KnowledgeBaseResponse;
+import com.vectornode.memory.ingest.repository.KnowledgeBaseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
-
+/**
+ * Service for ingesting documents into the knowledge base.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class IngestService {
 
-    private final KnowledgeBaseRepository knowledgeBaseRepository;
+        private final KnowledgeBaseRepository knowledgeBaseRepository;
 
-    /**
-     * Ingests a new document into the knowledge base.
-     * 1. Generates vector embedding for the content.
-     * 2. Saves content + embedding to KnowledgeBase table.
-     *
-     * @param request The document ingestion request.
-     * @return Response containing the ID of the created knowledge base entry.
-     */
-    @Transactional
-    public IngestResponse ingestDocument(IngestDocumentRequest request) {
-        log.info("Ingesting document for user: {}", request.getUserId());
+        /**
+         * Ingests a new document into the knowledge base.
+         * Returns detailed response with all stored field values.
+         *
+         * @param request The document ingestion request.
+         * @return Response containing details of the created knowledge base entry.
+         */
+        @Transactional
+        public IngestResponse ingestDocument(IngestDocumentRequest request) {
+                log.info("Ingesting document for user: {}", request.getUserId());
+                long startTime = System.currentTimeMillis();
 
-        try {
-            // 1. Generate Embedding
-            long startTime = System.currentTimeMillis();
-            // LLMProvider.getEmbedding returns float[] directly
-            float[] vectorEmbedding = LLMProvider.getEmbedding(request.getContent());
-            log.info("Embedding generated in {} ms", System.currentTimeMillis() - startTime);
+                try {
+                        // 1. Generate Embedding
+                        long embeddingStart = System.currentTimeMillis();
+                        float[] vector = LLMProvider.getEmbedding(request.getContent());
+                        long embeddingTime = System.currentTimeMillis() - embeddingStart;
+                        log.info("Embedding generated in {} ms, dimensions: {}", embeddingTime, vector.length);
 
-            // 2. Create KnowledgeBase Entity
-            KnowledgeBase knowledgeBase = KnowledgeBase.builder()
-                    .uid(UUID.randomUUID().toString())
-                    .converser(ConverserRole.USER) // Assuming documents are user-provided
-                    .content(request.getContent())
-                    .vectorEmbedding(vectorEmbedding)
-                    .build();
+                        // 2. Create KnowledgeBase Entity
+                        KnowledgeBase knowledgeBase = KnowledgeBase.builder()
+                                        .userId(request.getUserId())
+                                        .content(request.getContent())
+                                        .vector(vector)
+                                        .build();
 
-            // 3. Save to DB
-            KnowledgeBase savedKb = knowledgeBaseRepository.save(knowledgeBase);
-            log.info("Document saved with ID: {}", savedKb.getId());
+                        // 3. Save to DB (triggers NOTIFY for async processing)
+                        KnowledgeBase savedKb = knowledgeBaseRepository.save(knowledgeBase);
+                        long processingTime = System.currentTimeMillis() - startTime;
 
-            return IngestResponse.builder()
-                    .knowledgeBaseId(savedKb.getId().toString())
-                    .status("SUCCESS")
-                    .message("Document ingested successfully.")
-                    .build();
+                        // 4. Build detailed response with all stored field values
+                        KnowledgeBaseResponse kbResponse = KnowledgeBaseResponse.from(
+                                        savedKb.getId(),
+                                        savedKb.getUserId(),
+                                        savedKb.getContent(),
+                                        savedKb.getVector(),
+                                        savedKb.getMetadata(),
+                                        savedKb.getCreatedAt(),
+                                        null // updatedAt - not set on initial create
+                        );
 
-        } catch (Exception e) {
-            log.error("Failed to ingest document", e);
-            throw new RuntimeException("Ingestion failed: " + e.getMessage(), e);
+                        log.info("KnowledgeBase stored: id={}, userId={}, contentLength={}, vectorDimensions={}, createdAt={}, processingTime={}ms",
+                                        kbResponse.getId(), kbResponse.getUserId(),
+                                        request.getContent() != null ? request.getContent().length() : 0,
+                                        kbResponse.getVectorDimensions(), kbResponse.getCreatedAt(), processingTime);
+
+                        return IngestResponse.builder()
+                                        .knowledgeBaseId(savedKb.getId().toString())
+                                        .status("SUCCESS")
+                                        .message("Document ingested successfully. Async processing (chunking, entity extraction) will follow.")
+                                        .knowledgeBase(kbResponse)
+                                        .processingTimeMs(processingTime)
+                                        .embeddingTimeMs(embeddingTime)
+                                        .build();
+
+                } catch (Exception e) {
+                        log.error("Failed to ingest document", e);
+                        throw new RuntimeException("Ingestion failed: " + e.getMessage(), e);
+                }
         }
-    }
 }

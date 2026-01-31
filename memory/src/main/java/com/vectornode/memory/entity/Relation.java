@@ -1,31 +1,63 @@
 package com.vectornode.memory.entity;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
+
+/**
+ * Represents a relation/edge in the knowledge graph.
+ * Uses composite primary key: (source_id, target_id, relation_type)
+ */
 @Entity
-@Table(name = "relations", indexes = {
-        @Index(name = "idx_source_target", columnList = "source_entity_id, target_entity_id")
-})
+@Table(name = "relations")
+@IdClass(RelationId.class)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder
-public class Relation extends BaseEntity {
+@Builder
+public class Relation {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "source_entity_id", nullable = false)
-    private RagEntity sourceEntity;
+    @Id
+    @Column(name = "source_id")
+    private Integer sourceId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "target_entity_id", nullable = false)
-    private RagEntity targetEntity;
+    @Id
+    @Column(name = "target_id")
+    private Integer targetId;
 
-    @Column(name = "relation_type", nullable = false)
+    @Id
+    @Column(name = "relation_type")
     private String relationType;
 
     @Column(name = "edge_weight")
-    private int edgeWeight;
+    @Builder.Default
+    private Integer edgeWeight = 1;
+
+    @Column(columnDefinition = "JSONB")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode metadata;
+
+    @Column(name = "created_at", columnDefinition = "TIMESTAMPTZ DEFAULT NOW()")
+    private Instant createdAt;
+
+    // Relationships for navigation (not part of PK)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_id", insertable = false, updatable = false)
+    private RagEntity sourceEntity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_id", insertable = false, updatable = false)
+    private RagEntity targetEntity;
+
+    @PrePersist
+    public void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
+    }
 }

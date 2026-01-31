@@ -1,6 +1,5 @@
 package com.vectornode.memory.entity;
 
-import com.vectornode.memory.entity.enums.ConverserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -11,29 +10,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "knowledge_bases", indexes = {
-        @Index(name = "idx_kb_uid", columnList = "uid"),
-        @Index(name = "idx_kb_created", columnList = "createdAt")
-})
+@Table(name = "knowledge_base")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
 public class KnowledgeBase extends BaseEntity {
-    @Column(nullable = false)
-    private String uid;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ConverserRole converser;
+    @Column(name = "user_id", nullable = false)
+    private String userId;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Column(columnDefinition = "vector(1536)")
+    @Column(name = "vector", columnDefinition = "vector(1536)")
     @JdbcTypeCode(SqlTypes.VECTOR)
-    private float[] vectorEmbedding;
+    private float[] vector;
 
     @OneToMany(mappedBy = "knowledgeBase", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default

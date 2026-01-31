@@ -43,11 +43,20 @@ public class ChunkingService {
             return chunks;
         }
 
+        // Ensure overlap is smaller than chunk size to prevent infinite loops
+        overlap = Math.min(overlap, chunkSize - 1);
+        if (overlap < 0) {
+            overlap = 0;
+        }
+
         // Normalize whitespace
         text = text.replaceAll("\\s+", " ").trim();
 
         int start = 0;
-        while (start < text.length()) {
+        int previousStart = -1;
+
+        while (start < text.length() && start != previousStart) {
+            previousStart = start;
             int end = Math.min(start + chunkSize, text.length());
 
             // Try to break at sentence boundary if possible
@@ -63,11 +72,18 @@ public class ChunkingService {
                 chunks.add(chunk);
             }
 
-            // Move start, accounting for overlap
-            start = end - overlap;
-            if (start <= 0 || start >= text.length()) {
+            // If we've reached the end, break
+            if (end >= text.length()) {
                 break;
             }
+
+            // Move start, accounting for overlap, but ensure forward progress
+            int nextStart = end - overlap;
+            if (nextStart <= start) {
+                // Ensure we always move forward by at least 1 character
+                nextStart = start + 1;
+            }
+            start = nextStart;
         }
 
         log.debug("Chunked text of length {} into {} chunks", text.length(), chunks.size());
