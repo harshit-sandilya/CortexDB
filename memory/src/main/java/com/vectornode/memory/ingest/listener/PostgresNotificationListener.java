@@ -14,13 +14,19 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Listens to PostgreSQL NOTIFY events on the 'rag_events' channel.
- * Dispatches events to the IngestionWorker for async processing.
+ * Fire-and-forget dispatch to IngestionWorker for async processing.
+ * 
+ * Expected notification payloads:
+ * KB_CREATED: {"type": "KB_CREATED", "id": "uuid", "content": "text content"}
+ * CONTEXT_CREATED: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid",
+ * "text_chunk": "chunk text"}
  */
 @Component
 @Slf4j
@@ -103,6 +109,10 @@ public class PostgresNotificationListener {
         }
     }
 
+    /**
+     * Handle notification - fire-and-forget dispatch to IngestionWorker.
+     * Does NOT wait for processing to complete.
+     */
     private void handleNotification(PGNotification notification) {
         try {
             String payload = notification.getParameter();
@@ -110,21 +120,45 @@ public class PostgresNotificationListener {
 
             JsonNode json = objectMapper.readTree(payload);
             String type = json.get("type").asText();
-            Integer id = json.get("id").asInt();
 
             switch (type) {
-                case "KB_CREATED":
-                    ingestionWorker.handleKbCreated(id);
-                    break;
-                case "CONTEXT_CREATED":
-                    ingestionWorker.handleContextCreated(id);
-                    break;
-                default:
-                    log.warn("Unknown notification type: {}", type);
+                case "KB_CREATED" -> handleKbCreated(json);
+                case "CONTEXT_CREATED" -> handleContextCreated(json);
+                default -> log.warn("Unknown notification type: {}", type);
             }
         } catch (Exception e) {
             log.error("Failed to process notification: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * Fire-and-forget: Dispatch KB processing to worker.
+     * Payload: {"type": "KB_CREATED", "id": "uuid", "content": "text"}
+     */
+    private void handleKbCreated(JsonNode json) {
+        UUID kbId = UUID.fromString(json.get("id").asText());
+        String content = json.get("content").asText();
+
+        log.info("Dispatching KB_CREATED for id: {} (fire-and-forget)", kbId);
+
+        // Fire-and-forget - don't wait for result
+        ingestionWorker.processKnowledgeBase(kbId, content);
+    }
+
+    /**
+     * Fire-and-forget: Dispatch Context processing to worker.
+     * Payload: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid",
+     * "text_chunk": "text"}
+     */
+    private void handleContextCreated(JsonNode json) {
+        UUID contextId = UUID.fromString(json.get("id").asText());
+        UUID kbId = UUID.fromString(json.get("kb_id").asText());
+        String textChunk = json.get("text_chunk").asText();
+
+        log.info("Dispatching CONTEXT_CREATED for id: {} (fire-and-forget)", contextId);
+
+        // Fire-and-forget - don't wait for result
+        ingestionWorker.processContext(contextId, kbId, textChunk);
     }
 
     private void sleep(long ms) {

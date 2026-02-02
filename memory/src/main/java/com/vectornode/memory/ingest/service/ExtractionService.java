@@ -1,8 +1,8 @@
 package com.vectornode.memory.ingest.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vectornode.memory.config.LLMProvider;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -10,9 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Uses LLM to extract entities and relations from text.
+ * Uses LLM to extract entities, relations, and metadata from text.
  */
 @Service
 @Slf4j
@@ -21,7 +22,7 @@ public class ExtractionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String EXTRACTION_PROMPT = """
-            You are a knowledge graph extraction system. Extract entities and relations from the following text.
+            You are a knowledge graph extraction system. Extract entities, relations, and metadata from the following text.
 
             TEXT:
             %s
@@ -33,27 +34,56 @@ public class ExtractionService {
               ],
               "relations": [
                 {"source": "Source Entity Name", "target": "Target Entity Name", "relation": "RELATION_TYPE"}
-              ]
+              ],
+              "metadata": {
+                "topics": ["main topic 1", "main topic 2"],
+                "keywords": ["keyword1", "keyword2", "keyword3"],
+                "sentiment": "POSITIVE|NEGATIVE|NEUTRAL|MIXED",
+                "language": "en",
+                "contentType": "NARRATIVE|TECHNICAL|CONVERSATIONAL|FACTUAL|OTHER",
+                "summary": "One sentence summary of the content"
+              }
             }
 
             Rules:
             - Extract only clearly stated entities and relationships
             - Use simple, normalized entity names
             - Relation types should be uppercase with underscores (e.g., WORKS_FOR, LOCATED_IN, PART_OF)
+            - For metadata, extract key topics, relevant keywords, and overall sentiment
             - If no entities found, return empty arrays
+            - Metadata fields are optional but try to extract what you can
             """;
 
     /**
-     * Extracts entities and relations from the given text using LLM.
+     * Extracts entities, relations, and metadata from the given text using LLM.
      *
      * @param text The source text.
-     * @return Extraction result containing entities and relations.
+     * @return Extraction result containing entities, relations, and metadata.
      */
     public ExtractionResult extractFromText(String text) {
-        log.debug("Extracting entities from text of length: {}", text.length());
+        return extractFromText(text, null);
+    }
+
+    /**
+     * Extracts entities, relations, and metadata from the given text using LLM.
+     * Optionally includes existing KB metadata for context.
+     *
+     * @param text       The source text.
+     * @param kbMetadata Optional existing metadata from knowledge base.
+     * @return Extraction result containing entities, relations, and metadata.
+     */
+    public ExtractionResult extractFromText(String text, Map<String, Object> kbMetadata) {
+        log.debug("Extracting entities and metadata from text of length: {}", text.length());
 
         try {
-            String prompt = String.format(EXTRACTION_PROMPT, text);
+            // Include KB metadata context if available
+            String contextText = text;
+            if (kbMetadata != null && !kbMetadata.isEmpty()) {
+                String metadataContext = objectMapper.writeValueAsString(kbMetadata);
+                contextText = "EXISTING METADATA:\n" + metadataContext + "\n\nCONTENT:\n" + text;
+            }
+
+            String prompt = String.format(EXTRACTION_PROMPT, contextText);
             String response = LLMProvider.callLLM(prompt);
 
             // Clean response (remove markdown code blocks if present)
@@ -118,12 +148,56 @@ public class ExtractionService {
                 }
             }
 
-            log.debug("Parsed {} entities and {} relations", result.getEntities().size(), result.getRelations().size());
+            // Parse metadata
+            if (root.has("metadata") && root.get("metadata").isObject()) {
+                JsonNode metaNode = root.get("metadata");
+                ExtractedMetadata metadata = result.getMetadata();
+
+                // Topics
+                if (metaNode.has("topics") && metaNode.get("topics").isArray()) {
+                    for (JsonNode topic : metaNode.get("topics")) {
+                        metadata.getTopics().add(topic.asText());
+                    }
+                }
+
+                // Keywords
+                if (metaNode.has("keywords") && metaNode.get("keywords").isArray()) {
+                    for (JsonNode keyword : metaNode.get("keywords")) {
+                        metadata.getKeywords().add(keyword.asText());
+                    }
+                }
+
+                // Simple string fields
+                metadata.setSentiment(metaNode.path("sentiment").asText("NEUTRAL"));
+                metadata.setLanguage(metaNode.path("language").asText("en"));
+                metadata.setContentType(metaNode.path("contentType").asText("OTHER"));
+                metadata.setSummary(metaNode.path("summary").asText(""));
+            }
+
+            log.debug("Parsed {} entities, {} relations, {} topics, {} keywords",
+                    result.getEntities().size(),
+                    result.getRelations().size(),
+                    result.getMetadata().getTopics().size(),
+                    result.getMetadata().getKeywords().size());
         } catch (Exception e) {
             log.error("Failed to parse LLM response: {}", e.getMessage());
         }
 
         return result;
+    }
+
+    /**
+     * Converts extracted metadata to a JsonNode for storage.
+     */
+    public ObjectNode metadataToJson(ExtractedMetadata metadata) {
+        ObjectNode node = objectMapper.createObjectNode();
+        node.set("topics", objectMapper.valueToTree(metadata.getTopics()));
+        node.set("keywords", objectMapper.valueToTree(metadata.getKeywords()));
+        node.put("sentiment", metadata.getSentiment());
+        node.put("language", metadata.getLanguage());
+        node.put("contentType", metadata.getContentType());
+        node.put("summary", metadata.getSummary());
+        return node;
     }
 
     // --- Data classes ---
@@ -132,6 +206,7 @@ public class ExtractionService {
     public static class ExtractionResult {
         private List<ExtractedEntity> entities = new ArrayList<>();
         private List<ExtractedRelation> relations = new ArrayList<>();
+        private ExtractedMetadata metadata = new ExtractedMetadata();
     }
 
     @Data
@@ -146,5 +221,15 @@ public class ExtractionService {
         private String sourceName;
         private String targetName;
         private String relationType;
+    }
+
+    @Data
+    public static class ExtractedMetadata {
+        private List<String> topics = new ArrayList<>();
+        private List<String> keywords = new ArrayList<>();
+        private String sentiment = "NEUTRAL";
+        private String language = "en";
+        private String contentType = "OTHER";
+        private String summary = "";
     }
 }

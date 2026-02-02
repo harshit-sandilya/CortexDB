@@ -14,26 +14,17 @@ import java.util.List;
 public class ChunkingService {
 
     // Default chunk size (characters)
-    private static final int DEFAULT_CHUNK_SIZE = 1000;
+    public static final int DEFAULT_CHUNK_SIZE = 1000;
     // Overlap between chunks for context continuity
-    private static final int DEFAULT_OVERLAP = 200;
+    public static final int DEFAULT_OVERLAP = 200;
 
     /**
      * Splits text into overlapping chunks.
      *
-     * @param text The source text to chunk.
-     * @return List of text chunks.
-     */
-    public List<String> chunkText(String text) {
-        return chunkText(text, DEFAULT_CHUNK_SIZE, DEFAULT_OVERLAP);
-    }
-
-    /**
-     * Splits text into overlapping chunks with custom parameters.
-     *
      * @param text      The source text.
-     * @param chunkSize Maximum characters per chunk.
-     * @param overlap   Characters of overlap between consecutive chunks.
+     * @param chunkSize Maximum characters per chunk (default: 1000).
+     * @param overlap   Characters of overlap between consecutive chunks (default:
+     *                  200).
      * @return List of text chunks.
      */
     public List<String> chunkText(String text, int chunkSize, int overlap) {
@@ -43,11 +34,16 @@ public class ChunkingService {
             return chunks;
         }
 
+        // Use defaults if invalid values passed
+        if (chunkSize <= 0) {
+            chunkSize = DEFAULT_CHUNK_SIZE;
+        }
+        if (overlap < 0) {
+            overlap = DEFAULT_OVERLAP;
+        }
+
         // Ensure overlap is smaller than chunk size to prevent infinite loops
         overlap = Math.min(overlap, chunkSize - 1);
-        if (overlap < 0) {
-            overlap = 0;
-        }
 
         // Normalize whitespace
         text = text.replaceAll("\\s+", " ").trim();

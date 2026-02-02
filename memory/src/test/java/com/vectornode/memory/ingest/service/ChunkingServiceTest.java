@@ -30,21 +30,24 @@ class ChunkingServiceTest {
         @Test
         @DisplayName("should return empty list for null input")
         void shouldReturnEmptyListForNullInput() {
-            List<String> chunks = chunkingService.chunkText(null);
+            List<String> chunks = chunkingService.chunkText(null, ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
             assertThat(chunks).isEmpty();
         }
 
         @Test
         @DisplayName("should return empty list for blank input")
         void shouldReturnEmptyListForBlankInput() {
-            List<String> chunks = chunkingService.chunkText("   ");
+            List<String> chunks = chunkingService.chunkText("   ", ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
             assertThat(chunks).isEmpty();
         }
 
         @Test
         @DisplayName("should return empty list for empty string")
         void shouldReturnEmptyListForEmptyString() {
-            List<String> chunks = chunkingService.chunkText("");
+            List<String> chunks = chunkingService.chunkText("", ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
             assertThat(chunks).isEmpty();
         }
 
@@ -52,7 +55,8 @@ class ChunkingServiceTest {
         @DisplayName("should return single chunk for short text")
         void shouldReturnSingleChunkForShortText() {
             String shortText = "This is a short text that should fit in one chunk.";
-            List<String> chunks = chunkingService.chunkText(shortText);
+            List<String> chunks = chunkingService.chunkText(shortText, ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
 
             assertThat(chunks).hasSize(1);
             assertThat(chunks.get(0)).isEqualTo(shortText);
@@ -62,7 +66,8 @@ class ChunkingServiceTest {
         @DisplayName("should normalize whitespace")
         void shouldNormalizeWhitespace() {
             String textWithWeirdSpaces = "Hello   world\n\nthis  is\t\ttest";
-            List<String> chunks = chunkingService.chunkText(textWithWeirdSpaces);
+            List<String> chunks = chunkingService.chunkText(textWithWeirdSpaces, ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
 
             assertThat(chunks).hasSize(1);
             assertThat(chunks.get(0)).isEqualTo("Hello world this is test");
@@ -175,7 +180,8 @@ class ChunkingServiceTest {
         @Timeout(value = 5, unit = TimeUnit.SECONDS)
         void shouldHandleUnicodeText() {
             String text = "Hello, More text here.";
-            List<String> chunks = chunkingService.chunkText(text);
+            List<String> chunks = chunkingService.chunkText(text, ChunkingService.DEFAULT_CHUNK_SIZE,
+                    ChunkingService.DEFAULT_OVERLAP);
 
             assertThat(chunks).isNotEmpty();
             assertThat(chunks.get(0)).contains("text");

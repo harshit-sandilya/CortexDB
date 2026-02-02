@@ -2,7 +2,6 @@ package com.vectornode.memory.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -15,19 +14,22 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@SuperBuilder
+@Builder
 public class Context extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "kb_id")
+    @JoinColumn(name = "kb_id", nullable = false)
     private KnowledgeBase knowledgeBase;
 
-    @Column(name = "context_data", columnDefinition = "TEXT")
-    private String contextData;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String textChunk;
 
-    @Column(name = "vector", columnDefinition = "vector(1536)")
+    @Column(columnDefinition = "vector(1536)", nullable = false)
     @JdbcTypeCode(SqlTypes.VECTOR)
-    private float[] vector;
+    private float[] vectorEmbedding;
+
+    @Column(name = "chunk_index")
+    private int chunkIndex;
 
     @ManyToMany(mappedBy = "contexts")
     @Builder.Default

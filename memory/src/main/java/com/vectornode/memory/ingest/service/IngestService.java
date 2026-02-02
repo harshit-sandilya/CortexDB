@@ -1,77 +1,50 @@
 package com.vectornode.memory.ingest.service;
 
 import com.vectornode.memory.config.LLMProvider;
-import com.vectornode.memory.entity.KnowledgeBase;
-import com.vectornode.memory.ingest.dto.request.IngestDocumentRequest;
+import com.vectornode.memory.ingest.dto.request.IngestContentRequest;
 import com.vectornode.memory.ingest.dto.response.IngestResponse;
-import com.vectornode.memory.ingest.dto.response.KnowledgeBaseResponse;
-import com.vectornode.memory.ingest.repository.KnowledgeBaseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 /**
- * Service for ingesting documents into the knowledge base.
+ * Service for ingesting documents.
+ * Handles embedding generation and returns processing results.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class IngestService {
 
-        private final KnowledgeBaseRepository knowledgeBaseRepository;
-
         /**
-         * Ingests a new document into the knowledge base.
-         * Returns detailed response with all stored field values.
-         *
-         * @param request The document ingestion request.
-         * @return Response containing details of the created knowledge base entry.
+         * Processes a document ingestion request.
+         * Generates embeddings and returns response.
          */
-        @Transactional
-        public IngestResponse ingestDocument(IngestDocumentRequest request) {
-                log.info("Ingesting document for user: {}", request.getUserId());
+        public IngestResponse ingestDocument(IngestContentRequest request) {
+                log.info("Ingesting document for uid: {}, converser: {}", request.getUid(), request.getConverser());
                 long startTime = System.currentTimeMillis();
 
                 try {
-                        // 1. Generate Embedding
+                        // Generate Embedding
                         long embeddingStart = System.currentTimeMillis();
-                        float[] vector = LLMProvider.getEmbedding(request.getContent());
+                        float[] embedding = LLMProvider.getEmbedding(request.getContent());
                         long embeddingTime = System.currentTimeMillis() - embeddingStart;
-                        log.info("Embedding generated in {} ms, dimensions: {}", embeddingTime, vector.length);
 
-                        // 2. Create KnowledgeBase Entity
-                        KnowledgeBase knowledgeBase = KnowledgeBase.builder()
-                                        .userId(request.getUserId())
-                                        .content(request.getContent())
-                                        .vector(vector)
-                                        .build();
-
-                        // 3. Save to DB (triggers NOTIFY for async processing)
-                        KnowledgeBase savedKb = knowledgeBaseRepository.save(knowledgeBase);
+                        UUID tempId = UUID.randomUUID();
                         long processingTime = System.currentTimeMillis() - startTime;
 
-                        // 4. Build detailed response with all stored field values
-                        KnowledgeBaseResponse kbResponse = KnowledgeBaseResponse.from(
-                                        savedKb.getId(),
-                                        savedKb.getUserId(),
-                                        savedKb.getContent(),
-                                        savedKb.getVector(),
-                                        savedKb.getMetadata(),
-                                        savedKb.getCreatedAt(),
-                                        null // updatedAt - not set on initial create
-                        );
-
-                        log.info("KnowledgeBase stored: id={}, userId={}, contentLength={}, vectorDimensions={}, createdAt={}, processingTime={}ms",
-                                        kbResponse.getId(), kbResponse.getUserId(),
+                        log.info("Document ingested: id={}, uid={}, converser={}, contentLength={}, embeddingDimensions={}, processingTime={}ms",
+                                        tempId, request.getUid(), request.getConverser(),
                                         request.getContent() != null ? request.getContent().length() : 0,
-                                        kbResponse.getVectorDimensions(), kbResponse.getCreatedAt(), processingTime);
+                                        embedding.length, processingTime);
 
                         return IngestResponse.builder()
-                                        .knowledgeBaseId(savedKb.getId().toString())
+                                        .knowledgeBaseId(tempId)
                                         .status("SUCCESS")
-                                        .message("Document ingested successfully. Async processing (chunking, entity extraction) will follow.")
-                                        .knowledgeBase(kbResponse)
+                                        .message("Document processed successfully.")
+                                        .embeddingDimensions(embedding.length)
                                         .processingTimeMs(processingTime)
                                         .embeddingTimeMs(embeddingTime)
                                         .build();
