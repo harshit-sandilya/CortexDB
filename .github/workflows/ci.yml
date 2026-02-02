@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, testing2 ]
+    branches: [ main, testing2, query-engine ]
   pull_request:
     branches: [ main ]
 
