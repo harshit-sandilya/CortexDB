@@ -68,20 +68,18 @@ jobs:
           TESTS_ERRORS=0
           TESTS_SKIPPED=0
           
-          for file in target/surefire-reports/*.txt; do
+          # Parse XML files for accurate test counts
+          for file in target/surefire-reports/TEST-*.xml; do
             if [ -f "$file" ]; then
-              if grep -q "Tests run:" "$file"; then
-                LINE=$(grep "Tests run:" "$file" | head -1)
-                RUN=$(echo "$LINE" | sed -n 's/.*Tests run: \([0-9]*\).*/\1/p')
-                FAILED=$(echo "$LINE" | sed -n 's/.*Failures: \([0-9]*\).*/\1/p')
-                ERRORS=$(echo "$LINE" | sed -n 's/.*Errors: \([0-9]*\).*/\1/p')
-                SKIPPED=$(echo "$LINE" | sed -n 's/.*Skipped: \([0-9]*\).*/\1/p')
-                
-                TESTS_RUN=$((TESTS_RUN + ${RUN:-0}))
-                TESTS_FAILED=$((TESTS_FAILED + ${FAILED:-0}))
-                TESTS_ERRORS=$((TESTS_ERRORS + ${ERRORS:-0}))
-                TESTS_SKIPPED=$((TESTS_SKIPPED + ${SKIPPED:-0}))
-              fi
+              RUN=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
+              FAILED=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
+              ERRORS=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
+              SKIPPED=$(grep -oP 'skipped="\K[0-9]+' "$file" | head -1)
+              
+              TESTS_RUN=$((TESTS_RUN + ${RUN:-0}))
+              TESTS_FAILED=$((TESTS_FAILED + ${FAILED:-0}))
+              TESTS_ERRORS=$((TESTS_ERRORS + ${ERRORS:-0}))
+              TESTS_SKIPPED=$((TESTS_SKIPPED + ${SKIPPED:-0}))
             fi
           done
           
