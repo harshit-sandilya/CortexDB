@@ -68,13 +68,14 @@ jobs:
           TESTS_ERRORS=0
           TESTS_SKIPPED=0
           
-          # Parse XML files for accurate test counts
+          # Parse XML files for accurate test counts using sed (more portable)
           for file in target/surefire-reports/TEST-*.xml; do
             if [ -f "$file" ]; then
-              RUN=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
-              FAILED=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
-              ERRORS=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
-              SKIPPED=$(grep -oP 'skipped="\K[0-9]+' "$file" | head -1)
+              # Extract counts from testsuite attributes
+              RUN=$(sed -n 's/.*tests="\([0-9]*\)".*/\1/p' "$file" | head -1)
+              FAILED=$(sed -n 's/.*failures="\([0-9]*\)".*/\1/p' "$file" | head -1)
+              ERRORS=$(sed -n 's/.*errors="\([0-9]*\)".*/\1/p' "$file" | head -1)
+              SKIPPED=$(sed -n 's/.*skipped="\([0-9]*\)".*/\1/p' "$file" | head -1)
               
               TESTS_RUN=$((TESTS_RUN + ${RUN:-0}))
               TESTS_FAILED=$((TESTS_FAILED + ${FAILED:-0}))
