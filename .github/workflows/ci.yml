@@ -63,33 +63,30 @@ jobs:
         id: test_results
         if: always()
         run: |
-          TESTS_RUN=0
-          TESTS_FAILED=0
-          TESTS_ERRORS=0
-          TESTS_SKIPPED=0
+          # Parse from Maven surefire summary which is more reliable
+          # Look for lines like: Tests run: 86, Failures: 0, Errors: 0, Skipped: 0
+          SUMMARY=$(find target/surefire-reports -name "*.txt" -exec grep "Tests run:" {} \; | awk -F'[,:]' '
+            BEGIN { run=0; fail=0; err=0; skip=0 }
+            {
+              for(i=1; i<=NF; i++) {
+                gsub(/^[ \t]+|[ \t]+$/, "", $i)
+                if ($i ~ /Tests run/) { gsub(/[^0-9]/, "", $(i+1)); run += $(i+1) }
+                if ($i ~ /Failures/) { gsub(/[^0-9]/, "", $(i+1)); fail += $(i+1) }
+                if ($i ~ /Errors/) { gsub(/[^0-9]/, "", $(i+1)); err += $(i+1) }
+                if ($i ~ /Skipped/) { gsub(/[^0-9]/, "", $(i+1)); skip += $(i+1) }
+              }
+            }
+            END { print run" "fail" "err" "skip }
+          ')
           
-          # Parse XML files using xmllint for reliable extraction
-          for file in target/surefire-reports/TEST-*.xml; do
-            if [ -f "$file" ]; then
-              RUN=$(xmllint --xpath "string(/testsuite/@tests)" "$file" 2>/dev/null || echo "0")
-              FAILED=$(xmllint --xpath "string(/testsuite/@failures)" "$file" 2>/dev/null || echo "0")
-              ERRORS=$(xmllint --xpath "string(/testsuite/@errors)" "$file" 2>/dev/null || echo "0")
-              SKIPPED=$(xmllint --xpath "string(/testsuite/@skipped)" "$file" 2>/dev/null || echo "0")
-              
-              TESTS_RUN=$((TESTS_RUN + ${RUN:-0}))
-              TESTS_FAILED=$((TESTS_FAILED + ${FAILED:-0}))
-              TESTS_ERRORS=$((TESTS_ERRORS + ${ERRORS:-0}))
-              TESTS_SKIPPED=$((TESTS_SKIPPED + ${SKIPPED:-0}))
-            fi
-          done
+          read TESTS_RUN TESTS_FAILED TESTS_ERRORS TESTS_SKIPPED <<< "$SUMMARY"
+          TESTS_PASSED=$((${TESTS_RUN:-0} - ${TESTS_FAILED:-0} - ${TESTS_ERRORS:-0} - ${TESTS_SKIPPED:-0}))
           
-          TESTS_PASSED=$((TESTS_RUN - TESTS_FAILED - TESTS_ERRORS - TESTS_SKIPPED))
-          
-          echo "total=$TESTS_RUN" >> $GITHUB_OUTPUT
-          echo "passed=$TESTS_PASSED" >> $GITHUB_OUTPUT
-          echo "failed=$TESTS_FAILED" >> $GITHUB_OUTPUT
-          echo "errors=$TESTS_ERRORS" >> $GITHUB_OUTPUT
-          echo "skipped=$TESTS_SKIPPED" >> $GITHUB_OUTPUT
+          echo "total=${TESTS_RUN:-0}" >> $GITHUB_OUTPUT
+          echo "passed=${TESTS_PASSED:-0}" >> $GITHUB_OUTPUT
+          echo "failed=${TESTS_FAILED:-0}" >> $GITHUB_OUTPUT
+          echo "errors=${TESTS_ERRORS:-0}" >> $GITHUB_OUTPUT
+          echo "skipped=${TESTS_SKIPPED:-0}" >> $GITHUB_OUTPUT
 
       - name: Test Summary
         if: always()
