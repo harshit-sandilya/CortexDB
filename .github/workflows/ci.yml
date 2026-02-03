@@ -51,9 +51,11 @@ jobs:
       - name: Run Tests
         id: test
         run: |
-          mvn -B test --file pom.xml || TEST_EXIT_CODE=$?
-          echo "test_exit_code=${TEST_EXIT_CODE:-0}" >> $GITHUB_OUTPUT
-          exit ${TEST_EXIT_CODE:-0}
+          set +e
+          mvn -B test --file pom.xml 2>&1 | tee test-output.log
+          TEST_EXIT_CODE=$?
+          echo "test_exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
+          exit ${TEST_EXIT_CODE}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_CHAT_MODEL: gemini-2.0-flash
@@ -63,46 +65,70 @@ jobs:
         id: test_results
         if: always()
         run: |
-          # Parse from Maven surefire summary - look for the final summary line
-          # The summary appears at the end of the test output in the format:
-          # Tests run: 86, Failures: 0, Errors: 0, Skipped: 0
-          
-          # Find all TEST-*.xml files and parse them
-          TESTS_RUN=0
-          TESTS_FAILED=0
-          TESTS_ERRORS=0
-          TESTS_SKIPPED=0
-          
-          # Parse XML files directly for accurate counts
-          for file in target/surefire-reports/TEST-*.xml; do
-            if [ -f "$file" ]; then
-              # Extract attributes from testsuite element
-              tests=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
-              failures=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
-              errors=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
-              skipped=$(grep -oP 'skipped="\K[0-9]+' "$file" | head -1)
-              
-              TESTS_RUN=$((TESTS_RUN + ${tests:-0}))
-              TESTS_FAILED=$((TESTS_FAILED + ${failures:-0}))
-              TESTS_ERRORS=$((TESTS_ERRORS + ${errors:-0}))
-              TESTS_SKIPPED=$((TESTS_SKIPPED + ${skipped:-0}))
+          # Method 1: Parse from maven output (most reliable for summary)
+          if [ -f test-output.log ]; then
+            # Look for the final "Tests run:" line in Maven output
+            MAVEN_SUMMARY=$(grep "Tests run:" test-output.log | tail -1)
+            echo "Maven summary line: $MAVEN_SUMMARY"
+            
+            if [ -n "$MAVEN_SUMMARY" ]; then
+              TESTS_RUN=$(echo "$MAVEN_SUMMARY" | grep -oP 'Tests run: \K[0-9]+' || echo "0")
+              TESTS_FAILED=$(echo "$MAVEN_SUMMARY" | grep -oP 'Failures: \K[0-9]+' || echo "0")
+              TESTS_ERRORS=$(echo "$MAVEN_SUMMARY" | grep -oP 'Errors: \K[0-9]+' || echo "0")
+              TESTS_SKIPPED=$(echo "$MAVEN_SUMMARY" | grep -oP 'Skipped: \K[0-9]+' || echo "0")
             fi
-          done
+          fi
           
-          TESTS_PASSED=$((TESTS_RUN - TESTS_FAILED - TESTS_ERRORS - TESTS_SKIPPED))
+          # Method 2: Fallback to XML parsing if maven output parsing failed
+          if [ -z "$TESTS_RUN" ] || [ "$TESTS_RUN" = "0" ]; then
+            echo "Falling back to XML parsing..."
+            TESTS_RUN=0
+            TESTS_FAILED=0
+            TESTS_ERRORS=0
+            TESTS_SKIPPED=0
+            
+            for file in target/surefire-reports/TEST-*.xml; do
+              if [ -f "$file" ]; then
+                echo "Processing: $file"
+                # Use xmllint if available, otherwise grep
+                if command -v xmllint &> /dev/null; then
+                  tests=$(xmllint --xpath 'string(//testsuite/@tests)' "$file" 2>/dev/null || echo "0")
+                  failures=$(xmllint --xpath 'string(//testsuite/@failures)' "$file" 2>/dev/null || echo "0")
+                  errors=$(xmllint --xpath 'string(//testsuite/@errors)' "$file" 2>/dev/null || echo "0")
+                  skipped=$(xmllint --xpath 'string(//testsuite/@skipped)' "$file" 2>/dev/null || echo "0")
+                else
+                  tests=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1 || echo "0")
+                  failures=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1 || echo "0")
+                  errors=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1 || echo "0")
+                  skipped=$(grep -oP 'skipped="\K[0-9]+' "$file" | head -1 || echo "0")
+                fi
+                
+                TESTS_RUN=$((TESTS_RUN + ${tests:-0}))
+                TESTS_FAILED=$((TESTS_FAILED + ${failures:-0}))
+                TESTS_ERRORS=$((TESTS_ERRORS + ${errors:-0}))
+                TESTS_SKIPPED=$((TESTS_SKIPPED + ${skipped:-0}))
+              fi
+            done
+          fi
           
-          echo "total=${TESTS_RUN}" >> $GITHUB_OUTPUT
-          echo "passed=${TESTS_PASSED}" >> $GITHUB_OUTPUT
-          echo "failed=${TESTS_FAILED}" >> $GITHUB_OUTPUT
-          echo "errors=${TESTS_ERRORS}" >> $GITHUB_OUTPUT
-          echo "skipped=${TESTS_SKIPPED}" >> $GITHUB_OUTPUT
+          # Calculate passed tests
+          TESTS_PASSED=$((${TESTS_RUN:-0} - ${TESTS_FAILED:-0} - ${TESTS_ERRORS:-0} - ${TESTS_SKIPPED:-0}))
           
-          echo "Test Results Summary:"
-          echo "Total: ${TESTS_RUN}"
-          echo "Passed: ${TESTS_PASSED}"
-          echo "Failed: ${TESTS_FAILED}"
-          echo "Errors: ${TESTS_ERRORS}"
-          echo "Skipped: ${TESTS_SKIPPED}"
+          # Set outputs
+          echo "total=${TESTS_RUN:-0}" >> $GITHUB_OUTPUT
+          echo "passed=${TESTS_PASSED:-0}" >> $GITHUB_OUTPUT
+          echo "failed=${TESTS_FAILED:-0}" >> $GITHUB_OUTPUT
+          echo "errors=${TESTS_ERRORS:-0}" >> $GITHUB_OUTPUT
+          echo "skipped=${TESTS_SKIPPED:-0}" >> $GITHUB_OUTPUT
+          
+          # Debug output
+          echo "=== Test Results Summary ==="
+          echo "Total: ${TESTS_RUN:-0}"
+          echo "Passed: ${TESTS_PASSED:-0}"
+          echo "Failed: ${TESTS_FAILED:-0}"
+          echo "Errors: ${TESTS_ERRORS:-0}"
+          echo "Skipped: ${TESTS_SKIPPED:-0}"
+          echo "==========================="
 
       - name: Test Summary
         if: always()
