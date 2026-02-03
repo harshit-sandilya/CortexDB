@@ -62,39 +62,47 @@ jobs:
       - name: Parse Test Results
         id: test_results
         if: always()
-        shell: python
         run: |
-          import os
-          import glob
-          import xml.etree.ElementTree as ET
-
-          total = 0
-          failures = 0
-          errors = 0
-          skipped = 0
-
-          base_path = "target/surefire-reports"
-          if os.path.exists(base_path):
-              for file_path in glob.glob(os.path.join(base_path, "TEST-*.xml")):
-                  try:
-                      tree = ET.parse(file_path)
-                      root = tree.getroot()
-                      # Account for testsuite attributes
-                      total += int(root.attrib.get("tests", 0))
-                      failures += int(root.attrib.get("failures", 0))
-                      errors += int(root.attrib.get("errors", 0))
-                      skipped += int(root.attrib.get("skipped", 0))
-                  except Exception as e:
-                      print(f"Error parsing {file_path}: {e}")
-
-          passed = total - failures - errors - skipped
+          # Parse from Maven surefire summary - look for the final summary line
+          # The summary appears at the end of the test output in the format:
+          # Tests run: 86, Failures: 0, Errors: 0, Skipped: 0
           
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-              fh.write(f"total={total}\n")
-              fh.write(f"passed={passed}\n")
-              fh.write(f"failed={failures}\n")
-              fh.write(f"errors={errors}\n")
-              fh.write(f"skipped={skipped}\n")
+          # Find all TEST-*.xml files and parse them
+          TESTS_RUN=0
+          TESTS_FAILED=0
+          TESTS_ERRORS=0
+          TESTS_SKIPPED=0
+          
+          # Parse XML files directly for accurate counts
+          for file in target/surefire-reports/TEST-*.xml; do
+            if [ -f "$file" ]; then
+              # Extract attributes from testsuite element
+              tests=$(grep -oP 'tests="\K[0-9]+' "$file" | head -1)
+              failures=$(grep -oP 'failures="\K[0-9]+' "$file" | head -1)
+              errors=$(grep -oP 'errors="\K[0-9]+' "$file" | head -1)
+              skipped=$(grep -oP 'skipped="\K[0-9]+' "$file" | head -1)
+              
+              TESTS_RUN=$((TESTS_RUN + ${tests:-0}))
+              TESTS_FAILED=$((TESTS_FAILED + ${failures:-0}))
+              TESTS_ERRORS=$((TESTS_ERRORS + ${errors:-0}))
+              TESTS_SKIPPED=$((TESTS_SKIPPED + ${skipped:-0}))
+            fi
+          done
+          
+          TESTS_PASSED=$((TESTS_RUN - TESTS_FAILED - TESTS_ERRORS - TESTS_SKIPPED))
+          
+          echo "total=${TESTS_RUN}" >> $GITHUB_OUTPUT
+          echo "passed=${TESTS_PASSED}" >> $GITHUB_OUTPUT
+          echo "failed=${TESTS_FAILED}" >> $GITHUB_OUTPUT
+          echo "errors=${TESTS_ERRORS}" >> $GITHUB_OUTPUT
+          echo "skipped=${TESTS_SKIPPED}" >> $GITHUB_OUTPUT
+          
+          echo "Test Results Summary:"
+          echo "Total: ${TESTS_RUN}"
+          echo "Passed: ${TESTS_PASSED}"
+          echo "Failed: ${TESTS_FAILED}"
+          echo "Errors: ${TESTS_ERRORS}"
+          echo "Skipped: ${TESTS_SKIPPED}"
 
       - name: Test Summary
         if: always()
