@@ -1,5 +1,6 @@
 package com.vectornode.memory.setup.service;
 
+import com.vectornode.memory.config.LLMProvider;
 import com.vectornode.memory.entity.enums.LLMApiProvider;
 import com.vectornode.memory.setup.dto.request.SetupRequest;
 import com.vectornode.memory.setup.dto.response.SetupResponse;

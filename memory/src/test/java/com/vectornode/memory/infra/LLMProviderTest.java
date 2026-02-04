@@ -1,6 +1,6 @@
 package com.vectornode.memory.infra;
 
-import com.vectornode.memory.setup.service.LLMProvider;
+import com.vectornode.memory.config.LLMProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

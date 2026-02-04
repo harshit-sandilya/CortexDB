@@ -3,6 +3,10 @@ package com.vectornode.memory.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Relation entity representing edges in the knowledge graph.
+ * Now includes an ID field for easier management.
+ */
 @Entity
 @Table(name = "relations", indexes = {
         @Index(name = "idx_source_target", columnList = "source_entity_id, target_entity_id")
