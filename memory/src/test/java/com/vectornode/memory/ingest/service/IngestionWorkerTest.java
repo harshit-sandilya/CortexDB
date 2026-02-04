@@ -2,6 +2,7 @@ package com.vectornode.memory.ingest.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vectornode.memory.config.LLMProvider;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,6 +31,9 @@ class IngestionWorkerTest {
     @Mock
     private ExtractionService extractionService;
 
+    @Mock
+    private EntityManager entityManager;
+
     private IngestionWorker ingestionWorker;
     private ObjectMapper objectMapper;
 
@@ -36,6 +41,7 @@ class IngestionWorkerTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         ingestionWorker = new IngestionWorker(chunkingService, extractionService, objectMapper);
+        ReflectionTestUtils.setField(ingestionWorker, "entityManager", entityManager);
     }
 
     @Nested
@@ -64,6 +70,11 @@ class IngestionWorkerTest {
             List<String> chunks = List.of("This is test content.", "More content here.");
             float[] mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
 
+            // Mock KnowledgeBase reference
+            com.vectornode.memory.entity.KnowledgeBase mockKb = mock(com.vectornode.memory.entity.KnowledgeBase.class);
+            when(mockKb.getId()).thenReturn(kbId);
+            when(entityManager.getReference(com.vectornode.memory.entity.KnowledgeBase.class, kbId)).thenReturn(mockKb);
+
             when(chunkingService.chunkText(eq(content), anyInt(), anyInt())).thenReturn(chunks);
 
             try (MockedStatic<LLMProvider> mockedLLM = mockStatic(LLMProvider.class)) {
@@ -74,6 +85,8 @@ class IngestionWorkerTest {
                 verify(chunkingService).chunkText(eq(content), anyInt(), anyInt());
                 // LLMProvider.getEmbedding called once per chunk
                 mockedLLM.verify(() -> LLMProvider.getEmbedding(anyString()), times(2));
+                // Verify Context entities were persisted
+                verify(entityManager, times(chunks.size())).persist(any(com.vectornode.memory.entity.Context.class));
             }
         }
     }
@@ -103,6 +116,20 @@ class IngestionWorkerTest {
             UUID kbId = UUID.randomUUID();
             String textChunk = "John works at Google.";
             float[] mockEmbedding = new float[] { 0.1f, 0.2f };
+
+            // Mock Context reference
+            com.vectornode.memory.entity.Context mockContext = mock(com.vectornode.memory.entity.Context.class);
+            when(entityManager.getReference(com.vectornode.memory.entity.Context.class, contextId))
+                    .thenReturn(mockContext);
+
+            // Mock TypedQuery for entity lookup
+            jakarta.persistence.TypedQuery<com.vectornode.memory.entity.RagEntity> mockQuery = mock(
+                    jakarta.persistence.TypedQuery.class);
+            when(entityManager.createQuery(anyString(), eq(com.vectornode.memory.entity.RagEntity.class)))
+                    .thenReturn(mockQuery);
+            when(mockQuery.setParameter(anyString(), any())).thenReturn(mockQuery);
+            when(mockQuery.setMaxResults(anyInt())).thenReturn(mockQuery);
+            when(mockQuery.getResultList()).thenReturn(java.util.Collections.emptyList()); // No existing entities
 
             ExtractionService.ExtractionResult result = new ExtractionService.ExtractionResult();
 
@@ -134,6 +161,9 @@ class IngestionWorkerTest {
                 verify(extractionService).extractFromText(textChunk);
                 // LLMProvider.getEmbedding called once per entity
                 mockedLLM.verify(() -> LLMProvider.getEmbedding(anyString()), times(2));
+                // Verify entities and relations were persisted
+                verify(entityManager, times(2)).persist(any(com.vectornode.memory.entity.RagEntity.class));
+                verify(entityManager, times(1)).persist(any(com.vectornode.memory.entity.Relation.class));
             }
         }
     }

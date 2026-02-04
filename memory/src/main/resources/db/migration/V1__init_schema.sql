@@ -1,75 +1,95 @@
--- Enable pgvector extension
+-- Update schema to use UUID instead of SERIAL
+-- Drop existing tables and recreate with UUID
+
+DROP TRIGGER IF EXISTS notify_context_created ON contexts;
+DROP TRIGGER IF EXISTS notify_kb_created ON knowledge_bases;
+DROP FUNCTION IF EXISTS notify_rag_event();
+
+DROP TABLE IF EXISTS relations CASCADE;
+DROP TABLE IF EXISTS entity_context_junction CASCADE;
+DROP TABLE IF EXISTS entities CASCADE;
+DROP TABLE IF EXISTS contexts CASCADE;
+DROP TABLE IF EXISTS knowledge_bases CASCADE;
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- 1. The Raw Input (User Queries/Docs)
-CREATE TABLE knowledge_base (
-    id SERIAL PRIMARY KEY,
-    user_id VARCHAR NOT NULL,  -- Managed externally by developers (kept as VARCHAR per user preference)
-    content TEXT,
-    vector vector(1536),
+-- 1. Knowledge Base (Raw Input)
+CREATE TABLE knowledge_bases (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uid VARCHAR NOT NULL,
+    converser VARCHAR NOT NULL,
+    content TEXT NOT NULL,
+    vector_embedding vector(1536),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. The Chunks (Splitting the input)
+-- 2. Contexts (Chunks)
 CREATE TABLE contexts (
-    id SERIAL PRIMARY KEY,
-    kb_id INT REFERENCES knowledge_base(id) ON DELETE CASCADE,
-    context_data TEXT,
-    vector vector(1536),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    kb_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE,
+    text_chunk TEXT NOT NULL,
+    vector_embedding vector(1536) NOT NULL,
+    chunk_index INT,
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. The Concepts (Extracted Entities)
--- Note: Using metadata JSONB for entity type instead of explicit 'type' column
+-- 3. Entities (Extracted Concepts)
 CREATE TABLE entities (
-    id SERIAL PRIMARY KEY,
-    entity_name TEXT,
-    vector vector(1536),
-    metadata JSONB,  -- Store 'type' here for polysemy (e.g., {"type": "Company"})
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    entity_name TEXT NOT NULL,
+    entity_type TEXT,
+    description TEXT,
+    vector_embedding vector(1536),
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. The Junction (Many-to-Many: Which entities appear in which chunk?)
-CREATE TABLE entity_contexts (
-    entity_id INT REFERENCES entities(id) ON DELETE CASCADE,
-    context_id INT REFERENCES contexts(id) ON DELETE CASCADE,
+-- 4. Entity-Context Junction (Many-to-Many)
+CREATE TABLE entity_context_junction (
+    entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    context_id UUID REFERENCES contexts(id) ON DELETE CASCADE,
     PRIMARY KEY (entity_id, context_id)
 );
 
--- 5. The Graph (How entities relate)
+-- 5. Relations (Graph Edges) - NO ID COLUMN
 CREATE TABLE relations (
-    source_id INT REFERENCES entities(id),
-    target_id INT REFERENCES entities(id),
-    relation_type TEXT,
+    source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    target_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
+    relation_type TEXT NOT NULL,
     edge_weight INT DEFAULT 1,
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (source_id, target_id, relation_type)
+    PRIMARY KEY (source_entity_id, target_entity_id, relation_type)
 );
 
 -- Indexes for performance
-CREATE INDEX idx_kb_user_id ON knowledge_base(user_id);
-CREATE INDEX idx_kb_created_at ON knowledge_base(created_at);
+CREATE INDEX idx_kb_uid ON knowledge_bases(uid);
+CREATE INDEX idx_kb_created ON knowledge_bases(created_at);
 CREATE INDEX idx_contexts_kb_id ON contexts(kb_id);
 CREATE INDEX idx_contexts_created_at ON contexts(created_at);
-CREATE INDEX idx_entities_name ON entities(entity_name);
-CREATE INDEX idx_relations_source ON relations(source_id);
-CREATE INDEX idx_relations_target ON relations(target_id);
+CREATE INDEX idx_entity_name ON entities(entity_name);
+CREATE INDEX idx_relations_source ON relations(source_entity_id);
+CREATE INDEX idx_relations_target ON relations(target_entity_id);
 
--- Vector indexes for similarity search (IVFFlat for performance)
-CREATE INDEX idx_kb_vector ON knowledge_base USING ivfflat (vector vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_contexts_vector ON contexts USING ivfflat (vector vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_entities_vector ON entities USING ivfflat (vector vector_cosine_ops) WITH (lists = 100);
+-- Vector indexes for similarity search
+CREATE INDEX idx_kb_vector ON knowledge_bases USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_contexts_vector ON contexts USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_entities_vector ON entities USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
 
--- Trigger function for async notifications (RAG pipeline)
+-- Trigger function for async notifications
 CREATE OR REPLACE FUNCTION notify_rag_event()
 RETURNS TRIGGER AS $$
 BEGIN
     PERFORM pg_notify('rag_events', json_build_object(
         'type', TG_ARGV[0],
-        'id', NEW.id
+        'id', NEW.id,
+        'content', CASE WHEN TG_ARGV[0] = 'KB_CREATED' THEN NEW.content ELSE NULL END,
+        'text_chunk', CASE WHEN TG_ARGV[0] = 'CONTEXT_CREATED' THEN NEW.text_chunk ELSE NULL END,
+        'kb_id', CASE WHEN TG_ARGV[0] = 'CONTEXT_CREATED' THEN NEW.kb_id ELSE NULL END
     )::text);
     RETURN NEW;
 END;
@@ -77,7 +97,7 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger: Notify when new knowledge_base entry is created
 CREATE TRIGGER notify_kb_created
-    AFTER INSERT ON knowledge_base
+    AFTER INSERT ON knowledge_bases
     FOR EACH ROW
     EXECUTE FUNCTION notify_rag_event('KB_CREATED');
 

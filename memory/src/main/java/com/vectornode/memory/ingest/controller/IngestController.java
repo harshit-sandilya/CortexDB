@@ -19,8 +19,8 @@ public class IngestController {
     private final IngestService ingestService;
 
     @PostMapping("/document")
-    public ResponseEntity<IngestResponse> ingestDocument(@Valid @RequestBody IngestContentRequest request) {
-        IngestResponse response = ingestService.ingestDocument(request);
+    public ResponseEntity<IngestResponse> ingestContent(@Valid @RequestBody IngestContentRequest request) {
+        IngestResponse response = ingestService.ingestContent(request);
         return ResponseEntity.ok(response);
     }
 }
