@@ -63,7 +63,8 @@ CREATE TABLE relations (
     relation_type TEXT NOT NULL,
     edge_weight INT DEFAULT 1,
     metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (source_entity_id, target_entity_id, relation_type)
 );
 
 -- Indexes for performance
