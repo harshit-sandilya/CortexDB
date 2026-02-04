@@ -198,7 +198,8 @@ public class IngestionWorker {
                                 entityManager.persist(relation);
 
                                 // Log the complete persisted row
-                                log.info("RELATION_ROW | source_id={} | source_name={} | target_id={} | target_name={} | relation_type={} | edge_weight={} | metadata={} | created_at={}",
+                                log.info("RELATION_ROW | id={} | source_id={} | source_name={} | target_id={} | target_name={} | relation_type={} | edge_weight={} | metadata={} | created_at={}",
+                                                relation.getId(),
                                                 sourceEntity.getId(),
                                                 sourceEntity.getName(),
                                                 targetEntity.getId(),
@@ -215,11 +216,11 @@ public class IngestionWorker {
 
                 entityManager.flush();
 
-                // 4. Log processing summary with metadata
-                ExtractionService.ExtractedMetadata metadata = result.getMetadata();
-                long totalTime = System.currentTimeMillis() - startTime;
-                log.info("Context {} complete: {} entities, {} relations persisted | topics={}, sentiment={}, totalTime={}ms",
-                                contextId, result.getEntities().size(), result.getRelations().size(),
-                                metadata.getTopics(), metadata.getSentiment(), totalTime);
+                // ExtractionService.ExtractedMetadata metadata = result.getMetadata();
+                // long totalTime = System.currentTimeMillis() - startTime;
+                // log.info("Context {} complete: {} entities, {} relations persisted |
+                // topics={}, sentiment={}, totalTime={}ms",
+                // contextId, result.getEntities().size(), result.getRelations().size(),
+                // metadata.getTopics(), metadata.getSentiment(), totalTime);
         }
 }

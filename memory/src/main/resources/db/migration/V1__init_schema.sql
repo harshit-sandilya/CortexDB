@@ -55,15 +55,15 @@ CREATE TABLE entity_context_junction (
     PRIMARY KEY (entity_id, context_id)
 );
 
--- 5. Relations (Graph Edges) - NO ID COLUMN
+-- 5. Relations (Graph Edges)
 CREATE TABLE relations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     source_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
     target_entity_id UUID REFERENCES entities(id) ON DELETE CASCADE,
     relation_type TEXT NOT NULL,
     edge_weight INT DEFAULT 1,
     metadata JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    PRIMARY KEY (source_entity_id, target_entity_id, relation_type)
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Indexes for performance
