@@ -58,8 +58,8 @@ jobs:
           exit ${TEST_EXIT_CODE}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_CHAT_MODEL: gemini-2.0-flash
-          GEMINI_EMBED_MODEL: text-embedding-004
+          GEMINI_CHAT_MODEL: ${{ secrets.GEMINI_CHAT_MODEL}}
+          GEMINI_EMBED_MODEL: ${{ secrets.GEMINI_EMBED_MODEL}}
 
       - name: Parse Test Results
         id: test_results
