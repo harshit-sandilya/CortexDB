@@ -66,7 +66,7 @@ class SetupServiceTest {
     @Test
     @DisplayName("Should configure LLM successfully with GEMINI provider")
     void shouldConfigureLLMWithGeminiProvider() {
-        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "text-embedding-004");
+        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "gemini-embedding-001");
 
         SetupResponse response = setupService.configureLLM(request);
 
@@ -74,7 +74,7 @@ class SetupServiceTest {
         assertTrue(response.isSuccess());
         assertEquals("GEMINI", response.getConfiguredProvider());
         assertEquals("gemini-2.0-flash", response.getConfiguredChatModel());
-        assertEquals("text-embedding-004", response.getConfiguredEmbedModel());
+        assertEquals("gemini-embedding-001", response.getConfiguredEmbedModel());
         assertNotNull(response.getTimestamp());
         assertEquals("Setup params validated and probed successfully. Backend is ready.", response.getMessage());
 
@@ -153,7 +153,7 @@ class SetupServiceTest {
     @Test
     @DisplayName("Should use custom base URL when provided")
     void shouldUseCustomBaseUrlWhenProvided() {
-        SetupRequest request = createGeminiRequest("gemini-pro", "text-embedding-004");
+        SetupRequest request = createGeminiRequest("gemini-pro", "gemini-embedding-001");
         request.setBaseUrl("https://custom.gemini.api/v1");
 
         SetupResponse response = setupService.configureLLM(request);
@@ -183,7 +183,7 @@ class SetupServiceTest {
     @Test
     @DisplayName("Should create LLMProvider with correct parameters")
     void shouldCreateLLMProviderWithCorrectParameters() {
-        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "text-embedding-004");
+        SetupRequest request = createGeminiRequest("gemini-2.0-flash", "gemini-embedding-001");
         request.setBaseUrl("https://my-custom-url.com");
 
         setupService.configureLLM(request);
