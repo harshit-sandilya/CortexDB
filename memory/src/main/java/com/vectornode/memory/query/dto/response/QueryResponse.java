@@ -1,4 +1,4 @@
-package com.vectornode.memory.query.dto;
+package com.vectornode.memory.query.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

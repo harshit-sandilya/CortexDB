@@ -2,8 +2,8 @@ package com.vectornode.memory.query.controller;
 
 import com.vectornode.memory.entity.RagEntity;
 import com.vectornode.memory.entity.Relation;
-import com.vectornode.memory.query.dto.QueryRequest;
-import com.vectornode.memory.query.dto.QueryResponse;
+import com.vectornode.memory.query.dto.request.QueryRequest;
+import com.vectornode.memory.query.dto.response.QueryResponse;
 import com.vectornode.memory.query.service.QueryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

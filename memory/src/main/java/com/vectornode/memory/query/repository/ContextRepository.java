@@ -58,13 +58,16 @@ public interface ContextRepository extends JpaRepository<Context, UUID> {
 
         // RECENT VECTORS (Hybrid): Finds semantically similar chunks, but only recent
         // ones.
+        // Returns [id, text_chunk, chunk_index, similarity_score]
         @Query(value = """
-                        SELECT * FROM contexts
-                        WHERE created_at > NOW() - INTERVAL ':days days'
-                        ORDER BY vector_embedding <=> CAST(:queryVector AS vector)
+                        SELECT c.id, c.text_chunk, c.chunk_index,
+                               1 - (c.vector_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+                        FROM contexts c
+                        WHERE c.created_at > NOW() - INTERVAL ':days days'
+                        ORDER BY c.vector_embedding <=> CAST(:queryVector AS vector)
                         LIMIT :limit
                         """, nativeQuery = true)
-        List<Context> findRecentSimilar(
+        List<Object[]> findRecentSimilarWithScore(
                         @Param("days") int days,
                         @Param("queryVector") String queryVector,
                         @Param("limit") int limit);

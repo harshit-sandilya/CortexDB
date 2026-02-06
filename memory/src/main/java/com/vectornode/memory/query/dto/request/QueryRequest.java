@@ -1,4 +1,4 @@
-package com.vectornode.memory.query.dto;
+package com.vectornode.memory.query.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

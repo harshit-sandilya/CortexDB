@@ -5,8 +5,8 @@ import com.vectornode.memory.entity.Context;
 import com.vectornode.memory.entity.KnowledgeBase;
 import com.vectornode.memory.entity.RagEntity;
 import com.vectornode.memory.entity.Relation;
-import com.vectornode.memory.query.dto.QueryRequest;
-import com.vectornode.memory.query.dto.QueryResponse;
+import com.vectornode.memory.query.dto.request.QueryRequest;
+import com.vectornode.memory.query.dto.response.QueryResponse;
 import com.vectornode.memory.query.repository.ContextRepository;
 import com.vectornode.memory.query.repository.EntityRepository;
 import com.vectornode.memory.query.repository.KnowledgeBaseRepository;
@@ -148,19 +148,20 @@ public class QueryService {
     // Search recent contexts with vector similarity
     public QueryResponse searchRecentContexts(QueryRequest request, int days) {
         long startTime = System.currentTimeMillis();
-        log.info("Searching recent contexts (last {} days) for: {}", days, request.getQuery());
+        // log.info("Searching recent contexts (last {} days) for: {}", days, request.getQuery());
 
         float[] embedding = LLMProvider.getEmbedding(request.getQuery());
         String vectorString = toVectorString(embedding);
 
-        List<Context> contexts = contextRepository.findRecentSimilar(days, vectorString, request.getLimit());
+        List<Object[]> rows = contextRepository.findRecentSimilarWithScore(days, vectorString, request.getLimit());
 
-        List<QueryResponse.SearchResult> results = contexts.stream()
-                .map(ctx -> QueryResponse.SearchResult.builder()
-                        .id(ctx.getId())
-                        .content(ctx.getTextChunk())
-                        .score(1.0)
+        List<QueryResponse.SearchResult> results = rows.stream()
+                .map(row -> QueryResponse.SearchResult.builder()
+                        .id((UUID) row[0])
+                        .content((String) row[1])
+                        .score(((Number) row[3]).doubleValue())
                         .type("CHUNK")
+                        .metadata(Map.of("chunkIndex", Objects.requireNonNullElse(row[2], 0)))
                         .build())
                 .toList();
 
@@ -369,7 +370,7 @@ public class QueryService {
                         .content(kb.getContent())
                         .score(1.0)
                         .type("KNOWLEDGE_BASE")
-                        .metadata(Map.of("converser", kb.getConverser()))
+                        .metadata(Map.of("converser", kb.getConverser() != null ? kb.getConverser().name() : ""))
                         .build())
                 .toList();
 
@@ -457,7 +458,7 @@ public class QueryService {
                         .content((String) row[1])
                         .score(((Number) row[2]).doubleValue())
                         .type("RELATION")
-                        .metadata(Map.of("relationType", row[0]))
+                        .metadata(Map.of("relationType", Objects.requireNonNullElse(row[0], "UNKNOWN")))
                         .build())
                 .toList();
 
@@ -483,7 +484,7 @@ public class QueryService {
                         .content((String) row[0])
                         .score(((Number) row[2]).doubleValue())
                         .type("RELATION")
-                        .metadata(Map.of("relationType", row[1]))
+                        .metadata(Map.of("relationType", Objects.requireNonNullElse(row[1], "UNKNOWN")))
                         .build())
                 .toList();
 
@@ -507,7 +508,7 @@ public class QueryService {
         List<QueryResponse.SearchResult> results = entityNames.stream()
                 .map(name -> QueryResponse.SearchResult.builder()
                         .content(name)
-                        .score(1.0)
+                        .score(0.5)
                         .type("TWO_HOP_ENTITY")
                         .build())
                 .toList();
@@ -534,7 +535,7 @@ public class QueryService {
                         .content(row[0] + " -> " + row[2])
                         .score(((Number) row[3]).doubleValue())
                         .type("TOP_RELATION")
-                        .metadata(Map.of("relationType", row[1]))
+                        .metadata(Map.of("relationType", Objects.requireNonNullElse(row[1], "UNKNOWN")))
                         .build())
                 .toList();
 
