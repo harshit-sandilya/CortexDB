@@ -24,7 +24,7 @@ public class Context extends BaseEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String textChunk;
 
-    @Column(columnDefinition = "vector(1536)", nullable = false)
+    @Column(columnDefinition = "vector(3072)", nullable = false)
     @JdbcTypeCode(SqlTypes.VECTOR)
     private float[] vectorEmbedding;
 
