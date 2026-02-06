@@ -59,8 +59,7 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_CHAT_MODEL: ${{ secrets.GEMINI_CHAT_MODEL}}
-          GEMINI_EMBED_MODEL: ${{ secrets.GEMINI_EMBED_MODEL}}
-
+          GEMINI_EMBED_MODEL: gemini-embedding-001
       - name: Parse Test Results
         id: test_results
         if: always()
