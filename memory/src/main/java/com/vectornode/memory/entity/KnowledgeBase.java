@@ -30,7 +30,7 @@ public class KnowledgeBase extends BaseEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(columnDefinition = "vector(3072)")
+    @Column(columnDefinition = "vector(768)")
     @JdbcTypeCode(SqlTypes.VECTOR)
     private float[] vectorEmbedding;
 

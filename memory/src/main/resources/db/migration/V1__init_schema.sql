@@ -21,7 +21,7 @@ CREATE TABLE knowledge_bases (
     uid VARCHAR NOT NULL,
     converser VARCHAR NOT NULL,
     content TEXT NOT NULL,
-    vector_embedding vector(3072),
+    vector_embedding vector(768),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -31,7 +31,7 @@ CREATE TABLE contexts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kb_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE,
     text_chunk TEXT NOT NULL,
-    vector_embedding vector(3072) NOT NULL,
+    vector_embedding vector(768) NOT NULL,
     chunk_index INT,
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -43,7 +43,7 @@ CREATE TABLE entities (
     entity_name TEXT NOT NULL,
     entity_type TEXT,
     description TEXT,
-    vector_embedding vector(3072),
+    vector_embedding vector(768),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -76,21 +76,33 @@ CREATE INDEX idx_entity_name ON entities(entity_name);
 CREATE INDEX idx_relations_source ON relations(source_entity_id);
 CREATE INDEX idx_relations_target ON relations(target_entity_id);
 
--- Vector indexes for similarity search
-CREATE INDEX idx_kb_vector ON knowledge_bases USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_contexts_vector ON contexts USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
-CREATE INDEX idx_entities_vector ON entities USING ivfflat (vector_embedding vector_cosine_ops) WITH (lists = 100);
+-- Vector indexes for similarity search (using HNSW for >2000 dimensions support)
+CREATE INDEX idx_kb_vector ON knowledge_bases USING hnsw (vector_embedding vector_cosine_ops);
+CREATE INDEX idx_contexts_vector ON contexts USING hnsw (vector_embedding vector_cosine_ops);
+CREATE INDEX idx_entities_vector ON entities USING hnsw (vector_embedding vector_cosine_ops);
 
 -- Trigger function for async notifications
-CREATE OR REPLACE FUNCTION notify_rag_event()
+-- Separate trigger functions for each table to avoid column reference issues
+CREATE OR REPLACE FUNCTION notify_kb_event()
 RETURNS TRIGGER AS $$
 BEGIN
     PERFORM pg_notify('rag_events', json_build_object(
-        'type', TG_ARGV[0],
+        'type', 'KB_CREATED',
         'id', NEW.id,
-        'content', CASE WHEN TG_ARGV[0] = 'KB_CREATED' THEN NEW.content ELSE NULL END,
-        'text_chunk', CASE WHEN TG_ARGV[0] = 'CONTEXT_CREATED' THEN NEW.text_chunk ELSE NULL END,
-        'kb_id', CASE WHEN TG_ARGV[0] = 'CONTEXT_CREATED' THEN NEW.kb_id ELSE NULL END
+        'content', NEW.content
+    )::text);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION notify_context_event()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM pg_notify('rag_events', json_build_object(
+        'type', 'CONTEXT_CREATED',
+        'id', NEW.id,
+        'text_chunk', NEW.text_chunk,
+        'kb_id', NEW.kb_id
     )::text);
     RETURN NEW;
 END;
@@ -100,10 +112,10 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER notify_kb_created
     AFTER INSERT ON knowledge_bases
     FOR EACH ROW
-    EXECUTE FUNCTION notify_rag_event('KB_CREATED');
+    EXECUTE FUNCTION notify_kb_event();
 
 -- Trigger: Notify when new context is created
 CREATE TRIGGER notify_context_created
     AFTER INSERT ON contexts
     FOR EACH ROW
-    EXECUTE FUNCTION notify_rag_event('CONTEXT_CREATED');
+    EXECUTE FUNCTION notify_context_event();
