@@ -60,6 +60,10 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_CHAT_MODEL: ${{ secrets.GEMINI_CHAT_MODEL}}
           GEMINI_EMBED_MODEL: gemini-embedding-001
+          # Database connection for integration tests
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/cortexdb_test
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: postgres
       - name: Parse Test Results
         id: test_results
         if: always()
