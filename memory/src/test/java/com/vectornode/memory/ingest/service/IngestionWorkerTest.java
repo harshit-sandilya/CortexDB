@@ -131,6 +131,14 @@ class IngestionWorkerTest {
             when(mockQuery.setMaxResults(anyInt())).thenReturn(mockQuery);
             when(mockQuery.getResultList()).thenReturn(java.util.Collections.emptyList()); // No existing entities
 
+            // Mock TypedQuery for relation lookup
+            jakarta.persistence.TypedQuery<com.vectornode.memory.entity.Relation> mockRelationQuery = mock(
+                    jakarta.persistence.TypedQuery.class);
+            when(entityManager.createQuery(anyString(), eq(com.vectornode.memory.entity.Relation.class)))
+                    .thenReturn(mockRelationQuery);
+            when(mockRelationQuery.setParameter(anyString(), any())).thenReturn(mockRelationQuery);
+            when(mockRelationQuery.getResultList()).thenReturn(java.util.Collections.emptyList());
+
             ExtractionService.ExtractionResult result = new ExtractionService.ExtractionResult();
 
             ExtractionService.ExtractedEntity entity1 = new ExtractionService.ExtractedEntity();

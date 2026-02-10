@@ -43,14 +43,14 @@ class SetupControllerTest {
                 validRequest.setProvider(LLMApiProvider.GEMINI);
                 validRequest.setApiKey("test-api-key");
                 validRequest.setChatModelName("gemini-2.0-flash");
-                validRequest.setEmbedModelName("text-embedding-004");
+                validRequest.setEmbedModelName("gemini-embedding-001");
 
                 successResponse = SetupResponse.builder()
                                 .message("Setup params validated and probed successfully. Backend is ready.")
                                 .success(true)
                                 .configuredProvider("GEMINI")
                                 .configuredChatModel("gemini-2.0-flash")
-                                .configuredEmbedModel("text-embedding-004")
+                                .configuredEmbedModel("gemini-embedding-001")
                                 .baseUrl("https://generativelanguage.googleapis.com/v1beta/openai/")
                                 .timestamp(Instant.now())
                                 .build();
@@ -70,7 +70,7 @@ class SetupControllerTest {
                 assertTrue(response.getBody().isSuccess());
                 assertEquals("GEMINI", response.getBody().getConfiguredProvider());
                 assertEquals("gemini-2.0-flash", response.getBody().getConfiguredChatModel());
-                assertEquals("text-embedding-004", response.getBody().getConfiguredEmbedModel());
+                assertEquals("gemini-embedding-001", response.getBody().getConfiguredEmbedModel());
 
                 verify(setupService, times(1)).configureLLM(any(SetupRequest.class));
         }
@@ -89,7 +89,7 @@ class SetupControllerTest {
                 assertTrue(response.getBody().isSuccess());
                 assertEquals("GEMINI", response.getBody().getConfiguredProvider());
                 assertEquals("gemini-2.0-flash", response.getBody().getConfiguredChatModel());
-                assertEquals("text-embedding-004", response.getBody().getConfiguredEmbedModel());
+                assertEquals("gemini-embedding-001", response.getBody().getConfiguredEmbedModel());
                 assertEquals("https://generativelanguage.googleapis.com/v1beta/openai/",
                                 response.getBody().getBaseUrl());
                 assertNotNull(response.getBody().getTimestamp());

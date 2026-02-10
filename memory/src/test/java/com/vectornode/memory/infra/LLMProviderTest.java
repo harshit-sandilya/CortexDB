@@ -66,14 +66,14 @@ class LLMProviderTest {
             if (sysApiKey != null) {
                 envVars.put("GEMINI_API_KEY", sysApiKey);
                 envVars.put("GEMINI_CHAT_MODEL", sysChatModel != null ? sysChatModel : "gemini-2.0-flash");
-                envVars.put("GEMINI_EMBED_MODEL", sysEmbedModel != null ? sysEmbedModel : "text-embedding-004");
+                envVars.put("GEMINI_EMBED_MODEL", sysEmbedModel != null ? sysEmbedModel : "gemini-embedding-001");
                 envLoaded = true;
             }
         }
 
         apiKey = envVars.get("GEMINI_API_KEY");
         chatModel = envVars.getOrDefault("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-        embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "text-embedding-004");
+        embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "gemini-embedding-001");
 
         System.out.println("Environment loaded: " + envLoaded);
         System.out.println("API Key present: " + (apiKey != null && !apiKey.isEmpty()));

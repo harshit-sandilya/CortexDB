@@ -73,7 +73,7 @@ public class LLMProvider {
                             .apiKey(apiKey)
                             .build();
 
-                    // Use embedModelName for embeddings (e.g., "text-embedding-004")
+                    // Use embedModelName for embeddings (e.g., "gemini-embedding-001")
                     embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
                             RetryTemplate.builder().build());

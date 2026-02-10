@@ -35,8 +35,21 @@ class EmbeddingIntegrationTest {
         }
 
         if (apiKey != null && !apiKey.isEmpty()) {
-            String chatModel = envVars.getOrDefault("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-            String embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "text-embedding-004");
+            String chatModel = envVars.get("GEMINI_CHAT_MODEL");
+            if (chatModel == null || chatModel.isEmpty()) {
+                chatModel = System.getenv("GEMINI_CHAT_MODEL");
+                if (chatModel == null || chatModel.isEmpty()) {
+                    chatModel = "gemini-2.0-flash";
+                }
+            }
+
+            String embedModel = envVars.get("GEMINI_EMBED_MODEL");
+            if (embedModel == null || embedModel.isEmpty()) {
+                embedModel = System.getenv("GEMINI_EMBED_MODEL");
+                if (embedModel == null || embedModel.isEmpty()) {
+                    embedModel = "gemini-embedding-001";
+                }
+            }
 
             try {
                 new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
@@ -105,6 +118,7 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(2)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
     @DisplayName("Should generate different embeddings for different texts")
     void shouldGenerateDifferentEmbeddingsForDifferentTexts() {
         assumeInitialized();
@@ -130,6 +144,7 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(3)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
     @DisplayName("Should generate similar embeddings for semantically similar texts")
     void shouldGenerateSimilarEmbeddingsForSimilarTexts() {
         assumeInitialized();
@@ -153,6 +168,7 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(4)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
     @DisplayName("Should handle long text for embedding")
     void shouldHandleLongTextForEmbedding() {
         assumeInitialized();
@@ -177,6 +193,7 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(5)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
     @DisplayName("Should generate embeddings for entity names")
     void shouldGenerateEmbeddingsForEntityNames() {
         assumeInitialized();

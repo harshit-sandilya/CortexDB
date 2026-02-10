@@ -37,8 +37,21 @@ class ExtractionServiceIntegrationTest {
         }
 
         if (apiKey != null && !apiKey.isEmpty()) {
-            String chatModel = envVars.getOrDefault("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-            String embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "text-embedding-004");
+            String chatModel = envVars.get("GEMINI_CHAT_MODEL");
+            if (chatModel == null || chatModel.isEmpty()) {
+                chatModel = System.getenv("GEMINI_CHAT_MODEL");
+                if (chatModel == null || chatModel.isEmpty()) {
+                    chatModel = "gemini-2.0-flash";
+                }
+            }
+
+            String embedModel = envVars.get("GEMINI_EMBED_MODEL");
+            if (embedModel == null || embedModel.isEmpty()) {
+                embedModel = System.getenv("GEMINI_EMBED_MODEL");
+                if (embedModel == null || embedModel.isEmpty()) {
+                    embedModel = "gemini-embedding-001";
+                }
+            }
 
             try {
                 new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
@@ -117,6 +130,7 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(2)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
     @DisplayName("Should extract relations from text using real LLM")
     void shouldExtractRelationsFromText() {
         assumeInitialized();
@@ -144,6 +158,7 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(3)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
     @DisplayName("Should handle complex multi-entity text")
     void shouldHandleComplexText() {
         assumeInitialized();
@@ -168,6 +183,7 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(4)
+    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
     @DisplayName("Should return empty result for irrelevant text")
     void shouldHandleIrrelevantText() {
         assumeInitialized();

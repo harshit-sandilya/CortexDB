@@ -171,43 +171,69 @@ public class IngestionWorker {
                                                 entity.getCreatedAt());
                         }
 
-                        // Link entity to context
+                        // Link entity to context (persists to entity_context_junction table)
                         entity.getContexts().add(context);
+                        entityManager.merge(entity);
+
+                        log.info("JUNCTION_ROW | entity_id={} | context_id={}", entity.getId(), context.getId());
                         entityMap.put(entity.getName(), entity);
                 }
 
-                // 3. Persist extracted relations
+                // 3. Persist extracted relations (with upsert logic for edge weight)
                 for (ExtractionService.ExtractedRelation extractedRelation : result.getRelations()) {
                         RagEntity sourceEntity = entityMap.get(extractedRelation.getSourceName());
                         RagEntity targetEntity = entityMap.get(extractedRelation.getTargetName());
 
                         if (sourceEntity != null && targetEntity != null) {
-                                Relation relation = Relation.builder()
-                                                .sourceEntity(sourceEntity)
-                                                .targetEntity(targetEntity)
-                                                .relationType(extractedRelation.getRelationType())
-                                                .edgeWeight(1)
-                                                .build();
+                                // Check if relation already exists
+                                List<Relation> existingRelations = entityManager.createQuery(
+                                                "SELECT r FROM Relation r WHERE r.sourceEntity.id = :sourceId " +
+                                                                "AND r.targetEntity.id = :targetId " +
+                                                                "AND r.relationType = :relationType",
+                                                Relation.class)
+                                                .setParameter("sourceId", sourceEntity.getId())
+                                                .setParameter("targetId", targetEntity.getId())
+                                                .setParameter("relationType", extractedRelation.getRelationType())
+                                                .getResultList();
 
-                                // Add metadata
-                                relation.setMetadata(objectMapper.createObjectNode()
-                                                .put("extractedFrom", "context")
-                                                .put("contextId", contextId.toString())
-                                                .put("edgeWeight", 1));
+                                Relation relation;
+                                boolean isNew = existingRelations.isEmpty();
 
-                                entityManager.persist(relation);
+                                if (isNew) {
+                                        // Create new relation with edge_weight = 1
+                                        relation = Relation.builder()
+                                                        .sourceEntity(sourceEntity)
+                                                        .targetEntity(targetEntity)
+                                                        .relationType(extractedRelation.getRelationType())
+                                                        .edgeWeight(1)
+                                                        .build();
 
-                                // Log the complete persisted row
-                                log.info("RELATION_ROW | id={} | source_id={} | source_name={} | target_id={} | target_name={} | relation_type={} | edge_weight={} | metadata={} | created_at={}",
-                                                relation.getId(),
-                                                sourceEntity.getId(),
-                                                sourceEntity.getName(),
-                                                targetEntity.getId(),
-                                                targetEntity.getName(),
-                                                relation.getRelationType(),
-                                                relation.getEdgeWeight(),
-                                                relation.getMetadata(),
-                                                relation.getCreatedAt());
+                                        relation.setMetadata(objectMapper.createObjectNode()
+                                                        .put("extractedFrom", "context")
+                                                        .put("contextId", contextId.toString())
+                                                        .put("edgeWeight", 1));
+
+                                        entityManager.persist(relation);
+
+                                        log.info("RELATION_NEW | id={} | source={} | target={} | type={} | edge_weight=1",
+                                                        relation.getId(),
+                                                        sourceEntity.getName(),
+                                                        targetEntity.getName(),
+                                                        relation.getRelationType());
+                                } else {
+                                        // Increment edge_weight on existing relation
+                                        relation = existingRelations.get(0);
+                                        int newWeight = relation.getEdgeWeight() + 1;
+                                        relation.setEdgeWeight(newWeight);
+                                        entityManager.merge(relation);
+
+                                        log.info("RELATION_INCREMENT | id={} | source={} | target={} | type={} | edge_weight={}",
+                                                        relation.getId(),
+                                                        sourceEntity.getName(),
+                                                        targetEntity.getName(),
+                                                        relation.getRelationType(),
+                                                        newWeight);
+                                }
                         } else {
                                 log.warn("RELATION_SKIPPED | relation_type={} | reason=source_or_target_not_found",
                                                 extractedRelation.getRelationType());
@@ -217,10 +243,6 @@ public class IngestionWorker {
                 entityManager.flush();
 
                 // ExtractionService.ExtractedMetadata metadata = result.getMetadata();
-                // long totalTime = System.currentTimeMillis() - startTime;
-                // log.info("Context {} complete: {} entities, {} relations persisted |
-                // topics={}, sentiment={}, totalTime={}ms",
-                // contextId, result.getEntities().size(), result.getRelations().size(),
-                // metadata.getTopics(), metadata.getSentiment(), totalTime);
+                // log.info("Ingestion completed");
         }
 }
