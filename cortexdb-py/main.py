@@ -8,9 +8,14 @@ Usage:
     python main.py
 """
 
+import os
 import sys
 import time
 from typing import NoReturn
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from cortexdb import CortexDB
 from cortexdb.exceptions import ConnectionError, CortexDBError
@@ -19,7 +24,9 @@ from cortexdb.llm import LLMProvider
 # Configuration
 API_URL = "http://localhost:8080"
 PROVIDER = "GEMINI"  # Or "OPENAI", "AZURE"
-API_KEY = "AIzaSyD0u8-6xTbfUJLK1ZzUL0SGYCSFeqGtRmU"  # Replace with actual key or use env var
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY environment variable not set. Check .env file.")
 CHAT_MODEL = "gemini-2.0-flash"
 EMBED_MODEL = "gemini-embedding-001"
 
