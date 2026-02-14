@@ -93,12 +93,20 @@ def main() -> None:
         except CortexDBError as e:
             print(f"Failed: {e}")
 
-    # Allow some time for async processing (embedding generation)
+    # Allow time for async processing (embedding generation + entity extraction)
     print("   Waiting for processing...", end=" ", flush=True)
-    time.sleep(2)  # Simple wait; in production, you might poll status
+    time.sleep(5)  # Give backend time to generate embeddings and extract entities
     print("Ready.")
 
-    # 4. Interactive Chat Loop
+    # 4. Initialize LLMProvider once (reused across all queries)
+    llm = LLMProvider(
+        provider=PROVIDER,
+        api_key=API_KEY,
+        chat_model=CHAT_MODEL,
+        embed_model=EMBED_MODEL,
+    )
+
+    # 5. Interactive Chat Loop
     print_step("Chat Session Started (Type 'exit' to quit)")
     print(f"You are now chatting about Patient {patient_id}'s records.")
 
@@ -111,53 +119,55 @@ def main() -> None:
             if not query:
                 continue
 
-            # A. Search Contexts (Retrieval)
-            # We search for relevant medical notes based on the query
+            # A. Search Contexts (Retrieval) — broad search to cover all notes
             search_response = db.query.search_contexts(
                 query=query,
-                limit=3,
-                min_relevance=0.6,
+                limit=10,
+                min_relevance=0.3,
             )
 
             # B. Search Entities (Knowledge Graph)
-            # We also check for extracted entities (e.g., medications, symptoms)
-            entity_response = db.query.search_entities(query=query, limit=2)
+            entity_response = db.query.search_entities(query=query, limit=5)
 
-            # C. Synthesize Answer (using RAG)
-            # In a full system, the backend might do this via /api/chat.
-            # Here, we demonstrate doing it client-side or inspecting the retrieval.
-            
-            print(f"   Found {len(search_response.results)} relevant notes.")
+            # C. De-duplicate contexts (same note may appear multiple times from re-runs)
+            seen_contents = set()
+            unique_results = []
             for res in search_response.results:
+                if res.content not in seen_contents:
+                    seen_contents.add(res.content)
+                    unique_results.append(res)
+
+            # D. Display retrieval results
+            print(f"   Found {len(unique_results)} unique relevant notes.")
+            for res in unique_results:
                 print(f"   - [Context] {res.content[:60]}... (Score: {res.score:.2f})")
 
             for res in entity_response.results:
                 print(f"   - [Entity] {res.content} ({res.type})")
 
-            # Generate Answer using LLMProvider
-            print("\n   🤖 Generating answer...", end=" ", flush=True)
-            llm = LLMProvider(
-                provider=PROVIDER,
-                api_key=API_KEY,
-                chat_model=CHAT_MODEL,
-                embed_model=EMBED_MODEL
+            # E. Build prompt with BOTH context chunks AND entity information
+            context_str = "\n".join([f"- {r.content}" for r in unique_results])
+            entity_str = "\n".join(
+                [f"- {r.content} ({r.type})" for r in entity_response.results if r.content]
             )
-            
-            context_str = "\n".join([f"- {r.content}" for r in search_response.results])
+
             prompt = (
-                f"You are a helpful medical assistant. Answer the user's question based ONLY on the following context:\n\n"
-                f"{context_str}\n\n"
-                f"Question: {query}\n"
-                f"Answer:"
+                f"You are a helpful medical assistant. Answer the user's question based ONLY on the following information.\n\n"
+                f"## Patient Notes:\n{context_str}\n\n"
             )
-            
+            if entity_str:
+                prompt += f"## Extracted Entities:\n{entity_str}\n\n"
+            prompt += f"Question: {query}\nAnswer:"
+
+            # F. Generate answer
+            print("\n   🤖 Generating answer...", end=" ", flush=True)
             try:
                 answer = llm.call_llm(prompt)
                 print("Done.")
-                print(f"\nExample Bot: {answer}\n")
+                print(f"\nBot: {answer}\n")
             except Exception as e:
                 print(f"Failed: {e}")
-            
+
         except KeyboardInterrupt:
             print("\nGoodbye!")
             break
