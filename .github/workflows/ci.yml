@@ -205,3 +205,46 @@ jobs:
           check_name: "Python Tests"
           fail_on_failure: true
           require_tests: true
+
+  javascript-tests:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: cortexdb-js
+        
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cortexdb-js/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Run Unit Tests
+        id: vitest
+        run: npx vitest run --config vitest.unit.config.ts --reporter=junit --outputFile=junit.xml
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Publish Test Report
+        if: always()
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: 'cortexdb-js/junit.xml'
+          check_name: "JavaScript Tests"
+          fail_on_failure: true
+          require_tests: true

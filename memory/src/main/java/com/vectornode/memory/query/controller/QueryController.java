@@ -155,7 +155,7 @@ public class QueryController {
     }
 
     // Delete all data for a user (GDPR)
-    @DeleteMapping("/history/user/{uid}")
+    @DeleteMapping("/user/{uid}")
     public ResponseEntity<Void> deleteUserData(@PathVariable String uid) {
         queryService.deleteUserData(uid);
         return ResponseEntity.ok().build();
