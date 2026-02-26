@@ -8,6 +8,7 @@
     "dist"
   ],
   "scripts": {
+    "start": "tsx main.ts",
     "build": "tsc",
     "clean": "rimraf dist",
     "test": "vitest run --config vitest.unit.config.ts",
@@ -25,6 +26,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^25.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "vitest": "^4.0.18"
   },
