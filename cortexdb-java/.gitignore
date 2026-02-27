@@ -1,0 +1,26 @@
+# Build output
+target/
+build/
+
+# Environment / secrets
+.env
+secrets/
+credentials/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+.cache/
+tmp/
+temp/
+*.log

@@ -75,7 +75,10 @@ public class LLMProvider {
 
                     // Use embedModelName for embeddings (e.g., "gemini-embedding-001")
                     embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
+                            OpenAiEmbeddingOptions.builder()
+                                    .model(embedModelName)
+                                    .dimensions(768)
+                                    .build(),
                             RetryTemplate.builder().build());
 
                     // Use chatModelName for chat (e.g., "gemini-2.0-flash")
