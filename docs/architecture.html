@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture — CortexDB Docs</title>
+    <meta name="description"
+        content="CortexDB architecture: database schema, async ingestion pipeline, query pipeline, and technology stack.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <a href="index.html" class="logo"><span class="logo-icon">⚡</span> CortexDB</a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="getting-started.html">Getting Started</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html" class="active">Architecture</a>
+            <a href="sdks.html">SDKs</a>
+        </nav>
+        <a href="https://github.com/harshit-sandilya/CortexDB" class="github-link" target="_blank">⭐ GitHub</a>
+    </header>
+
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Architecture</div>
+                <a href="#overview" class="active">Overview</a>
+                <a href="#database-schema">Database Schema</a>
+                <a href="#ingestion-pipeline">Ingestion Pipeline</a>
+                <a href="#query-pipeline">Query Pipeline</a>
+                <a href="#tech-stack">Tech Stack</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <h1>Architecture</h1>
+            <p class="subtitle">How CortexDB stores, processes, and retrieves knowledge.</p>
+
+            <!-- ═══ OVERVIEW ═══ -->
+            <h2 id="overview">High-Level Overview</h2>
+
+            <pre><code>                    ┌──────────────────────────────────────────────┐
+                    │              CortexDB Server                 │
+                    │          (Spring Boot 3.5 + Java 21)         │
+                    │                                              │
+  SDK / curl ──────▶│  /api/setup    → SetupController             │
+                    │  /api/ingest   → IngestController            │
+                    │  /api/query    → QueryController (22 routes) │
+                    │                                              │
+                    │  ┌──────────┐  ┌─────────────┐               │
+                    │  │ LLM      │  │ Ingestion   │               │
+                    │  │ Provider │  │ Worker      │               │
+                    │  │ (chat +  │  │ (@Async)    │               │
+                    │  │ embed)   │  │             │               │
+                    │  └──────────┘  └─────────────┘               │
+                    └───────────────────┬──────────────────────────┘
+                                        │
+                    ┌───────────────────▼──────────────────────────┐
+                    │       PostgreSQL 16 + pgvector               │
+                    │                                              │
+                    │  knowledge_bases ──┐                         │
+                    │  contexts ─────────┤ (vector + JSONB)        │
+                    │  entities ─────────┤                         │
+                    │  entity_context_junction                     │
+                    │  relations ────────┘ (weighted graph)        │
+                    │                                              │
+                    │  Flyway migrations │ NOTIFY triggers         │
+                    └──────────────────────────────────────────────┘</code></pre>
+
+            <p>The system has three layers:</p>
+            <ol>
+                <li><strong>REST API layer</strong> — 3 controllers handling setup, ingestion, and 20+ query endpoints
+                </li>
+                <li><strong>Processing layer</strong> — Async workers for chunking, embedding, entity extraction, and
+                    graph building</li>
+                <li><strong>Storage layer</strong> — PostgreSQL with pgvector for vectors and JSONB for metadata</li>
+            </ol>
+
+            <!-- ═══ DATABASE SCHEMA ═══ -->
+            <h2 id="database-schema">Database Schema</h2>
+            <p>CortexDB uses 5 interconnected tables. All tables use UUID primary keys, JSONB metadata, and
+                <code>created_at</code> timestamps.</p>
+
+            <h3>knowledge_bases</h3>
+            <p>The entry point — stores the raw user input.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>UUID (PK)</td>
+                        <td>Auto-generated ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>uid</code></td>
+                        <td>VARCHAR</td>
+                        <td>External user identifier</td>
+                    </tr>
+                    <tr>
+                        <td><code>converser</code></td>
+                        <td>ENUM</td>
+                        <td><code>USER</code>, <code>AGENT</code>, or <code>SYSTEM</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>content</code></td>
+                        <td>TEXT</td>
+                        <td>Full document/query text</td>
+                    </tr>
+                    <tr>
+                        <td><code>vector_embedding</code></td>
+                        <td>vector(768)</td>
+                        <td>Embedding of the full content</td>
+                    </tr>
+                    <tr>
+                        <td><code>metadata</code></td>
+                        <td>JSONB</td>
+                        <td><code>{contentLength, embeddingDimensions, embeddingTimeMs}</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>TIMESTAMPTZ</td>
+                        <td>Insertion timestamp</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>contexts</h3>
+            <p>Text chunks created from the knowledge base entry.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>UUID (PK)</td>
+                        <td>Auto-generated ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>kb_id</code></td>
+                        <td>UUID (FK)</td>
+                        <td>References <code>knowledge_bases.id</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>text_chunk</code></td>
+                        <td>TEXT</td>
+                        <td>The text chunk</td>
+                    </tr>
+                    <tr>
+                        <td><code>vector_embedding</code></td>
+                        <td>vector(768)</td>
+                        <td>Embedding of the chunk</td>
+                    </tr>
+                    <tr>
+                        <td><code>chunk_index</code></td>
+                        <td>INT</td>
+                        <td>Position in the original document</td>
+                    </tr>
+                    <tr>
+                        <td><code>metadata</code></td>
+                        <td>JSONB</td>
+                        <td><code>{chunkLength, embeddingDimensions, chunkNumber, totalChunks}</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>TIMESTAMPTZ</td>
+                        <td>Insertion timestamp</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>entities</h3>
+            <p>Concepts, people, technologies, and other named entities extracted via LLM.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>UUID (PK)</td>
+                        <td>Auto-generated ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>entity_name</code></td>
+                        <td>VARCHAR</td>
+                        <td>Name of the entity (indexed)</td>
+                    </tr>
+                    <tr>
+                        <td><code>entity_type</code></td>
+                        <td>VARCHAR</td>
+                        <td>Type (e.g. Technology, Person, Concept)</td>
+                    </tr>
+                    <tr>
+                        <td><code>description</code></td>
+                        <td>TEXT</td>
+                        <td>LLM-generated description</td>
+                    </tr>
+                    <tr>
+                        <td><code>vector_embedding</code></td>
+                        <td>vector(768)</td>
+                        <td>Embedding of name + description</td>
+                    </tr>
+                    <tr>
+                        <td><code>metadata</code></td>
+                        <td>JSONB</td>
+                        <td><code>{extractedFrom, contextId, embeddingDimensions, descriptionLength}</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>TIMESTAMPTZ</td>
+                        <td>Insertion timestamp</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="callout callout-tip">
+                <strong>💡 Deduplication:</strong>
+                <p>Entities are upserted by name — if "Java" already exists, the existing entity is reused and linked to
+                    the new context.</p>
+            </div>
+
+            <h3>entity_context_junction</h3>
+            <p>Many-to-many join table linking entities to the contexts where they were mentioned.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>entity_id</code></td>
+                        <td>UUID (FK)</td>
+                        <td>References <code>entities.id</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>context_id</code></td>
+                        <td>UUID (FK)</td>
+                        <td>References <code>contexts.id</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>relations</h3>
+            <p>Directed, weighted edges in the knowledge graph.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>UUID (PK)</td>
+                        <td>Auto-generated ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>source_entity_id</code></td>
+                        <td>UUID (FK)</td>
+                        <td>Source entity</td>
+                    </tr>
+                    <tr>
+                        <td><code>target_entity_id</code></td>
+                        <td>UUID (FK)</td>
+                        <td>Target entity</td>
+                    </tr>
+                    <tr>
+                        <td><code>relation_type</code></td>
+                        <td>VARCHAR</td>
+                        <td>Relationship label (e.g. "uses", "manages")</td>
+                    </tr>
+                    <tr>
+                        <td><code>edge_weight</code></td>
+                        <td>INT</td>
+                        <td>Frequency counter — increments on duplicate relations</td>
+                    </tr>
+                    <tr>
+                        <td><code>metadata</code></td>
+                        <td>JSONB</td>
+                        <td><code>{extractedFrom, contextId, edgeWeight}</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>created_at</code></td>
+                        <td>TIMESTAMPTZ</td>
+                        <td>Insertion timestamp</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="callout callout-info">
+                <strong>ℹ️ Edge Weight:</strong>
+                <p>When the same relation (same source, target, and type) is extracted from a different document,
+                    <code>edge_weight</code> increments by 1. Higher weight = stronger, more frequently observed
+                    connection.</p>
+            </div>
+
+            <h3>Entity-Relationship Diagram</h3>
+            <pre><code>  knowledge_bases          contexts               entities
+  ┌──────────────┐    ┌───────────────┐      ┌──────────────┐
+  │ id (PK)      │    │ id (PK)       │      │ id (PK)      │
+  │ uid          │    │ kb_id (FK) ───┼──────│ entity_name  │
+  │ converser    │────│ text_chunk    │      │ entity_type  │
+  │ content      │    │ vector_embed  │      │ description  │
+  │ vector_embed │    │ chunk_index   │      │ vector_embed │
+  │ metadata     │    │ metadata      │      │ metadata     │
+  │ created_at   │    │ created_at    │      │ created_at   │
+  └──────────────┘    └───────┬───────┘      └──────┬───────┘
+                              │                     │
+                    entity_context_junction          │
+                    ┌─────────┴──────┐              │
+                    │ entity_id (FK) ┼──────────────┘
+                    │ context_id (FK)│
+                    └────────────────┘
+                                               relations
+                                          ┌──────────────────┐
+                                          │ id (PK)          │
+                    entities.id ──────────│ source_entity_id │
+                    entities.id ──────────│ target_entity_id │
+                                          │ relation_type    │
+                                          │ edge_weight      │
+                                          │ metadata         │
+                                          │ created_at       │
+                                          └──────────────────┘</code></pre>
+
+            <!-- ═══ INGESTION PIPELINE ═══ -->
+            <h2 id="ingestion-pipeline">Ingestion Pipeline</h2>
+            <p>CortexDB uses a <strong>fire-and-forget async architecture</strong> powered by PostgreSQL
+                <code>NOTIFY</code> triggers.</p>
+
+            <h3>Step-by-Step Flow</h3>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>API receives document</h3>
+                    <p><code>IngestController</code> → <code>IngestService</code>. The service generates an embedding
+                        for the full document, creates a <code>KnowledgeBase</code> entity with JSONB metadata, persists
+                        it, and <strong>returns the response immediately</strong>.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>PostgreSQL trigger fires</h3>
+                    <p>A database trigger on the <code>knowledge_bases</code> table fires <code>NOTIFY rag_events</code>
+                        with a JSON payload: <code>{"type": "KB_CREATED", "id": "uuid", "content": "..."}</code></p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Listener dispatches to worker</h3>
+                    <p><code>PostgresNotificationListener</code> runs on a dedicated daemon thread, listening on the
+                        <code>rag_events</code> channel. When it receives a <code>KB_CREATED</code> notification, it
+                        dispatches to <code>IngestionWorker</code> via Spring's <code>@Async</code> — fire-and-forget.
+                    </p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Worker chunks &amp; embeds</h3>
+                    <p><code>IngestionWorker.processKnowledgeBase()</code> splits content into chunks using
+                        <code>ChunkingService</code>, generates embeddings for each chunk, and persists them as
+                        <code>Context</code> entities with metadata.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h3>Context triggers fire</h3>
+                    <p>Each persisted context triggers another <code>NOTIFY rag_events</code> with
+                        <code>{"type": "CONTEXT_CREATED", ...}</code>. The listener dispatches
+                        <code>IngestionWorker.processContext()</code>.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h3>Entity &amp; relation extraction</h3>
+                    <p><code>processContext()</code> calls <code>ExtractionService</code> (which uses the configured
+                        LLM) to extract entities and relationships from each text chunk. Entities are upserted
+                        (deduplicated by name), linked to contexts via the junction table, and relations are created
+                        with edge weight upsert logic.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <h3>Console logging</h3>
+                    <p>Every persisted row is logged with structured tags for observability:</p>
+                    <pre><code>KB_ROW       | id=... | uid=user-1 | content_length=90 | vector_dims=768
+CONTEXT_ROW  | id=... | kb_id=... | chunk_index=0 | text_length=62
+ENTITY_ROW   | id=... | name=Java | type=Technology | vector_dims=768
+JUNCTION_ROW | entity_id=... | context_id=...
+RELATION_NEW | id=... | source=Java | target=GC | type=uses | edge_weight=1</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ QUERY PIPELINE ═══ -->
+            <h2 id="query-pipeline">Query Pipeline</h2>
+            <p>CortexDB supports three query strategies:</p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(96, 165, 250, 0.15); color: var(--accent-blue);">🔍
+                    </div>
+                    <div class="card-title">Vector Search</div>
+                    <div class="card-desc">Generates an embedding from the query text and uses pgvector's
+                        <code>&lt;=&gt;</code> cosine distance operator to find the most similar contexts, entities, or
+                        knowledge bases.</div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"
+                        style="background: rgba(139, 92, 246, 0.15); color: var(--accent-secondary);">🕸️</div>
+                    <div class="card-title">Graph Traversal</div>
+                    <div class="card-desc">Walks the entity-relation graph using 1-hop and 2-hop queries (recursive
+                        CTEs). Finds connections, related entities, and relationship patterns.</div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-green);">⚡
+                    </div>
+                    <div class="card-title">Hybrid Search</div>
+                    <div class="card-desc">Combines vector similarity with graph context — first finds relevant entities
+                        via vector search, then enriches results with graph connections.</div>
+                </div>
+            </div>
+
+            <!-- ═══ TECH STACK ═══ -->
+            <h2 id="tech-stack">Tech Stack</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Technology</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Runtime</td>
+                        <td>Java 21</td>
+                        <td>Language &amp; runtime</td>
+                    </tr>
+                    <tr>
+                        <td>Framework</td>
+                        <td>Spring Boot 3.5</td>
+                        <td>Web framework, DI, config</td>
+                    </tr>
+                    <tr>
+                        <td>AI</td>
+                        <td>Spring AI 1.1</td>
+                        <td>LLM provider abstraction</td>
+                    </tr>
+                    <tr>
+                        <td>Database</td>
+                        <td>PostgreSQL 16</td>
+                        <td>Relational storage</td>
+                    </tr>
+                    <tr>
+                        <td>Vectors</td>
+                        <td>pgvector</td>
+                        <td>Vector similarity search</td>
+                    </tr>
+                    <tr>
+                        <td>ORM</td>
+                        <td>Hibernate 6 + JPA</td>
+                        <td>Object-relational mapping</td>
+                    </tr>
+                    <tr>
+                        <td>Vectors ORM</td>
+                        <td>hibernate-vector</td>
+                        <td>Vector type support in Hibernate</td>
+                    </tr>
+                    <tr>
+                        <td>Migrations</td>
+                        <td>Flyway</td>
+                        <td>Database schema versioning</td>
+                    </tr>
+                    <tr>
+                        <td>Build</td>
+                        <td>Maven 3.9</td>
+                        <td>Build &amp; dependency management</td>
+                    </tr>
+                    <tr>
+                        <td>Containers</td>
+                        <td>Docker Compose</td>
+                        <td>Multi-container orchestration</td>
+                    </tr>
+                    <tr>
+                        <td>Testing</td>
+                        <td>Testcontainers + JUnit 5</td>
+                        <td>Integration testing</td>
+                    </tr>
+                    <tr>
+                        <td>API Docs</td>
+                        <td>SpringDoc OpenAPI</td>
+                        <td>Swagger UI at <code>/swagger-ui.html</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        CortexDB · MIT License · <a href="https://github.com/harshit-sandilya/CortexDB">GitHub</a>
+    </footer>
+
+</body>
+
+</html>

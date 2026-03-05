@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started — CortexDB Docs</title>
+    <meta name="description"
+        content="Step-by-step guide to set up CortexDB, configure an LLM, ingest your first document, and run your first query.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="site-header">
+        <a href="index.html" class="logo">
+            <span class="logo-icon">⚡</span> CortexDB
+        </a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="getting-started.html" class="active">Getting Started</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="sdks.html">SDKs</a>
+        </nav>
+        <a href="https://github.com/harshit-sandilya/CortexDB" class="github-link" target="_blank">⭐ GitHub</a>
+    </header>
+
+    <div class="page-wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Getting Started</div>
+                <a href="#prerequisites" class="active">Prerequisites</a>
+                <a href="#start-server">Start the Server</a>
+                <a href="#configure-llm">Configure LLM</a>
+                <a href="#ingest">Ingest a Document</a>
+                <a href="#query">Run Your First Query</a>
+                <a href="#sdks">Use an SDK</a>
+            </div>
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Next Steps</div>
+                <a href="api-reference.html">API Reference</a>
+                <a href="architecture.html">Architecture</a>
+                <a href="sdks.html">SDK Docs</a>
+            </div>
+        </aside>
+
+        <!-- Content -->
+        <main class="content">
+            <h1>Getting Started</h1>
+            <p class="subtitle">Go from zero to your first semantic query in under 5 minutes.</p>
+
+            <!-- Step 1 -->
+            <h2 id="prerequisites">Prerequisites</h2>
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>What you'll need</h3>
+                    <ul>
+                        <li><strong>Docker &amp; Docker Compose</strong> — to run the database and backend</li>
+                        <li><strong>An LLM API key</strong> — from Gemini, OpenAI, Azure, Anthropic, or Mistral (or use
+                            Ollama locally for free)</li>
+                        <li><strong>curl</strong> (or any HTTP client) — to test the API</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <h2 id="start-server">Start the Server</h2>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Clone &amp; launch with Docker Compose</h3>
+                    <pre><code>git clone https://github.com/harshit-sandilya/CortexDB.git
+cd CortexDB/memory
+docker compose up -d</code></pre>
+                    <p>This starts three containers:</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>Port</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>PostgreSQL</strong> (pgvector)</td>
+                                <td>5432</td>
+                                <td>Vector-enabled database</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Ollama</strong></td>
+                                <td>11434</td>
+                                <td>Local LLM runtime</td>
+                            </tr>
+                            <tr>
+                                <td><strong>CortexDB Backend</strong></td>
+                                <td>8080</td>
+                                <td>REST API server</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="callout callout-tip">
+                        <strong>💡 Tip:</strong>
+                        <p>Wait for all containers to be healthy before proceeding. Run <code>docker compose ps</code>
+                            to check.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <h2 id="configure-llm">Configure an LLM Provider</h2>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Tell CortexDB which LLM to use</h3>
+                    <p>CortexDB needs an LLM for embeddings and entity extraction. Configure it with a single API call:
+                    </p>
+                    <pre><code>curl -X POST http://localhost:8080/api/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "GEMINI",
+    "chatModelName": "gemini-2.0-flash",
+    "embedModelName": "gemini-embedding-001",
+    "apiKey": "YOUR_API_KEY"
+  }'</code></pre>
+
+                    <h4>Supported Providers</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Provider</th>
+                                <th>Value</th>
+                                <th>Extra Fields</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Google Gemini</td>
+                                <td><code>GEMINI</code></td>
+                                <td>apiKey</td>
+                            </tr>
+                            <tr>
+                                <td>OpenAI</td>
+                                <td><code>OPENAI</code></td>
+                                <td>apiKey</td>
+                            </tr>
+                            <tr>
+                                <td>Azure OpenAI</td>
+                                <td><code>AZURE</code></td>
+                                <td>apiKey, baseUrl</td>
+                            </tr>
+                            <tr>
+                                <td>Ollama (local)</td>
+                                <td><code>OLLAMA</code></td>
+                                <td>baseUrl (default: from compose)</td>
+                            </tr>
+                            <tr>
+                                <td>Anthropic</td>
+                                <td><code>ANTHROPIC</code></td>
+                                <td>apiKey</td>
+                            </tr>
+                            <tr>
+                                <td>Mistral</td>
+                                <td><code>MISTRAL</code></td>
+                                <td>apiKey</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h4>Response</h4>
+                    <pre><code>{
+  "message": "LLM configured successfully",
+  "success": true,
+  "configuredProvider": "GEMINI",
+  "configuredChatModel": "gemini-2.0-flash",
+  "configuredEmbedModel": "gemini-embedding-001",
+  "timestamp": "2025-01-15T10:00:00Z"
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <h2 id="ingest">Ingest a Document</h2>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Send content to CortexDB</h3>
+                    <pre><code>curl -X POST http://localhost:8080/api/ingest/document \
+  -H "Content-Type: application/json" \
+  -d '{
+    "uid": "user-1",
+    "converser": "USER",
+    "content": "Java uses garbage collection for automatic memory management. The JVM handles this process efficiently."
+  }'</code></pre>
+
+                    <h4>Response</h4>
+                    <pre><code>{
+  "knowledgeBase": {
+    "id": "a1b2c3d4-...",
+    "uid": "user-1",
+    "content": "Java uses garbage collection...",
+    "createdAt": "2025-01-15T10:00:00Z"
+  },
+  "status": "SUCCESS",
+  "message": "Document ingested successfully",
+  "processingTimeMs": 245,
+  "embeddingTimeMs": 120
+}</code></pre>
+
+                    <div class="callout callout-info">
+                        <strong>ℹ️ Async Pipeline:</strong>
+                        <p>The response returns immediately after storing the knowledge base entry. Chunking, embedding,
+                            entity extraction, and graph building happen <strong>asynchronously in the
+                                background</strong> via PostgreSQL triggers. Check your server console logs for
+                            <code>KB_ROW</code>, <code>CONTEXT_ROW</code>, <code>ENTITY_ROW</code>, and
+                            <code>RELATION_NEW</code> tags.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <h2 id="query">Run Your First Query</h2>
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h3>Semantic search on your ingested content</h3>
+                    <pre><code>curl -X POST http://localhost:8080/api/query/contexts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How does Java manage memory?",
+    "limit": 5,
+    "minRelevance": 0.7
+  }'</code></pre>
+
+                    <h4>Response</h4>
+                    <pre><code>{
+  "query": "How does Java manage memory?",
+  "results": [
+    {
+      "id": "c1d2e3f4-...",
+      "content": "Java uses garbage collection for automatic memory management.",
+      "score": 0.92,
+      "type": "CHUNK",
+      "metadata": { "chunkNumber": 1, "totalChunks": 2 }
+    }
+  ],
+  "processingTimeMs": 85
+}</code></pre>
+
+                    <p>You can also try:</p>
+                    <ul>
+                        <li><a href="api-reference.html#entity-endpoints">Entity search</a> — find extracted concepts
+                        </li>
+                        <li><a href="api-reference.html#graph-endpoints">Graph traversal</a> — explore entity
+                            connections</li>
+                        <li><a href="api-reference.html#hybrid-search">Hybrid search</a> — combine vector + graph
+                            results</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Step 6 -->
+            <h2 id="sdks">Use an SDK</h2>
+            <div class="step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h3>Install a client library for your language</h3>
+
+                    <h4>Python</h4>
+                    <pre><code>pip install cortexdb</code></pre>
+                    <pre><code>from cortexdb import CortexDB
+
+db = CortexDB("http://localhost:8080")
+db.setup.configure(provider="GEMINI", api_key="...",
+                   chat_model="gemini-2.0-flash",
+                   embed_model="gemini-embedding-001")
+
+db.ingest.document(uid="user-1", converser="USER", content="Hello world")
+results = db.query.search_contexts("greeting", limit=5)</code></pre>
+
+                    <h4>JavaScript / TypeScript</h4>
+                    <pre><code>npm install cortexdb</code></pre>
+                    <pre><code>import { CortexDB } from "cortexdb";
+
+const db = new CortexDB("http://localhost:8080");
+await db.setup.configure("GEMINI", "gemini-2.0-flash",
+                         "gemini-embedding-001", "YOUR_KEY");
+
+await db.ingest.document("user-1", "USER", "Hello world");
+const results = await db.query.searchContexts("greeting");</code></pre>
+
+                    <h4>Java</h4>
+                    <pre><code>CortexDBClient db = new CortexDBClient("http://localhost:8080");
+
+db.setup().configure(LLMApiProvider.GEMINI, "YOUR_KEY",
+                     "gemini-2.0-flash", "gemini-embedding-001");
+
+db.ingest().document("user-1", ConverserRole.USER, "Hello world");
+QueryResponse results = db.query().searchContexts("greeting");</code></pre>
+
+                    <p>See the <a href="sdks.html">SDK documentation</a> for full API details.</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        CortexDB · MIT License · <a href="https://github.com/harshit-sandilya/CortexDB">GitHub</a>
+    </footer>
+
+</body>
+
+</html>
