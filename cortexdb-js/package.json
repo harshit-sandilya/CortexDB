@@ -1,5 +1,5 @@
 {
-  "name": "cortexdb",
+  "name": "cortexdb-js",
   "version": "0.1.0",
   "description": "CortexDB JavaScript/TypeScript SDK — A RAG-powered memory database client.",
   "main": "dist/index.js",
