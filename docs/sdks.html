@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDKs — CortexDB Docs</title>
+    <meta name="description"
+        content="Official CortexDB client SDKs for Python, JavaScript/TypeScript, and Java — installation, examples, and API overview.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <a href="index.html" class="logo"><span class="logo-icon">⚡</span> CortexDB</a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="getting-started.html">Getting Started</a>
+            <a href="api-reference.html">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="sdks.html" class="active">SDKs</a>
+        </nav>
+        <a href="https://github.com/harshit-sandilya/CortexDB" class="github-link" target="_blank">⭐ GitHub</a>
+    </header>
+
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">SDKs</div>
+                <a href="#overview" class="active">Overview</a>
+                <a href="#python">Python</a>
+                <a href="#javascript">JavaScript / TypeScript</a>
+                <a href="#java">Java</a>
+            </div>
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Reference</div>
+                <a href="#api-pattern">API Pattern</a>
+                <a href="#comparison">Comparison Table</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <h1>Client SDKs</h1>
+            <p class="subtitle">Official client libraries that wrap the CortexDB REST API for Python,
+                JavaScript/TypeScript, and Java.</p>
+
+            <!-- ═══ OVERVIEW ═══ -->
+            <h2 id="overview">Overview</h2>
+            <p>All three SDKs follow the same architecture — a main client with three sub-APIs:</p>
+
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(96, 165, 250, 0.15); color: var(--accent-blue);">🔧
+                    </div>
+                    <div class="card-title">Setup API</div>
+                    <div class="card-desc">Configure the LLM provider (Gemini, OpenAI, Azure, Ollama, Anthropic,
+                        Mistral).</div>
+                </div>
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-green);">📥
+                    </div>
+                    <div class="card-title">Ingest API</div>
+                    <div class="card-desc">Submit documents for ingestion. CortexDB handles chunking, embedding, and
+                        graph building.</div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"
+                        style="background: rgba(139, 92, 246, 0.15); color: var(--accent-secondary);">🔍</div>
+                    <div class="card-title">Query API</div>
+                    <div class="card-desc">Search contexts, entities, history, graph traversal, and hybrid search — 20+
+                        methods.</div>
+                </div>
+            </div>
+
+            <!-- ═══ PYTHON ═══ -->
+            <h2 id="python">Python SDK</h2>
+
+            <h3>Installation</h3>
+            <pre><code>pip install cortexdb</code></pre>
+
+            <h3>Quick Start</h3>
+            <pre><code>from cortexdb import CortexDB
+
+db = CortexDB("http://localhost:8080")
+
+# Setup
+db.setup.configure(
+    provider="GEMINI",
+    api_key="YOUR_API_KEY",
+    chat_model="gemini-2.0-flash",
+    embed_model="gemini-embedding-001"
+)
+
+# Ingest
+response = db.ingest.document(
+    uid="user-1",
+    converser="USER",
+    content="Java uses garbage collection for memory management."
+)
+print(f"Ingested: {response.knowledge_base.id}")
+
+# Query — Semantic search
+results = db.query.search_contexts("memory management", limit=5)
+for r in results.results:
+    print(f"  {r.score:.2f} — {r.content}")
+
+# Query — Entity lookup
+entity = db.query.get_entity_by_name("Java")
+
+# Query — Graph traversal
+connections = db.query.get_outgoing_connections(entity.id)
+
+# Query — Hybrid search
+hybrid = db.query.hybrid_search("How does Java handle memory?")
+
+# GDPR — Delete user data
+db.query.delete_user_data("user-1")</code></pre>
+
+            <h3>API Methods</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Methods</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Setup</td>
+                        <td><code>configure()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Ingest</td>
+                        <td><code>document()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Contexts</td>
+                        <td><code>search_contexts()</code>, <code>get_contexts_by_kb()</code>,
+                            <code>get_recent_contexts()</code>, <code>search_recent_contexts()</code>,
+                            <code>get_sibling_contexts()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Entities</td>
+                        <td><code>search_entities()</code>, <code>get_entity_by_name()</code>,
+                            <code>get_entity_by_name_ignore_case()</code>, <code>get_entity_id_by_name()</code>,
+                            <code>disambiguate_entity()</code>, <code>get_contexts_for_entity()</code>,
+                            <code>get_entities_for_context()</code>, <code>merge_entities()</code></td>
+                    </tr>
+                    <tr>
+                        <td>History</td>
+                        <td><code>search_history()</code>, <code>get_history_by_user()</code>,
+                            <code>get_recent_kbs()</code>, <code>get_kbs_since()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Graph</td>
+                        <td><code>get_outgoing_connections()</code>, <code>get_incoming_connections()</code>,
+                            <code>get_two_hop_connections()</code>, <code>get_top_relations()</code>,
+                            <code>get_relations_by_source()</code>, <code>get_relations_by_target()</code>,
+                            <code>get_relations_by_type()</code></td>
+                    </tr>
+                    <tr>
+                        <td>Hybrid</td>
+                        <td><code>hybrid_search()</code></td>
+                    </tr>
+                    <tr>
+                        <td>User Data</td>
+                        <td><code>delete_user_data()</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>📖 Full docs: <a
+                    href="https://github.com/harshit-sandilya/CortexDB/blob/main/cortexdb-py/README.md">cortexdb-py/README.md</a>
+            </p>
+
+            <!-- ═══ JAVASCRIPT ═══ -->
+            <h2 id="javascript">JavaScript / TypeScript SDK</h2>
+
+            <h3>Installation</h3>
+            <pre><code>npm install cortexdb</code></pre>
+
+            <h3>Quick Start</h3>
+            <pre><code>import { CortexDB, ConverserRole } from "cortexdb";
+
+const db = new CortexDB("http://localhost:8080");
+
+// Setup
+await db.setup.configure("GEMINI", "gemini-2.0-flash",
+                         "gemini-embedding-001", "YOUR_API_KEY");
+
+// Ingest
+const response = await db.ingest.document(
+  "user-1", ConverserRole.USER,
+  "Java uses garbage collection for memory management."
+);
+console.log(`Ingested: ${response.knowledgeBase?.id}`);
+
+// Query — Semantic search
+const results = await db.query.searchContexts("memory management");
+for (const r of results.results) {
+  console.log(`  ${r.score?.toFixed(2)} — ${r.content}`);
+}
+
+// Query — Entity lookup
+const entity = await db.query.getEntityByName("Java");
+
+// Query — Graph traversal
+const connections = await db.query.getOutgoingConnections(entity!.id!);
+
+// Query — Hybrid search
+const hybrid = await db.query.hybridSearch("How does Java handle memory?");
+
+// GDPR — Delete user data
+await db.query.deleteUserData("user-1");</code></pre>
+
+            <h3>TypeScript Types</h3>
+            <p>All models are fully typed and exported:</p>
+            <pre><code>import {
+  LLMApiProvider, ConverserRole,
+  type SetupResponse, type IngestResponse,
+  type QueryResponse, type SearchResult,
+  type Entity, type Relation
+} from "cortexdb";</code></pre>
+
+            <p>📖 Full docs: <a
+                    href="https://github.com/harshit-sandilya/CortexDB/blob/main/cortexdb-js/README.md">cortexdb-js/README.md</a>
+            </p>
+
+            <!-- ═══ JAVA ═══ -->
+            <h2 id="java">Java SDK</h2>
+
+            <h3>Installation</h3>
+            <pre><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.vectornode&lt;/groupId&gt;
+    &lt;artifactId&gt;cortexdb-java&lt;/artifactId&gt;
+    &lt;version&gt;0.1.0-SNAPSHOT&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+
+            <h3>Quick Start</h3>
+            <pre><code>import com.vectornode.cortexdb.CortexDBClient;
+import com.vectornode.cortexdb.models.*;
+
+CortexDBClient db = new CortexDBClient("http://localhost:8080");
+
+// Setup
+SetupResponse setup = db.setup().configure(
+    LLMApiProvider.GEMINI, "YOUR_API_KEY",
+    "gemini-2.0-flash", "gemini-embedding-001"
+);
+
+// Ingest
+IngestResponse ingest = db.ingest().document(
+    "user-1", ConverserRole.USER,
+    "Java uses garbage collection for memory management."
+);
+System.out.println("Ingested: " + ingest.getKnowledgeBase().getId());
+
+// Query — Semantic search
+QueryResponse results = db.query().searchContexts("memory management");
+for (SearchResult r : results.getResults()) {
+    System.out.printf("  %.2f — %s%n", r.getScore(), r.getContent());
+}
+
+// Query — Entity lookup
+Entity entity = db.query().getEntityByName("Java");
+
+// Query — Graph traversal
+QueryResponse connections = db.query().getOutgoingConnections(entity.getId());
+
+// Query — Hybrid search
+QueryResponse hybrid = db.query().hybridSearch("How does Java handle memory?");
+
+// GDPR — Delete user data
+db.query().deleteUserData("user-1");</code></pre>
+
+            <h3>Native LLM Provider</h3>
+            <p>The Java SDK also supports calling LLMs directly from the client side:</p>
+            <pre><code>import com.vectornode.cortexdb.llm.LLMProvider;
+
+LLMProvider llm = new LLMProvider("GEMINI", "YOUR_KEY",
+    "gemini-2.0-flash", "gemini-embedding-001", null);
+
+List&lt;Float&gt; embedding = llm.getEmbedding("Hello world");
+String response = llm.callLLM("Explain quantum computing");</code></pre>
+
+            <p>📖 Full docs: <a
+                    href="https://github.com/harshit-sandilya/CortexDB/blob/main/cortexdb-java/README.md">cortexdb-java/README.md</a>
+            </p>
+
+            <!-- ═══ API PATTERN ═══ -->
+            <h2 id="api-pattern">API Pattern</h2>
+            <p>All SDKs follow the same sub-API pattern:</p>
+            <pre><code>client.setup.configure(...)     // Configure LLM
+client.ingest.document(...)     // Ingest a document
+client.query.searchContexts(...)// Semantic search on contexts
+client.query.getEntityByName(...)// Entity lookup
+client.query.hybridSearch(...)  // Hybrid vector + graph search</code></pre>
+
+            <!-- ═══ COMPARISON ═══ -->
+            <h2 id="comparison">Comparison Table</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Python</th>
+                        <th>JavaScript/TS</th>
+                        <th>Java</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Language</td>
+                        <td>Python 3.10+</td>
+                        <td>Node.js 18+</td>
+                        <td>Java 21+</td>
+                    </tr>
+                    <tr>
+                        <td>Package Manager</td>
+                        <td>pip / Poetry</td>
+                        <td>npm</td>
+                        <td>Maven</td>
+                    </tr>
+                    <tr>
+                        <td>Async</td>
+                        <td>httpx (async)</td>
+                        <td>fetch (async/await)</td>
+                        <td>HttpClient (sync)</td>
+                    </tr>
+                    <tr>
+                        <td>Type Safety</td>
+                        <td>Pydantic models</td>
+                        <td>TypeScript interfaces</td>
+                        <td>POJOs + Generics</td>
+                    </tr>
+                    <tr>
+                        <td>Native LLM</td>
+                        <td>google-genai</td>
+                        <td>—</td>
+                        <td>Built-in LLMProvider</td>
+                    </tr>
+                    <tr>
+                        <td>Testing</td>
+                        <td>pytest + respx</td>
+                        <td>vitest</td>
+                        <td>JUnit 5</td>
+                    </tr>
+                    <tr>
+                        <td>Query Methods</td>
+                        <td>20+</td>
+                        <td>20+</td>
+                        <td>20+</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        CortexDB · MIT License · <a href="https://github.com/harshit-sandilya/CortexDB">GitHub</a>
+    </footer>
+
+</body>
+
+</html>

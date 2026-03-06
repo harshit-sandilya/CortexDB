@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference — CortexDB Docs</title>
+    <meta name="description"
+        content="Complete REST API reference for CortexDB — Setup, Ingest, Query (Contexts, Entities, History, Graph, Hybrid Search), and Data Management.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="site-header">
+        <a href="index.html" class="logo"><span class="logo-icon">⚡</span> CortexDB</a>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="getting-started.html">Getting Started</a>
+            <a href="api-reference.html" class="active">API Reference</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="sdks.html">SDKs</a>
+        </nav>
+        <a href="https://github.com/harshit-sandilya/CortexDB" class="github-link" target="_blank">⭐ GitHub</a>
+    </header>
+
+    <div class="page-wrapper">
+        <aside class="sidebar">
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Endpoints</div>
+                <a href="#setup" class="active">Setup</a>
+                <a href="#ingest">Ingest</a>
+                <a href="#context-endpoints">Contexts</a>
+                <a href="#entity-endpoints">Entities</a>
+                <a href="#history-endpoints">History</a>
+                <a href="#user-data">User Data</a>
+                <a href="#graph-endpoints">Graph</a>
+                <a href="#hybrid-search">Hybrid Search</a>
+            </div>
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">Reference</div>
+                <a href="#request-schemas">Request Schemas</a>
+                <a href="#response-schemas">Response Schemas</a>
+                <a href="#enums">Enums</a>
+            </div>
+        </aside>
+
+        <main class="content">
+            <h1>API Reference</h1>
+            <p class="subtitle">Base URL: <code>http://localhost:8080</code> — All endpoints accept and return JSON.</p>
+
+            <!-- ═══ SETUP ═══ -->
+            <h2 id="setup">Setup</h2>
+            <p>Configure the LLM provider used for embeddings and entity extraction.</p>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/setup</span>
+                    <span class="endpoint-desc">Configure LLM provider</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">provider</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — LLM provider enum</li>
+                        <li><span class="field-name">chatModelName</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Chat model name</li>
+                        <li><span class="field-name">embedModelName</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Embedding model name</li>
+                        <li><span class="field-name">apiKey</span> <span class="field-type">string</span> <span
+                                class="badge badge-optional">optional</span> — API key for the provider</li>
+                        <li><span class="field-name">baseUrl</span> <span class="field-type">string</span> <span
+                                class="badge badge-optional">optional</span> — Custom base URL (e.g. Azure endpoint)
+                        </li>
+                    </ul>
+                    <h4>Example</h4>
+                    <pre><code>curl -X POST http://localhost:8080/api/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "GEMINI",
+    "chatModelName": "gemini-2.0-flash",
+    "embedModelName": "gemini-embedding-001",
+    "apiKey": "YOUR_API_KEY"
+  }'</code></pre>
+                    <h4>Response — <code>SetupResponse</code></h4>
+                    <pre><code>{
+  "message": "LLM configured successfully",
+  "success": true,
+  "configuredProvider": "GEMINI",
+  "configuredChatModel": "gemini-2.0-flash",
+  "configuredEmbedModel": "gemini-embedding-001",
+  "timestamp": "2025-01-15T10:00:00Z"
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ INGEST ═══ -->
+            <h2 id="ingest">Ingest</h2>
+            <p>Ingest documents into CortexDB. The content is stored immediately, then processed asynchronously
+                (chunking, embedding, entity/relation extraction).</p>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/ingest/document</span>
+                    <span class="endpoint-desc">Ingest a document</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">uid</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — User identifier</li>
+                        <li><span class="field-name">converser</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Role: <code>USER</code>,
+                            <code>AGENT</code>, or <code>SYSTEM</code></li>
+                        <li><span class="field-name">content</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Text content to ingest</li>
+                        <li><span class="field-name">metadata</span> <span class="field-type">object</span> <span
+                                class="badge badge-optional">optional</span> — Arbitrary key-value metadata</li>
+                    </ul>
+                    <h4>Example</h4>
+                    <pre><code>curl -X POST http://localhost:8080/api/ingest/document \
+  -H "Content-Type: application/json" \
+  -d '{
+    "uid": "user-1",
+    "converser": "USER",
+    "content": "Java uses garbage collection for memory management."
+  }'</code></pre>
+                    <h4>Response — <code>IngestResponse</code></h4>
+                    <pre><code>{
+  "knowledgeBase": {
+    "id": "a1b2c3d4-...",
+    "uid": "user-1",
+    "content": "Java uses garbage collection...",
+    "createdAt": "2025-01-15T10:00:00Z"
+  },
+  "status": "SUCCESS",
+  "message": "Document ingested successfully",
+  "processingTimeMs": 245,
+  "embeddingTimeMs": 120
+}</code></pre>
+                    <div class="callout callout-info">
+                        <strong>ℹ️ Async Processing:</strong>
+                        <p>The response returns immediately. Chunking, embedding, entity extraction, and graph building
+                            happen asynchronously via PostgreSQL triggers.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ CONTEXT ENDPOINTS ═══ -->
+            <h2 id="context-endpoints">Context Endpoints</h2>
+            <p>Search and retrieve text chunks (contexts) created during document ingestion.</p>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/contexts</span>
+                    <span class="endpoint-desc">Semantic search on contexts</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">query</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Search text</li>
+                        <li><span class="field-name">limit</span> <span class="field-type">int</span> <span
+                                class="badge badge-optional">optional</span> — Max results (default: 5)</li>
+                        <li><span class="field-name">minRelevance</span> <span class="field-type">double</span> <span
+                                class="badge badge-optional">optional</span> — Min score 0–1 (default: 0.7)</li>
+                        <li><span class="field-name">filters</span> <span class="field-type">object</span> <span
+                                class="badge badge-optional">optional</span> — Metadata filters</li>
+                    </ul>
+                    <h4>Example</h4>
+                    <pre><code>curl -X POST http://localhost:8080/api/query/contexts \
+  -H "Content-Type: application/json" \
+  -d '{"query": "memory management", "limit": 5, "minRelevance": 0.7}'</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/contexts/kb/{kbId}</span>
+                    <span class="endpoint-desc">Get contexts by knowledge base ID</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Path Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">kbId</span> <span class="field-type">UUID</span> <span
+                                class="badge badge-required">required</span> — Knowledge base ID</li>
+                    </ul>
+                    <pre><code>curl http://localhost:8080/api/query/contexts/kb/a1b2c3d4-...</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/contexts/recent</span>
+                    <span class="endpoint-desc">Get recent contexts</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">days</span> <span class="field-type">int</span> <span
+                                class="badge badge-optional">optional</span> — Lookback period (default: 7)</li>
+                    </ul>
+                    <pre><code>curl "http://localhost:8080/api/query/contexts/recent?days=7"</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/contexts/range</span>
+                    <span class="endpoint-desc">Get contexts by date range</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">startDate</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — ISO-8601 start date</li>
+                        <li><span class="field-name">endDate</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — ISO-8601 end date</li>
+                    </ul>
+                    <pre><code>curl "http://localhost:8080/api/query/contexts/range?startDate=2025-01-01&endDate=2025-01-31"</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/contexts/recent</span>
+                    <span class="endpoint-desc">Search recent contexts with vector similarity</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">days</span> <span class="field-type">int</span> <span
+                                class="badge badge-optional">optional</span> — Lookback period (default: 7)</li>
+                    </ul>
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <p>Same as <code>POST /api/query/contexts</code>.</p>
+                    <pre><code>curl -X POST "http://localhost:8080/api/query/contexts/recent?days=7" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "memory", "limit": 5, "minRelevance": 0.7}'</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/contexts/siblings/{contextId}</span>
+                    <span class="endpoint-desc">Get sibling contexts (same document)</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Path Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">contextId</span> <span class="field-type">UUID</span> <span
+                                class="badge badge-required">required</span> — Context ID</li>
+                    </ul>
+                    <pre><code>curl http://localhost:8080/api/query/contexts/siblings/c1d2e3f4-...</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ ENTITY ENDPOINTS ═══ -->
+            <h2 id="entity-endpoints">Entity Endpoints</h2>
+            <p>Search the extracted entities (concepts, people, technologies, etc.) in the knowledge graph.</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/entities</span>
+                    <span class="endpoint-desc">Semantic search on entities</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <p>Same schema as context search.</p>
+                    <pre><code>curl -X POST http://localhost:8080/api/query/entities \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Java programming", "limit": 5, "minRelevance": 0.7}'</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/entities/name/{name}</span>
+                    <span class="endpoint-desc">Find entity by exact name</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Returns <code>404</code> if not found.</p>
+                    <pre><code>curl http://localhost:8080/api/query/entities/name/Java</code></pre>
+                    <h4>Response — <code>RagEntity</code></h4>
+                    <pre><code>{
+  "id": "e1...",
+  "name": "Java",
+  "type": "Technology",
+  "description": "A programming language...",
+  "vectorEmbedding": [0.31, ...]
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/entities/name-ignore-case/{name}</span>
+                    <span class="endpoint-desc">Find entity by name (case-insensitive)</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/entities/name-ignore-case/java</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/entities/id/{name}</span>
+                    <span class="endpoint-desc">Get entity ID by name</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/entities/id/Java</code></pre>
+                    <h4>Response</h4>
+                    <pre><code>{ "id": "e1a2b3c4-..." }</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/entities/disambiguate</span>
+                    <span class="endpoint-desc">Disambiguate entity with context</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">entityName</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Entity name to disambiguate</li>
+                    </ul>
+                    <h4>Request Body</h4>
+                    <p>Plain text (<code>Content-Type: text/plain</code>) providing context for disambiguation.</p>
+                    <pre><code>curl -X POST "http://localhost:8080/api/query/entities/disambiguate?entityName=Apple" \
+  -H "Content-Type: text/plain" \
+  -d "I was eating a fresh apple from the orchard"</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/entities/{entityId}/contexts</span>
+                    <span class="endpoint-desc">Get all contexts mentioning an entity</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/entities/e1a2b3c4-.../contexts</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/contexts/{contextId}/entities</span>
+                    <span class="endpoint-desc">Get all entities mentioned in a context</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/contexts/c1d2e3f4-.../entities</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/entities/merge</span>
+                    <span class="endpoint-desc">Merge two entities</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">sourceEntityId</span> <span class="field-type">UUID</span> <span
+                                class="badge badge-required">required</span> — Entity to merge from</li>
+                        <li><span class="field-name">targetEntityId</span> <span class="field-type">UUID</span> <span
+                                class="badge badge-required">required</span> — Entity to merge into</li>
+                    </ul>
+                    <pre><code>curl -X POST "http://localhost:8080/api/query/entities/merge?sourceEntityId=e1...&targetEntityId=e2..."</code></pre>
+                    <div class="callout callout-warning">
+                        <strong>⚠️ Destructive:</strong>
+                        <p>This reassigns all context links and relations from the source entity to the target entity.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ HISTORY ENDPOINTS ═══ -->
+            <h2 id="history-endpoints">History Endpoints</h2>
+            <p>Search and retrieve knowledge base entries (the raw ingested documents).</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/history</span>
+                    <span class="endpoint-desc">Semantic search on history</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <pre><code>curl -X POST http://localhost:8080/api/query/history \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Java memory", "limit": 5}'</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/history/user/{uid}</span>
+                    <span class="endpoint-desc">Get all history for a user</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/history/user/user-1</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/history/recent</span>
+                    <span class="endpoint-desc">Get recent knowledge bases</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">hours</span> <span class="field-type">int</span> <span
+                                class="badge badge-optional">optional</span> — Lookback period (default: 24)</li>
+                    </ul>
+                    <pre><code>curl "http://localhost:8080/api/query/history/recent?hours=24"</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/history/since</span>
+                    <span class="endpoint-desc">Get knowledge bases since timestamp</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">since</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — ISO-8601 timestamp</li>
+                    </ul>
+                    <pre><code>curl "http://localhost:8080/api/query/history/since?since=2025-01-01T00:00:00Z"</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ USER DATA ═══ -->
+            <h2 id="user-data">User Data</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-delete">DELETE</span>
+                    <span class="endpoint-path">/api/query/user/{uid}</span>
+                    <span class="endpoint-desc">Delete all user data (GDPR)</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>Deletes all knowledge base entries, contexts, and associated data for the specified user.</p>
+                    <pre><code>curl -X DELETE http://localhost:8080/api/query/user/user-1</code></pre>
+                    <div class="callout callout-warning">
+                        <strong>⚠️ Irreversible:</strong>
+                        <p>This permanently removes all data. Use for GDPR "Right to be Forgotten" compliance.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ GRAPH ENDPOINTS ═══ -->
+            <h2 id="graph-endpoints">Graph Endpoints</h2>
+            <p>Traverse the knowledge graph — explore entity relationships, find connections, and discover patterns.</p>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/outgoing/{entityId}</span>
+                    <span class="endpoint-desc">Get outgoing relations</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>What does this entity connect <strong>to</strong>? (e.g. Java → uses → GC)</p>
+                    <pre><code>curl http://localhost:8080/api/query/graph/outgoing/e1a2b3c4-...</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/incoming/{entityId}</span>
+                    <span class="endpoint-desc">Get incoming relations</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>What connects <strong>to</strong> this entity? (e.g. SpringBoot → uses → Java)</p>
+                    <pre><code>curl http://localhost:8080/api/query/graph/incoming/e1a2b3c4-...</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/2hop/{entityId}</span>
+                    <span class="endpoint-desc">Get 2-hop connections</span>
+                </div>
+                <div class="endpoint-body">
+                    <p>"Friends of friends" — entities reachable in exactly 2 hops.</p>
+                    <pre><code>curl http://localhost:8080/api/query/graph/2hop/e1a2b3c4-...</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/top</span>
+                    <span class="endpoint-desc">Get top/strongest relations</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Query Parameters</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">limit</span> <span class="field-type">int</span> <span
+                                class="badge badge-optional">optional</span> — Max results (default: 10)</li>
+                    </ul>
+                    <pre><code>curl "http://localhost:8080/api/query/graph/top?limit=10"</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/source/{sourceId}</span>
+                    <span class="endpoint-desc">Get relations by source entity</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/graph/source/e1a2b3c4-...</code></pre>
+                    <h4>Response — <code>List&lt;Relation&gt;</code></h4>
+                    <pre><code>[
+  {
+    "id": "r1...",
+    "sourceEntity": { "id": "e1...", "name": "Java" },
+    "targetEntity": { "id": "e2...", "name": "Garbage Collection" },
+    "relationType": "uses",
+    "edgeWeight": 3,
+    "createdAt": "2025-01-15T10:00:02Z"
+  }
+]</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/target/{targetId}</span>
+                    <span class="endpoint-desc">Get relations by target entity</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/graph/target/e2b3c4d5-...</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+                    <span class="method method-get">GET</span>
+                    <span class="endpoint-path">/api/query/graph/type/{relationType}</span>
+                    <span class="endpoint-desc">Get relations by type</span>
+                </div>
+                <div class="endpoint-body">
+                    <pre><code>curl http://localhost:8080/api/query/graph/type/uses</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ HYBRID SEARCH ═══ -->
+            <h2 id="hybrid-search">Hybrid Search</h2>
+            <p>Combines vector similarity search with graph-based context for richer results.</p>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/query/hybrid</span>
+                    <span class="endpoint-desc">Hybrid vector + graph search</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <p>Same schema as context search.</p>
+                    <pre><code>curl -X POST http://localhost:8080/api/query/hybrid \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How does Java handle memory?", "limit": 10, "minRelevance": 0.6}'</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ SCHEMAS ═══ -->
+            <h2 id="request-schemas">Request Schemas</h2>
+
+            <h3>QueryRequest</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Default</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>query</code></td>
+                        <td>string</td>
+                        <td>✅</td>
+                        <td>—</td>
+                        <td>Search text</td>
+                    </tr>
+                    <tr>
+                        <td><code>limit</code></td>
+                        <td>int</td>
+                        <td>—</td>
+                        <td>5</td>
+                        <td>Max results</td>
+                    </tr>
+                    <tr>
+                        <td><code>minRelevance</code></td>
+                        <td>double</td>
+                        <td>—</td>
+                        <td>0.7</td>
+                        <td>Min similarity score (0–1)</td>
+                    </tr>
+                    <tr>
+                        <td><code>filters</code></td>
+                        <td>object</td>
+                        <td>—</td>
+                        <td>null</td>
+                        <td>Metadata filters</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 id="response-schemas">Response Schemas</h2>
+
+            <h3>QueryResponse</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>query</code></td>
+                        <td>string</td>
+                        <td>Original query text</td>
+                    </tr>
+                    <tr>
+                        <td><code>results</code></td>
+                        <td>SearchResult[]</td>
+                        <td>Array of results</td>
+                    </tr>
+                    <tr>
+                        <td><code>processingTimeMs</code></td>
+                        <td>long</td>
+                        <td>Total processing time</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>SearchResult</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>id</code></td>
+                        <td>UUID</td>
+                        <td>Result ID</td>
+                    </tr>
+                    <tr>
+                        <td><code>content</code></td>
+                        <td>string</td>
+                        <td>Text chunk or entity name</td>
+                    </tr>
+                    <tr>
+                        <td><code>score</code></td>
+                        <td>double</td>
+                        <td>Similarity score</td>
+                    </tr>
+                    <tr>
+                        <td><code>type</code></td>
+                        <td>string</td>
+                        <td><code>CHUNK</code>, <code>ENTITY</code>, or <code>RELATION</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>metadata</code></td>
+                        <td>object</td>
+                        <td>Additional metadata (JSONB)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2 id="enums">Enums</h2>
+
+            <h3>LLMApiProvider</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Value</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>GEMINI</code></td>
+                        <td>Google Gemini</td>
+                    </tr>
+                    <tr>
+                        <td><code>OPENAI</code></td>
+                        <td>OpenAI</td>
+                    </tr>
+                    <tr>
+                        <td><code>AZURE</code></td>
+                        <td>Azure OpenAI</td>
+                    </tr>
+                    <tr>
+                        <td><code>OLLAMA</code></td>
+                        <td>Ollama (local)</td>
+                    </tr>
+                    <tr>
+                        <td><code>ANTHROPIC</code></td>
+                        <td>Anthropic Claude</td>
+                    </tr>
+                    <tr>
+                        <td><code>MISTRAL</code></td>
+                        <td>Mistral AI</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>ConverserRole</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Value</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>USER</code></td>
+                        <td>Content from a human user</td>
+                    </tr>
+                    <tr>
+                        <td><code>AGENT</code></td>
+                        <td>Content generated by AI</td>
+                    </tr>
+                    <tr>
+                        <td><code>SYSTEM</code></td>
+                        <td>System-level content</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </main>
+    </div>
+
+    <footer class="site-footer">
+        CortexDB · MIT License · <a href="https://github.com/harshit-sandilya/CortexDB">GitHub</a>
+    </footer>
+
+</body>
+
+</html>

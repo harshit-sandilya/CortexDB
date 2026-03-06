@@ -1,225 +1,311 @@
-RAG_DB Schema - https://drive.google.com/file/d/1NGJTDMsEvNg7aNtKiYArZg2BVi2-E8Hf/view?usp=drive_link
-queries - https://drive.google.com/file/d/1LQnRicFwOWWarIMGQ0naBOoW7kHSb7N2/view?usp=drive_link
+# CortexDB
 
-1. Table Creation Scripts
+**A RAG-powered memory database with built-in knowledge graphs.**
 
--- 1. The Raw Input (User Queries/Docs)
-CREATE TABLE knowledge_base (
-id SERIAL PRIMARY KEY,
-user_id INT NOT NULL, -- Managed externally by developers
-content TEXT,
-vector vector(1536),
-metadata JSONB,
-created_at TIMESTAMPTZ DEFAULT NOW()
-);
--- 2. The Chunks (Splitting the input)
-CREATE TABLE contexts (
-id SERIAL PRIMARY KEY,
-kb_id INT REFERENCES knowledge_base(id) ON DELETE CASCADE,
-context_data TEXT,
-vector vector(1536),
-metadata JSONB,
-created_at TIMESTAMPTZ DEFAULT NOW()
-);
--- 3. The Concepts (Extracted Entities)
-CREATE TABLE entities (
-id SERIAL PRIMARY KEY,
-entity_name TEXT,
-type TEXT, -- Recommended for polysemy (e.g. Apple:Company vs Apple:Fruit)
-vector vector(1536),
-metadata JSONB,
-created_at TIMESTAMPTZ DEFAULT NOW(),
-UNIQUE (entity_name, type) -- Prevent duplicate concepts
-);
--- 4. The Junction (Many-to-Many: Which entities appear in which chunk?)
-CREATE TABLE entity_contexts (
-entity_id INT REFERENCES entities(id) ON DELETE CASCADE,
-context_id INT REFERENCES contexts(id) ON DELETE CASCADE,
-PRIMARY KEY (entity_id, context_id)
-);
--- 5. The Graph (How entities relate)
-CREATE TABLE relations (
-source_id INT REFERENCES entities(id),
-target_id INT REFERENCES entities(id),
-relation_type TEXT,
-edge_weight INT DEFAULT 1,
-metadata JSONB,
-created_at TIMESTAMPTZ DEFAULT NOW(),
-PRIMARY KEY (source_id, target_id, relation_type)
-);
+CortexDB is an open-source backend that gives your AI applications persistent, structured memory. Ingest documents and CortexDB will automatically chunk text, generate vector embeddings, extract entities and relationships, and build a queryable knowledge graph — all powered by the LLM of your choice.
 
-2. Knowledge Base Operations (The Entry Point)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16%20+%20pgvector-4169E1?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-INSERT QUERY - Stores the initial user query or document. Returns ID for the next steps.
-Query - INSERT INTO
-knowledge_base (user_id,
-content, vector, metadata)
-VALUES (42, 'How does
-Java handle memory?',
-'[0.1, ...]', '{"source":
-"chat"}') RETURNING id;
+---
 
-FETCH BY USER - Retrieves all history for a specific external user.
-Query - SELECT * FROM
-knowledge_base WHERE
-user_id = 42 ORDER BY
-created_at DESC;
+## Features
 
-SEMANTIC SEARCH - Finds similar past queries (e.g., "Has anyone asked this before?").
-Query - SELECT content, user_id
-FROM knowledge_base
-ORDER BY vector <=> '[Query_Vector]' LIMIT 5;
+- **Vector Search** — Semantic similarity search using pgvector on contexts, entities, and history
+- **Knowledge Graph** — Automatic entity/relation extraction with weighted edges and graph traversal (1-hop, 2-hop)
+- **Hybrid Search** — Combines vector similarity with graph-based context for richer results
+- **Multi-LLM Support** — Gemini, OpenAI, Azure, Ollama, Anthropic, Mistral — switch providers with a single API call
+- **Async Ingestion Pipeline** — Fire-and-forget architecture using PostgreSQL triggers for non-blocking document processing
+- **GDPR Compliance** — Built-in endpoint to delete all user data
+- **Official SDKs** — Python, JavaScript/TypeScript, and Java client libraries
 
-FETCH BY TIME - Gets queries from the last 24 hours.
-Query - SELECT * FROM
-knowledge_base WHERE
-created_at > NOW() -
-INTERVAL '24 hours';
+---
 
-DELETE USER DATA - "Right to be Forgotten" Deletes everything. Due to ON DELETE CASCADE, this will automatically wipe linked Contexts (but not Entities).
-Query - DELETE FROM knowledge_base WHERE user_id = 42;
+## Quick Start
 
-3. Context Operations (The Chunks)
-Queries for managing the split parts of the main query.
+### 1. Clone & Run
 
-INSERT CHUNK - Links a text chunk to the Knowledge Base ID. Explicitly handles created_at if you need to backfill old data (otherwise defaults to NOW).
-Query - INSERT INTO contexts
-(kb_id, context_data,
-vector, metadata,
-created_at) VALUES (101,
-'Java uses GC...', '[...]',
-'{"index": 0}', '2025-01-10
-10:00:00') RETURNING id;
+```bash
+git clone https://github.com/harshit-sandilya/CortexDB.git
+cd CortexDB/memory
+docker compose up -d
+```
 
-FETCH BY TIME (New) - Retrieves chunks created within a specific time window (e.g., "Last 7 Days"). Critical for Recency Bias.
-Query - SELECT context_data,
-created_at FROM contexts
-WHERE created_at >=
-NOW() - INTERVAL '7 days'
-ORDER BY created_at
-DESC;
+This starts 3 containers:
+| Service | Port | Description |
+|---------|------|-------------|
+| **PostgreSQL** (pgvector) | 5432 | Vector-enabled database |
+| **Ollama** | 11434 | Local LLM runtime |
+| **Backend** | 8080 | CortexDB REST API |
 
-TIME RANGE - Retrieves chunks from a specific date range (e.g., "What did we discuss in December?").
-Query - SELECT context_data
-FROM contexts WHERE
-created_at BETWEEN
-'2023-12-01' AND
-'2023-12-31';
+### 2. Configure an LLM Provider
 
-FETCH PARENT - Finds the original user query that generated this chunk.
-Query - SELECT kb.content FROM
-knowledge_base kb JOIN
-contexts c ON kb.id =
-c.kb_id WHERE c.id = 500;
+```bash
+curl -X POST http://localhost:8080/api/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider": "GEMINI",
+    "chatModelName": "gemini-2.0-flash",
+    "embedModelName": "gemini-embedding-001",
+    "apiKey": "YOUR_API_KEY"
+  }'
+```
 
-VECTOR SEARCH (Core RAG) - Finds the most relevant chunks for a new question.
-Query - SELECT context_data,
-metadata FROM contexts
-ORDER BY vector <=>
-'[New_Question_Vector]'
-LIMIT 5;
+### 3. Ingest a Document
 
-RECENT VECTORS (Hybrid) - Finds semantically similar chunks, but only if they are recent (e.g., ignoring obsolete data).
-Query - SELECT context_data
-FROM contexts WHERE
-created_at > NOW() -
-INTERVAL '30 days'
-ORDER BY vector <=>
-'[Query_Vector]' LIMIT 5;
+```bash
+curl -X POST http://localhost:8080/api/ingest/document \
+  -H "Content-Type: application/json" \
+  -d '{
+    "uid": "user-1",
+    "converser": "USER",
+    "content": "Java uses garbage collection for automatic memory management. The JVM handles this process."
+  }'
+```
 
-FETCH SIBLINGS - Gets other chunks from the same document/query (e.g., previous/next sentence).
-Query - SELECT * FROM contexts
-WHERE kb_id = (SELECT
-kb_id FROM contexts
-WHERE id = 500) ORDER
-BY id ASC;
+### 4. Query
 
-4. Entity Operations (The Nodes)
+```bash
+curl -X POST http://localhost:8080/api/query/contexts \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How does Java manage memory?", "limit": 5, "minRelevance": 0.7}'
+```
 
-UPSERT ENTITY (Crucial) - Inserts a new entity or returns the ID if it already exists.
-Query - INSERT INTO entities
-(entity_name, type, vector)
-VALUES ('Java',
-'Technology', '[...]') ON
-CONFLICT (entity_name,
-type) DO UPDATE SET
-metadata = EXCLUDED.metadata
-RETURNING id;
+---
 
-DISAMBIGUATE - Finds the correct Entity ID for "Apple" based on vector similarity to the current conversation context.
-Query - SELECT id, entity_name,
-type FROM entities WHERE
-entity_name = 'Apple'
-ORDER BY vector <=>
-'[Current_Context_Vector]'
-LIMIT 1;
+## How It Works — End-to-End Pipeline
 
-FETCH ID - Simple lookup to get an ID by name.
-Query - SELECT id FROM entities
-WHERE entity_name =
-'Java' AND type =
-'Technology';
+When you ingest a document, CortexDB processes it through a multi-stage async pipeline. Here's exactly what happens:
 
-MERGE ENTITIES - If you find "Javascript" and "JS" are the same, you update references (complex logic
-usually handled in code, but here is a simple update).
-Query - UPDATE entity_contexts
-SET entity_id = 101 WHERE
-entity_id = 105; -- Then
-delete 105
+### Async Architecture
 
-5. Junction Operations (Connecting Entities to Contexts) Queries for the Many-to-Many mapping.
+```
+┌─────────────┐     ┌───────────────┐     ┌──────────────────────────┐
+│  API Client  │────▶│ IngestService │────▶│  knowledge_bases table   │
+│  (you)       │◀────│ (synchronous) │     │  + vector embedding      │
+│              │ 200 │               │     │  + JSONB metadata        │
+└─────────────┘     └───────────────┘     └────────────┬─────────────┘
+                                                       │ PostgreSQL
+                                                       │ NOTIFY trigger
+                                          ┌────────────▼─────────────┐
+                                          │ PostgresNotification     │
+                                          │ Listener                 │
+                                          │ (LISTEN rag_events)      │
+                                          └────────────┬─────────────┘
+                                                       │ @Async dispatch
+                                          ┌────────────▼─────────────┐
+                                          │ IngestionWorker          │
+                                          │ (background thread)      │
+                                          │                          │
+                                          │ 1. Chunk text            │
+                                          │ 2. Generate embeddings   │
+                                          │ 3. Persist contexts ─────┼──▶ NOTIFY trigger
+                                          │ 4. Extract entities      │    (CONTEXT_CREATED)
+                                          │ 5. Extract relations     │
+                                          │ 6. Build graph           │
+                                          │ 7. Log to console        │
+                                          └──────────────────────────┘
+```
 
-LINK ENTITY - Connects an extracted entity (Java) to the chunk (Context) where it was found.
-Query - INSERT INTO
-entity_contexts (entity_id,
-context_id) VALUES (101,500) ON CONFLICT 
-DO NOTHING;
+> **Key:** The API response returns immediately after step 1. All chunking, embedding, entity extraction, and graph building happens asynchronously in the background. Every persisted row is logged to console with structured tags (`KB_ROW`, `CONTEXT_ROW`, `ENTITY_ROW`, `JUNCTION_ROW`, `RELATION_NEW`, `RELATION_INCREMENT`).
 
-GET CONTEXTS (Recall) - "Show me every time we mentioned Java."
-Query - SELECT c.context_data
-FROM contexts c JOIN
-entity_contexts ec ON c.id
-= ec.context_id WHERE
-ec.entity_id = 101;
+### Data Flow Through the 5 Tables
 
-GET ENTITIES - "What concepts are mentioned in this specific chunk?"
-Query - SELECT e.entity_name
-FROM entities e JOIN
-entity_contexts ec ON e.id
-= ec.entity_id WHERE
-ec.context_id = 500;
+**Example input:** *"Java uses garbage collection for automatic memory management. The JVM handles this process."*
 
-6. Relation Operations (The Graph)
-Queries for managing the connections and edge weights.
+#### Step 1 — `knowledge_bases` (raw input stored synchronously)
 
-UPSERT RELATION - Inserts a relation. If it exists, increments the weight (Frequency Counter).
-Query - INSERT INTO relations
-(source_id, target_id,
-relation_type, edge_weight)
-VALUES (101, 202,'written_in', 1) ON
-CONFLICT (source_id,target_id, relation_type) 
-DO UPDATE SET edge_weight = relations.edge_weight + 1;
+| id | uid | converser | content | vector_embedding | metadata | created_at |
+|----|-----|-----------|---------|------------------|----------|------------|
+| `a1b2...` | `user-1` | `USER` | *"Java uses garbage collection..."* | `[0.12, -0.45, ...]` (768d) | `{contentLength: 90, embeddingDimensions: 768, embeddingTimeMs: 120}` | `2025-01-15T10:00:00Z` |
 
-FROM (Outgoing) - Finds what Java connects to (e.g., Java -> uses -> GC).
-Query - SELECT r.relation_type, t.entity_name, r.edge_weight FROM
-relations r JOIN entities t
-ON r.target_id = t.id WHERE
-r.source_id = 101 ORDER BY r.edge_weight DESC;
+→ **Response returned to client.** Everything below happens in the background.
 
-TO (Incoming) - Finds what connects to Java (e.g., SpringBoot -> uses -> Java).
-Query - SELECT s.entity_name, r.relation_type, r.edge_weight FROM
-relations r JOIN entities s
-ON r.source_id = s.id
-WHERE r.target_id = 101;
+#### Step 2 — `contexts` (text chunked + embedded)
 
-TRAVERSAL (Graph RAG) - Finds "2-hop" connections(Friends of Friends).
-Query - SELECT t.entity_name
-FROM relations r1 JOIN
-relations r2 ON r1.target_id = r2.source_id JOIN entities
-t ON r2.target_id = t.id WHERE r1.source_id = 101;
+| id | kb_id | text_chunk | vector_embedding | chunk_index | metadata | created_at |
+|----|-------|------------|------------------|-------------|----------|------------|
+| `c1...` | `a1b2...` | *"Java uses garbage collection for automatic memory management."* | `[0.08, ...]` (768d) | 0 | `{chunkLength: 62, embeddingDimensions: 768, chunkNumber: 1, totalChunks: 2}` | `2025-01-15T10:00:01Z` |
+| `c2...` | `a1b2...` | *"The JVM handles this process."* | `[-0.23, ...]` (768d) | 1 | `{chunkLength: 30, embeddingDimensions: 768, chunkNumber: 2, totalChunks: 2}` | `2025-01-15T10:00:01Z` |
 
-TOP RELATIONS - Finds the strongest connections in your entire database.
-Query - SELECT s.entity_name, r.relation_type, t.entity_name, r.edge_weight FROM
-relations r JOIN entities s ON r.source_id = s.id JOIN
-entities t ON r.target_id = t.id ORDER BY
-r.edge_weight DESC LIMIT 10;
+#### Step 3 — `entities` (concepts extracted via LLM)
+
+| id | entity_name | entity_type | description | vector_embedding | metadata | created_at |
+|----|-------------|-------------|-------------|------------------|----------|------------|
+| `e1...` | Java | Technology | *"A programming language..."* | `[0.31, ...]` | `{extractedFrom: "context", contextId: "c1...", embeddingDimensions: 768}` | `2025-01-15T10:00:02Z` |
+| `e2...` | Garbage Collection | Concept | *"Automatic memory reclamation..."* | `[-0.14, ...]` | `{extractedFrom: "context", contextId: "c1...", embeddingDimensions: 768}` | `2025-01-15T10:00:02Z` |
+| `e3...` | JVM | Technology | *"Java Virtual Machine..."* | `[0.27, ...]` | `{extractedFrom: "context", contextId: "c2...", embeddingDimensions: 768}` | `2025-01-15T10:00:02Z` |
+
+> If `Java` already exists from a previous ingestion, it is **not duplicated** — the existing entity is reused and linked.
+
+#### Step 4 — `entity_context_junction` (many-to-many links)
+
+| entity_id | context_id |
+|-----------|------------|
+| `e1...` (Java) | `c1...` (Chunk 1) |
+| `e2...` (Garbage Collection) | `c1...` (Chunk 1) |
+| `e3...` (JVM) | `c2...` (Chunk 2) |
+
+#### Step 5 — `relations` (knowledge graph edges)
+
+| id | source_entity_id | target_entity_id | relation_type | edge_weight | metadata | created_at |
+|----|-------------------|-------------------|---------------|-------------|----------|------------|
+| `r1...` | `e1...` (Java) | `e2...` (Garbage Collection) | `uses` | **1** | `{extractedFrom: "context", contextId: "c1..."}` | `2025-01-15T10:00:02Z` |
+| `r2...` | `e3...` (JVM) | `e2...` (Garbage Collection) | `manages` | **1** | `{extractedFrom: "context", contextId: "c2..."}` | `2025-01-15T10:00:02Z` |
+
+> **Edge weight increments:** If a second document also states *"Java uses garbage collection"*, the `edge_weight` on `r1` increments to **2**. Stronger connections = higher weight.
+
+---
+
+## Architecture
+
+```
+                    ┌──────────────────────────────────────────────┐
+                    │              CortexDB Server                 │
+                    │          (Spring Boot 3.5 + Java 21)         │
+                    │                                              │
+  SDK / curl ──────▶│  /api/setup    → SetupController             │
+                    │  /api/ingest   → IngestController            │
+                    │  /api/query    → QueryController (20+ routes)│
+                    │                                              │
+                    │  ┌──────────┐  ┌─────────────┐               │
+                    │  │ LLM      │  │ Ingestion   │               │
+                    │  │ Provider │  │ Worker      │               │
+                    │  │ (chat +  │  │ (@Async)    │               │
+                    │  │ embed)   │  │             │               │
+                    │  └──────────┘  └─────────────┘               │
+                    └───────────────────┬──────────────────────────┘
+                                        │
+                    ┌───────────────────▼──────────────────────────┐
+                    │       PostgreSQL 16 + pgvector               │
+                    │                                              │
+                    │  knowledge_bases ──┐                         │
+                    │  contexts ─────────┤ (vector + JSONB)        │
+                    │  entities ─────────┤                         │
+                    │  entity_context_junction                     │
+                    │  relations ────────┘ (weighted graph)        │
+                    │                                              │
+                    │  Flyway migrations │ NOTIFY triggers         │
+                    └──────────────────────────────────────────────┘
+```
+
+---
+
+## Supported LLM Providers
+
+| Provider | Chat | Embeddings | Setup Required |
+|----------|------|------------|----------------|
+| **Gemini** | ✅ | ✅ | API key |
+| **OpenAI** | ✅ | ✅ | API key |
+| **Azure OpenAI** | ✅ | ✅ | API key + endpoint |
+| **Ollama** | ✅ | ✅ | Local install (included in Docker Compose) |
+| **Anthropic** | ✅ | ✅ | API key |
+| **Mistral** | ✅ | ✅ | API key |
+
+---
+
+## Client SDKs
+
+| SDK | Install | Docs |
+|-----|---------|------|
+| **Python** | `pip install cortexdb` | [cortexdb-py/README.md](cortexdb-py/README.md) |
+| **JavaScript/TypeScript** | `npm install cortexdb` | [cortexdb-js/README.md](cortexdb-js/README.md) |
+| **Java** | Maven dependency | [cortexdb-java/README.md](cortexdb-java/README.md) |
+
+### Quick Example (Python)
+
+```python
+from cortexdb import CortexDB
+
+db = CortexDB("http://localhost:8080")
+
+db.setup.configure(provider="GEMINI", api_key="...",
+                   chat_model="gemini-2.0-flash",
+                   embed_model="gemini-embedding-001")
+
+db.ingest.document(uid="user-1", converser="USER",
+                   content="Your document text here...")
+
+results = db.query.search_contexts("your question", limit=5)
+```
+
+---
+
+## REST API Reference
+
+Full API docs: [**📖 Documentation Site**](https://harshit-sandilya.github.io/CortexDB/)
+
+| Group | Endpoints | Description |
+|-------|-----------|-------------|
+| **Setup** | `POST /api/setup` | Configure LLM provider |
+| **Ingest** | `POST /api/ingest/document` | Ingest a document |
+| **Contexts** | 6 endpoints | Semantic search, by KB, recent, date range, siblings |
+| **Entities** | 8 endpoints | Search, lookup, disambiguate, merge |
+| **History** | 4 endpoints | Search history, by user, recent, since timestamp |
+| **Graph** | 7 endpoints | Outgoing, incoming, 2-hop, top relations, by source/target/type |
+| **Hybrid** | `POST /api/query/hybrid` | Combined vector + graph search |
+| **User Data** | `DELETE /api/query/user/{uid}` | GDPR deletion |
+
+---
+
+## Running Locally (Development)
+
+```bash
+# Start database + Ollama
+cd memory
+docker compose up -d postgres ollama
+
+# Run the Spring Boot backend
+./mvnw spring-boot:run
+
+# Run tests
+./mvnw test
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/mydatabase` | Database URL |
+| `SPRING_DATASOURCE_USERNAME` | `myuser` | DB username |
+| `SPRING_DATASOURCE_PASSWORD` | `secret` | DB password |
+| `SPRING_AI_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama URL |
+
+---
+
+## Project Structure
+
+```
+CortexDB/
+├── memory/                 # Spring Boot backend (the core)
+│   ├── src/main/java/
+│   │   └── com/vectornode/memory/
+│   │       ├── config/          # LLM provider configuration
+│   │       ├── entity/          # JPA entities (KnowledgeBase, Context, RagEntity, Relation)
+│   │       ├── ingest/          # Ingestion pipeline (controller, service, worker, listener)
+│   │       ├── query/           # Query endpoints (controller, service, repositories)
+│   │       └── setup/           # LLM setup (controller, service)
+│   ├── compose.yaml        # Docker Compose (Postgres + Ollama + Backend)
+│   └── Dockerfile
+├── cortexdb-py/            # Python SDK
+├── cortexdb-js/            # JavaScript/TypeScript SDK
+├── cortexdb-java/          # Java SDK
+└── docs/                   # Documentation site (GitHub Pages)
+```
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
