@@ -23,20 +23,20 @@ public class SetupService {
         String effectiveBaseUrl = request.getBaseUrl();
         if (effectiveBaseUrl == null || effectiveBaseUrl.isBlank()) {
             switch (request.getProvider()) {
-                case OLLAMA:
-                    effectiveBaseUrl = "http://localhost:11434";
+                case GEMINI:
+                    effectiveBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
                     break;
                 case OPENAI:
                     effectiveBaseUrl = "https://api.openai.com";
                     break;
+                case ANTHROPIC:
+                    effectiveBaseUrl = "https://api.anthropic.com";
+                    break;
                 case AZURE:
                     effectiveBaseUrl = "https://api.azure.com";
                     break;
-                case MISTRAL:
-                    effectiveBaseUrl = "https://api.mistral.com";
-                    break;
-                case GEMINI:
-                    effectiveBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+                case OPENROUTER:
+                    effectiveBaseUrl = "https://openrouter.ai/api";
                     break;
                 default:
                     effectiveBaseUrl = "N/A";

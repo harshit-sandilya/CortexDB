@@ -33,6 +33,20 @@ class LLMProviderTest {
     }
 
     @Test
+    void constructor_anthropic_succeeds() {
+        LLMProvider llm = new LLMProvider("ANTHROPIC", "test-key",
+                "claude-sonnet-4-20250514", "voyage-3", "https://api.anthropic.com");
+        assertNotNull(llm);
+    }
+
+    @Test
+    void constructor_openrouter_succeeds() {
+        LLMProvider llm = new LLMProvider("OPENROUTER", "test-key",
+                "openai/gpt-4", "openai/text-embedding-ada-002", "https://openrouter.ai/api");
+        assertNotNull(llm);
+    }
+
+    @Test
     void constructor_unsupportedProvider_throws() {
         assertThrows(IllegalArgumentException.class, () -> new LLMProvider("UNSUPPORTED", "test-key",
                 "model", "embed-model", null));

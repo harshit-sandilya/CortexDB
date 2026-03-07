@@ -19,7 +19,8 @@ public class SetupApi {
     /**
      * Configure the LLM provider on the CortexDB server.
      *
-     * @param provider   LLM provider (e.g. GEMINI, OPENAI, AZURE).
+     * @param provider   LLM provider (e.g. GEMINI, OPENAI, ANTHROPIC, AZURE,
+     *                   OPENROUTER).
      * @param apiKey     API key for the provider.
      * @param chatModel  Name of the chat model.
      * @param embedModel Name of the embedding model.
@@ -33,11 +34,12 @@ public class SetupApi {
     /**
      * Configure the LLM provider on the CortexDB server.
      *
-     * @param provider   LLM provider (e.g. GEMINI, OPENAI, AZURE).
+     * @param provider   LLM provider (e.g. GEMINI, OPENAI, ANTHROPIC, AZURE,
+     *                   OPENROUTER).
      * @param apiKey     API key for the provider.
      * @param chatModel  Name of the chat model.
      * @param embedModel Name of the embedding model.
-     * @param baseUrl    Custom base URL (optional, mainly for Azure/Ollama).
+     * @param baseUrl    Custom base URL (optional, mainly for Azure).
      * @return SetupResponse with configuration details.
      */
     public SetupResponse configure(LLMApiProvider provider, String apiKey,

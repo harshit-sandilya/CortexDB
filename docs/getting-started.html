@@ -60,8 +60,7 @@
                     <h3>What you'll need</h3>
                     <ul>
                         <li><strong>Docker &amp; Docker Compose</strong> — to run the database and backend</li>
-                        <li><strong>An LLM API key</strong> — from Gemini, OpenAI, Azure, Anthropic, or Mistral (or use
-                            Ollama locally for free)</li>
+                        <li><strong>An LLM API key</strong> — from Gemini, OpenAI, Anthropic, Azure, or OpenRouter</li>
                         <li><strong>curl</strong> (or any HTTP client) — to test the API</li>
                     </ul>
                 </div>
@@ -76,7 +75,7 @@
                     <pre><code>git clone https://github.com/harshit-sandilya/CortexDB.git
 cd CortexDB/memory
 docker compose up -d</code></pre>
-                    <p>This starts three containers:</p>
+                    <p>This starts two containers:</p>
                     <table>
                         <thead>
                             <tr>
@@ -90,11 +89,6 @@ docker compose up -d</code></pre>
                                 <td><strong>PostgreSQL</strong> (pgvector)</td>
                                 <td>5432</td>
                                 <td>Vector-enabled database</td>
-                            </tr>
-                            <tr>
-                                <td><strong>Ollama</strong></td>
-                                <td>11434</td>
-                                <td>Local LLM runtime</td>
                             </tr>
                             <tr>
                                 <td><strong>CortexDB Backend</strong></td>
@@ -149,23 +143,18 @@ docker compose up -d</code></pre>
                                 <td>apiKey</td>
                             </tr>
                             <tr>
-                                <td>Azure OpenAI</td>
-                                <td><code>AZURE</code></td>
-                                <td>apiKey, baseUrl</td>
-                            </tr>
-                            <tr>
-                                <td>Ollama (local)</td>
-                                <td><code>OLLAMA</code></td>
-                                <td>baseUrl (default: from compose)</td>
-                            </tr>
-                            <tr>
                                 <td>Anthropic</td>
                                 <td><code>ANTHROPIC</code></td>
                                 <td>apiKey</td>
                             </tr>
                             <tr>
-                                <td>Mistral</td>
-                                <td><code>MISTRAL</code></td>
+                                <td>Azure OpenAI</td>
+                                <td><code>AZURE</code></td>
+                                <td>apiKey, baseUrl</td>
+                            </tr>
+                            <tr>
+                                <td>OpenRouter</td>
+                                <td><code>OPENROUTER</code></td>
                                 <td>apiKey</td>
                             </tr>
                         </tbody>
@@ -217,7 +206,8 @@ docker compose up -d</code></pre>
                             entity extraction, and graph building happen <strong>asynchronously in the
                                 background</strong> via PostgreSQL triggers. Check your server console logs for
                             <code>KB_ROW</code>, <code>CONTEXT_ROW</code>, <code>ENTITY_ROW</code>, and
-                            <code>RELATION_NEW</code> tags.</p>
+                            <code>RELATION_NEW</code> tags.
+                        </p>
                     </div>
                 </div>
             </div>

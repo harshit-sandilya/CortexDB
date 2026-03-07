@@ -13,10 +13,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
-// import org.springframework.ai.ollama.OllamaChatModel;
-// import org.springframework.ai.ollama.OllamaEmbeddingModel;
-// import org.springframework.ai.ollama.api.OllamaApi;
-// import org.springframework.ai.ollama.api.OllamaOptions;
+
 import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
 import org.springframework.ai.azure.openai.AzureOpenAiChatOptions;
 import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingModel;
@@ -49,6 +46,30 @@ public class LLMProvider {
             ChatModel chatModel;
 
             switch (provider.toUpperCase()) {
+                case "GEMINI":
+                    String geminiBaseUrl = (baseUrl == null || baseUrl.isBlank())
+                            ? "https://generativelanguage.googleapis.com/v1beta/openai/"
+                            : baseUrl;
+
+                    OpenAiApi geminiApi = OpenAiApi.builder()
+                            .baseUrl(geminiBaseUrl)
+                            .apiKey(apiKey)
+                            .build();
+
+                    embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
+                            OpenAiEmbeddingOptions.builder()
+                                    .model(embedModelName)
+                                    .dimensions(768)
+                                    .build(),
+                            RetryTemplate.builder().build());
+
+                    chatModel = OpenAiChatModel.builder()
+                            .openAiApi(geminiApi)
+                            .defaultOptions(OpenAiChatOptions.builder().model(chatModelName).build())
+                            .retryTemplate(RetryTemplate.builder().build())
+                            .observationRegistry(ObservationRegistry.NOOP)
+                            .build();
+                    break;
                 case "OPENAI":
                     OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
 
@@ -63,27 +84,17 @@ public class LLMProvider {
                             .observationRegistry(ObservationRegistry.NOOP)
                             .build();
                     break;
-                case "GEMINI":
-                    String geminiBaseUrl = (baseUrl == null || baseUrl.isBlank())
-                            ? "https://generativelanguage.googleapis.com/v1beta/openai/"
-                            : baseUrl;
+                case "ANTHROPIC":
+                case "OPENROUTER":
+                    // Both Anthropic and OpenRouter expose OpenAI-compatible APIs
+                    OpenAiApi compatApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
 
-                    OpenAiApi geminiApi = OpenAiApi.builder()
-                            .baseUrl(geminiBaseUrl)
-                            .apiKey(apiKey)
-                            .build();
-
-                    // Use embedModelName for embeddings (e.g., "gemini-embedding-001")
-                    embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder()
-                                    .model(embedModelName)
-                                    .dimensions(768)
-                                    .build(),
+                    embeddingModel = new OpenAiEmbeddingModel(compatApi, MetadataMode.EMBED,
+                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
                             RetryTemplate.builder().build());
 
-                    // Use chatModelName for chat (e.g., "gemini-2.0-flash")
                     chatModel = OpenAiChatModel.builder()
-                            .openAiApi(geminiApi)
+                            .openAiApi(compatApi)
                             .defaultOptions(OpenAiChatOptions.builder().model(chatModelName).build())
                             .retryTemplate(RetryTemplate.builder().build())
                             .observationRegistry(ObservationRegistry.NOOP)
@@ -104,15 +115,6 @@ public class LLMProvider {
                             null,
                             ObservationRegistry.NOOP);
                     break;
-                /*
-                 * case "OLLAMA":
-                 * OllamaApi ollamaApi = new OllamaApi(baseUrl);
-                 * embeddingModel = new OllamaEmbeddingModel(ollamaApi,
-                 * OllamaOptions.builder().model(embedModelName).build());
-                 * chatModel = new OllamaChatModel(ollamaApi,
-                 * OllamaOptions.builder().model(chatModelName).build());
-                 * break;
-                 */
                 default:
                     throw new IllegalArgumentException("Unsupported provider: " + provider);
             }

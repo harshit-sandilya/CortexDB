@@ -15,7 +15,7 @@ CortexDB is an open-source backend that gives your AI applications persistent, s
 - **Vector Search** — Semantic similarity search using pgvector on contexts, entities, and history
 - **Knowledge Graph** — Automatic entity/relation extraction with weighted edges and graph traversal (1-hop, 2-hop)
 - **Hybrid Search** — Combines vector similarity with graph-based context for richer results
-- **Multi-LLM Support** — Gemini, OpenAI, Azure, Ollama, Anthropic, Mistral — switch providers with a single API call
+- **Multi-LLM Support** — Gemini, OpenAI, Anthropic, Azure, OpenRouter — switch providers with a single API call
 - **Async Ingestion Pipeline** — Fire-and-forget architecture using PostgreSQL triggers for non-blocking document processing
 - **GDPR Compliance** — Built-in endpoint to delete all user data
 - **Official SDKs** — Python, JavaScript/TypeScript, and Java client libraries
@@ -32,11 +32,10 @@ cd CortexDB/memory
 docker compose up -d
 ```
 
-This starts 3 containers:
+This starts 2 containers:
 | Service | Port | Description |
 |---------|------|-------------|
 | **PostgreSQL** (pgvector) | 5432 | Vector-enabled database |
-| **Ollama** | 11434 | Local LLM runtime |
 | **Backend** | 8080 | CortexDB REST API |
 
 ### 2. Configure an LLM Provider
@@ -198,10 +197,9 @@ When you ingest a document, CortexDB processes it through a multi-stage async pi
 |----------|------|------------|----------------|
 | **Gemini** | ✅ | ✅ | API key |
 | **OpenAI** | ✅ | ✅ | API key |
-| **Azure OpenAI** | ✅ | ✅ | API key + endpoint |
-| **Ollama** | ✅ | ✅ | Local install (included in Docker Compose) |
 | **Anthropic** | ✅ | ✅ | API key |
-| **Mistral** | ✅ | ✅ | API key |
+| **Azure OpenAI** | ✅ | ✅ | API key + endpoint |
+| **OpenRouter** | ✅ | ✅ | API key |
 
 ---
 
@@ -252,9 +250,9 @@ Full API docs: [**📖 Documentation Site**](https://harshit-sandilya.github.io/
 ## Running Locally (Development)
 
 ```bash
-# Start database + Ollama
+# Start database
 cd memory
-docker compose up -d postgres ollama
+docker compose up -d postgres
 
 # Run the Spring Boot backend
 ./mvnw spring-boot:run
@@ -270,7 +268,6 @@ docker compose up -d postgres ollama
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/mydatabase` | Database URL |
 | `SPRING_DATASOURCE_USERNAME` | `myuser` | DB username |
 | `SPRING_DATASOURCE_PASSWORD` | `secret` | DB password |
-| `SPRING_AI_OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama URL |
 
 ---
 
@@ -286,7 +283,7 @@ CortexDB/
 │   │       ├── ingest/          # Ingestion pipeline (controller, service, worker, listener)
 │   │       ├── query/           # Query endpoints (controller, service, repositories)
 │   │       └── setup/           # LLM setup (controller, service)
-│   ├── compose.yaml        # Docker Compose (Postgres + Ollama + Backend)
+│   ├── compose.yaml        # Docker Compose (Postgres + Backend)
 │   └── Dockerfile
 ├── cortexdb-py/            # Python SDK
 ├── cortexdb-js/            # JavaScript/TypeScript SDK

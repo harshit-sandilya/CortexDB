@@ -9,12 +9,11 @@
 // ─── Enums ───────────────────────────────────────────────────────────
 
 export enum LLMApiProvider {
-    OPENAI = "OPENAI",
-    AZURE = "AZURE",
-    OLLAMA = "OLLAMA",
-    ANTHROPIC = "ANTHROPIC",
     GEMINI = "GEMINI",
-    MISTRAL = "MISTRAL",
+    OPENAI = "OPENAI",
+    ANTHROPIC = "ANTHROPIC",
+    AZURE = "AZURE",
+    OPENROUTER = "OPENROUTER",
 }
 
 export enum ConverserRole {

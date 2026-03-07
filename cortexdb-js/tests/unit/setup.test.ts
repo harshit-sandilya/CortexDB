@@ -83,7 +83,7 @@ describe("SetupAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        await db.setup.configure("OLLAMA", "llama3", "nomic-embed-text");
+        await db.setup.configure("OPENROUTER", "openai/gpt-4", "openai/text-embedding-ada-002");
 
         expect(capturedBody.apiKey).toBeUndefined();
         expect(capturedBody.baseUrl).toBeUndefined();

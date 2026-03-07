@@ -200,9 +200,11 @@ class ModelsTest {
 
     @Test
     void llmApiProvider_valuesExist() {
-        assertEquals(6, LLMApiProvider.values().length);
+        assertEquals(5, LLMApiProvider.values().length);
         assertNotNull(LLMApiProvider.valueOf("GEMINI"));
         assertNotNull(LLMApiProvider.valueOf("OPENAI"));
+        assertNotNull(LLMApiProvider.valueOf("ANTHROPIC"));
         assertNotNull(LLMApiProvider.valueOf("AZURE"));
+        assertNotNull(LLMApiProvider.valueOf("OPENROUTER"));
     }
 }

@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CortexDB — RAG-Powered Memory Database</title>
-  <meta name="description" content="Open-source RAG memory database with built-in knowledge graphs. Ingest documents, extract entities, and query with vector + graph search.">
+  <meta name="description"
+    content="Open-source RAG memory database with built-in knowledge graphs. Ingest documents, extract entities, and query with vector + graph search.">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body class="no-sidebar">
 
   <!-- Header -->
@@ -47,27 +50,31 @@
         <div class="card">
           <div class="card-icon" style="background: rgba(96, 165, 250, 0.15); color: var(--accent-blue);">🔍</div>
           <div class="card-title">Vector Search</div>
-          <div class="card-desc">Semantic similarity search on contexts, entities, and history using pgvector embeddings.</div>
+          <div class="card-desc">Semantic similarity search on contexts, entities, and history using pgvector
+            embeddings.</div>
         </div>
         <div class="card">
           <div class="card-icon" style="background: rgba(139, 92, 246, 0.15); color: var(--accent-secondary);">🕸️</div>
           <div class="card-title">Knowledge Graph</div>
-          <div class="card-desc">Automatic entity &amp; relation extraction with weighted edges and 1-hop / 2-hop graph traversal.</div>
+          <div class="card-desc">Automatic entity &amp; relation extraction with weighted edges and 1-hop / 2-hop graph
+            traversal.</div>
         </div>
         <div class="card">
           <div class="card-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-green);">⚡</div>
           <div class="card-title">Async Ingestion</div>
-          <div class="card-desc">Fire-and-forget pipeline using PostgreSQL triggers. Instant API response, background processing.</div>
+          <div class="card-desc">Fire-and-forget pipeline using PostgreSQL triggers. Instant API response, background
+            processing.</div>
         </div>
         <div class="card">
           <div class="card-icon" style="background: rgba(251, 191, 36, 0.15); color: var(--accent-amber);">🤖</div>
           <div class="card-title">Multi-LLM Support</div>
-          <div class="card-desc">Gemini, OpenAI, Azure, Ollama, Anthropic, Mistral — switch with a single API call.</div>
+          <div class="card-desc">Gemini, OpenAI, Anthropic, Azure, OpenRouter — switch with a single API call.</div>
         </div>
         <div class="card">
           <div class="card-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">🔀</div>
           <div class="card-title">Hybrid Search</div>
-          <div class="card-desc">Combines vector similarity with graph-based context for richer, more accurate results.</div>
+          <div class="card-desc">Combines vector similarity with graph-based context for richer, more accurate results.
+          </div>
         </div>
         <div class="card">
           <div class="card-icon" style="background: rgba(99, 102, 241, 0.15); color: var(--accent);">📦</div>
@@ -83,7 +90,7 @@ git clone https://github.com/harshit-sandilya/CortexDB.git
 cd CortexDB/memory
 docker compose up -d</code></pre>
       <p>
-        This spins up PostgreSQL with pgvector, Ollama, and the CortexDB backend on
+        This spins up PostgreSQL with pgvector and the CortexDB backend on
         <code>http://localhost:8080</code>. See the
         <a href="getting-started.html">Getting Started guide</a> to configure an LLM and ingest your first document.
       </p>
@@ -92,15 +99,36 @@ docker compose up -d</code></pre>
       <h2>Built With</h2>
       <table>
         <thead>
-          <tr><th>Component</th><th>Technology</th></tr>
+          <tr>
+            <th>Component</th>
+            <th>Technology</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Backend</td><td>Spring Boot 3.5 · Java 21</td></tr>
-          <tr><td>Database</td><td>PostgreSQL 16 + pgvector</td></tr>
-          <tr><td>AI Framework</td><td>Spring AI 1.1</td></tr>
-          <tr><td>Migrations</td><td>Flyway</td></tr>
-          <tr><td>ORM</td><td>Hibernate 6 + JPA</td></tr>
-          <tr><td>Containerization</td><td>Docker Compose</td></tr>
+          <tr>
+            <td>Backend</td>
+            <td>Spring Boot 3.5 · Java 21</td>
+          </tr>
+          <tr>
+            <td>Database</td>
+            <td>PostgreSQL 16 + pgvector</td>
+          </tr>
+          <tr>
+            <td>AI Framework</td>
+            <td>Spring AI 1.1</td>
+          </tr>
+          <tr>
+            <td>Migrations</td>
+            <td>Flyway</td>
+          </tr>
+          <tr>
+            <td>ORM</td>
+            <td>Hibernate 6 + JPA</td>
+          </tr>
+          <tr>
+            <td>Containerization</td>
+            <td>Docker Compose</td>
+          </tr>
         </tbody>
       </table>
 
@@ -113,4 +141,5 @@ docker compose up -d</code></pre>
   </footer>
 
 </body>
+
 </html>

@@ -6,10 +6,9 @@ package com.vectornode.cortexdb.models;
  * {@code com.vectornode.memory.entity.enums.LLMApiProvider}.
  */
 public enum LLMApiProvider {
-    OPENAI,
-    AZURE,
-    OLLAMA,
-    ANTHROPIC,
     GEMINI,
-    MISTRAL
+    OPENAI,
+    ANTHROPIC,
+    AZURE,
+    OPENROUTER
 }

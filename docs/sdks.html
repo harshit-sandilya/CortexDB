@@ -54,8 +54,8 @@
                     <div class="card-icon" style="background: rgba(96, 165, 250, 0.15); color: var(--accent-blue);">🔧
                     </div>
                     <div class="card-title">Setup API</div>
-                    <div class="card-desc">Configure the LLM provider (Gemini, OpenAI, Azure, Ollama, Anthropic,
-                        Mistral).</div>
+                    <div class="card-desc">Configure the LLM provider (Gemini, OpenAI, Anthropic, Azure,
+                        OpenRouter).</div>
                 </div>
                 <div class="card">
                     <div class="card-icon" style="background: rgba(52, 211, 153, 0.15); color: var(--accent-green);">📥
@@ -138,26 +138,30 @@ db.query.delete_user_data("user-1")</code></pre>
                         <td>Contexts</td>
                         <td><code>search_contexts()</code>, <code>get_contexts_by_kb()</code>,
                             <code>get_recent_contexts()</code>, <code>search_recent_contexts()</code>,
-                            <code>get_sibling_contexts()</code></td>
+                            <code>get_sibling_contexts()</code>
+                        </td>
                     </tr>
                     <tr>
                         <td>Entities</td>
                         <td><code>search_entities()</code>, <code>get_entity_by_name()</code>,
                             <code>get_entity_by_name_ignore_case()</code>, <code>get_entity_id_by_name()</code>,
                             <code>disambiguate_entity()</code>, <code>get_contexts_for_entity()</code>,
-                            <code>get_entities_for_context()</code>, <code>merge_entities()</code></td>
+                            <code>get_entities_for_context()</code>, <code>merge_entities()</code>
+                        </td>
                     </tr>
                     <tr>
                         <td>History</td>
                         <td><code>search_history()</code>, <code>get_history_by_user()</code>,
-                            <code>get_recent_kbs()</code>, <code>get_kbs_since()</code></td>
+                            <code>get_recent_kbs()</code>, <code>get_kbs_since()</code>
+                        </td>
                     </tr>
                     <tr>
                         <td>Graph</td>
                         <td><code>get_outgoing_connections()</code>, <code>get_incoming_connections()</code>,
                             <code>get_two_hop_connections()</code>, <code>get_top_relations()</code>,
                             <code>get_relations_by_source()</code>, <code>get_relations_by_target()</code>,
-                            <code>get_relations_by_type()</code></td>
+                            <code>get_relations_by_type()</code>
+                        </td>
                     </tr>
                     <tr>
                         <td>Hybrid</td>

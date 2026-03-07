@@ -21,8 +21,7 @@ import java.util.logging.Logger;
  * without routing through the CortexDB backend.
  *
  * <p>
- * Supports Gemini (via {@code generativelanguage.googleapis.com}), OpenAI, and
- * Azure.
+ * Supports Gemini, OpenAI, Anthropic, Azure, and OpenRouter.
  *
  * <p>
  * Usage:
@@ -50,7 +49,8 @@ public class LLMProvider {
     /**
      * Initialize the LLM provider.
      *
-     * @param provider   Provider name — "GEMINI", "OPENAI", or "AZURE".
+     * @param provider   Provider name — "GEMINI", "OPENAI", "ANTHROPIC", "AZURE",
+     *                   or "OPENROUTER".
      * @param apiKey     API key for authentication.
      * @param chatModel  Name of the chat model.
      * @param embedModel Name of the embedding model.
@@ -71,7 +71,8 @@ public class LLMProvider {
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         if (!this.provider.equals("GEMINI") && !this.provider.equals("OPENAI")
-                && !this.provider.equals("AZURE")) {
+                && !this.provider.equals("ANTHROPIC") && !this.provider.equals("AZURE")
+                && !this.provider.equals("OPENROUTER")) {
             throw new IllegalArgumentException("Unsupported provider: " + provider);
         }
 
@@ -255,7 +256,12 @@ public class LLMProvider {
             String base = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
             return base + path;
         }
-        return "https://api.openai.com" + path;
+        String defaultBase = switch (provider) {
+            case "ANTHROPIC" -> "https://api.anthropic.com";
+            case "OPENROUTER" -> "https://openrouter.ai/api";
+            default -> "https://api.openai.com";
+        };
+        return defaultBase + path;
     }
 
     // ── HTTP helper ──────────────────────────────────────────────

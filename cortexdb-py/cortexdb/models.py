@@ -14,12 +14,11 @@ from pydantic import BaseModel, Field
 
 
 class LLMApiProvider(str, Enum):
-    OPENAI = "OPENAI"
-    AZURE = "AZURE"
-    OLLAMA = "OLLAMA"
-    ANTHROPIC = "ANTHROPIC"
     GEMINI = "GEMINI"
-    MISTRAL = "MISTRAL"
+    OPENAI = "OPENAI"
+    ANTHROPIC = "ANTHROPIC"
+    AZURE = "AZURE"
+    OPENROUTER = "OPENROUTER"
 
 
 class ConverserRole(str, Enum):

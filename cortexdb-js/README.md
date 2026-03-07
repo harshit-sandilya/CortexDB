@@ -52,7 +52,7 @@ await db.setup.configure(provider, chatModel, embedModel, apiKey);
 await db.setup.configure(provider, chatModel, embedModel, apiKey, baseUrl);
 ```
 
-Supported providers: `GEMINI`, `OPENAI`, `AZURE`, `OLLAMA`, `ANTHROPIC`, `MISTRAL`.
+Supported providers: `GEMINI`, `OPENAI`, `ANTHROPIC`, `AZURE`, `OPENROUTER`.
 
 ### Ingest
 

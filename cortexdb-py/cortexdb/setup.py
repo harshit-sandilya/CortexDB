@@ -27,7 +27,7 @@ class SetupAPI:
         """Configure the LLM provider on the CortexDB server.
 
         Args:
-            provider: LLM provider name (e.g. "GEMINI", "OPENAI", "AZURE").
+            provider: LLM provider name (e.g. "GEMINI", "OPENAI", "AZURE", "ANTHROPIC", "OPENROUTER").
             chat_model: Name of the chat model.
             embed_model: Name of the embedding model.
             api_key: API key for the provider.

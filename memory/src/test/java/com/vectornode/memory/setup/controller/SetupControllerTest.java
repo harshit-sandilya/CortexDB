@@ -180,32 +180,32 @@ class SetupControllerTest {
         }
 
         @Test
-        @DisplayName("Should accept request with OLLAMA provider")
-        void shouldAcceptRequestWithOllamaProvider() {
-                SetupRequest ollamaRequest = new SetupRequest();
-                ollamaRequest.setProvider(LLMApiProvider.OLLAMA);
-                ollamaRequest.setChatModelName("llama2");
-                ollamaRequest.setEmbedModelName("nomic-embed-text");
-                // apiKey and baseUrl are optional for OLLAMA
+        @DisplayName("Should accept request with OPENROUTER provider")
+        void shouldAcceptRequestWithOpenRouterProvider() {
+                SetupRequest openRouterRequest = new SetupRequest();
+                openRouterRequest.setProvider(LLMApiProvider.OPENROUTER);
+                openRouterRequest.setApiKey("openrouter-key");
+                openRouterRequest.setChatModelName("openai/gpt-4");
+                openRouterRequest.setEmbedModelName("openai/text-embedding-ada-002");
 
-                SetupResponse ollamaResponse = SetupResponse.builder()
+                SetupResponse openRouterResponse = SetupResponse.builder()
                                 .message("Setup params validated and probed successfully. Backend is ready.")
                                 .success(true)
-                                .configuredProvider("OLLAMA")
-                                .configuredChatModel("llama2")
-                                .configuredEmbedModel("nomic-embed-text")
-                                .baseUrl("http://localhost:11434")
+                                .configuredProvider("OPENROUTER")
+                                .configuredChatModel("openai/gpt-4")
+                                .configuredEmbedModel("openai/text-embedding-ada-002")
+                                .baseUrl("https://openrouter.ai/api")
                                 .timestamp(Instant.now())
                                 .build();
 
                 when(setupService.configureLLM(any(SetupRequest.class)))
-                                .thenReturn(ollamaResponse);
+                                .thenReturn(openRouterResponse);
 
-                ResponseEntity<SetupResponse> response = setupController.configure(ollamaRequest);
+                ResponseEntity<SetupResponse> response = setupController.configure(openRouterRequest);
 
                 assertNotNull(response.getBody());
-                assertEquals("OLLAMA", response.getBody().getConfiguredProvider());
-                assertEquals("http://localhost:11434", response.getBody().getBaseUrl());
+                assertEquals("OPENROUTER", response.getBody().getConfiguredProvider());
+                assertEquals("https://openrouter.ai/api", response.getBody().getBaseUrl());
         }
 
         @Test

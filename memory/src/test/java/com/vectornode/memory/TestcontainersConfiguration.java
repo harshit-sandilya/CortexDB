@@ -9,14 +9,6 @@ import org.testcontainers.utility.DockerImageName;
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfiguration {
 
-	// OllamaContainer is disabled for Docker-in-Docker compatibility
-	// The tests use mocked LLM calls or Gemini API instead
-	// @Bean
-	// @ServiceConnection
-	// OllamaContainer ollamaContainer() {
-	// return new OllamaContainer(DockerImageName.parse("ollama/ollama:latest"));
-	// }
-
 	@Bean
 	@ServiceConnection
 	PostgreSQLContainer<?> pgvectorContainer() {

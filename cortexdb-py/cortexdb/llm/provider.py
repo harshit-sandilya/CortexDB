@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 
 
 class LLMProvider:
-    """LLM provider that directly calls the Gemini / OpenAI APIs from Python.
+    """LLM provider that directly calls LLM APIs from Python.
 
     This is a native re-implementation of the Java ``LLMProvider`` class,
     using the ``google-genai`` SDK for Gemini and the ``openai`` SDK for
-    OpenAI/Azure providers.
+    OpenAI, Azure, Anthropic, and OpenRouter providers.
 
     Usage::
 
@@ -43,11 +43,11 @@ class LLMProvider:
         """Initialize the LLM provider.
 
         Args:
-            provider: Provider name — "GEMINI", "OPENAI", or "AZURE".
+            provider: Provider name — "GEMINI", "OPENAI", "ANTHROPIC", "AZURE", or "OPENROUTER".
             api_key: API key for authentication.
             chat_model: Name of the chat model.
             embed_model: Name of the embedding model.
-            base_url: Custom base URL (optional, mainly for Azure).
+            base_url: Custom base URL (optional).
         """
         self.provider = provider.upper()
         self.api_key = api_key
@@ -71,7 +71,7 @@ class LLMProvider:
 
         if self.provider == "GEMINI":
             self._init_gemini()
-        elif self.provider in ("OPENAI", "AZURE"):
+        elif self.provider in ("OPENAI", "AZURE", "ANTHROPIC", "OPENROUTER"):
             self._init_openai()
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")
@@ -91,8 +91,15 @@ class LLMProvider:
                 "Install it with: pip install google-genai"
             )
 
+    # Default base URLs for OpenAI-compatible providers
+    _DEFAULT_BASE_URLS: dict[str, str] = {
+        "OPENAI": "https://api.openai.com/v1",
+        "ANTHROPIC": "https://api.anthropic.com/v1",
+        "OPENROUTER": "https://openrouter.ai/api/v1",
+    }
+
     def _init_openai(self) -> None:
-        """Initialize using the openai SDK (works for OpenAI and Azure)."""
+        """Initialize using the openai SDK (works for OpenAI, Azure, Anthropic, and OpenRouter)."""
         try:
             import openai
 
@@ -103,16 +110,20 @@ class LLMProvider:
                     api_version="2024-02-01",
                 )
             else:
+                # Resolve base URL: user-provided > provider default > OpenAI default
+                resolved_base_url = self.base_url or self._DEFAULT_BASE_URLS.get(
+                    self.provider, "https://api.openai.com/v1"
+                )
                 self._openai_client = openai.OpenAI(
                     api_key=self.api_key,
-                    base_url=self.base_url,
+                    base_url=resolved_base_url,
                 )
             self._chat_client = self._openai_client
             self._embed_client = self._openai_client
-            logger.info("OpenAI client initialized successfully")
+            logger.info("%s client initialized successfully", self.provider)
         except ImportError:
             raise LLMError(
-                "openai is required for OpenAI/Azure provider. "
+                "openai is required for OpenAI/Azure/Anthropic/OpenRouter providers. "
                 "Install it with: pip install openai"
             )
 

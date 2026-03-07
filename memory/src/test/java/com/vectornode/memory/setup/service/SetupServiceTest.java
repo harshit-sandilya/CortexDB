@@ -136,18 +136,19 @@ class SetupServiceTest {
     }
 
     @Test
-    @DisplayName("Should use default base URL when not provided for OLLAMA")
-    void shouldUseDefaultBaseUrlForOllama() {
+    @DisplayName("Should use default base URL when not provided for ANTHROPIC")
+    void shouldUseDefaultBaseUrlForAnthropic() {
         SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.OLLAMA);
-        request.setChatModelName("llama2");
-        request.setEmbedModelName("nomic-embed-text");
+        request.setProvider(LLMApiProvider.ANTHROPIC);
+        request.setApiKey("test-anthropic-key");
+        request.setChatModelName("claude-sonnet-4-20250514");
+        request.setEmbedModelName("voyage-3");
 
         SetupResponse response = setupService.configureLLM(request);
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
-        assertEquals("http://localhost:11434", response.getBaseUrl());
+        assertEquals("https://api.anthropic.com", response.getBaseUrl());
     }
 
     @Test
@@ -164,20 +165,20 @@ class SetupServiceTest {
     }
 
     @Test
-    @DisplayName("Should use correct default base URL for MISTRAL")
-    void shouldUseDefaultBaseUrlForMistral() {
+    @DisplayName("Should use correct default base URL for OPENROUTER")
+    void shouldUseDefaultBaseUrlForOpenRouter() {
         SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.MISTRAL);
-        request.setApiKey("test-mistral-key");
-        request.setChatModelName("mistral-large");
-        request.setEmbedModelName("mistral-embed");
+        request.setProvider(LLMApiProvider.OPENROUTER);
+        request.setApiKey("test-openrouter-key");
+        request.setChatModelName("openai/gpt-4");
+        request.setEmbedModelName("openai/text-embedding-ada-002");
 
         SetupResponse response = setupService.configureLLM(request);
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
-        assertEquals("MISTRAL", response.getConfiguredProvider());
-        assertEquals("https://api.mistral.com", response.getBaseUrl());
+        assertEquals("OPENROUTER", response.getConfiguredProvider());
+        assertEquals("https://openrouter.ai/api", response.getBaseUrl());
     }
 
     @Test
