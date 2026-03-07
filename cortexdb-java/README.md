@@ -13,7 +13,7 @@ Lightweight Java client SDK for [CortexDB](https://github.com/harshit-sandilya/C
 <dependency>
     <groupId>com.vectornode</groupId>
     <artifactId>cortexdb-java</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
 </dependency>
 ```
 
