@@ -64,9 +64,9 @@ describe("E2E — SetupAPI", () => {
     e2e("configure() succeeds with a valid LLM provider", async () => {
         const db = new CortexDB(BASE_URL);
         const provider = (process.env["LLM_PROVIDER"] ?? "GEMINI") as LLMApiProvider;
-        const chatModel = process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
-        const embedModel = process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
-        const apiKey = process.env["GEMINI_API_KEY"];
+        const chatModel = process.env["LLM_CHAT_MODEL"] ?? process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
+        const embedModel = process.env["LLM_EMBED_MODEL"] ?? process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
+        const apiKey = process.env["LLM_API_KEY"] ?? process.env["GEMINI_API_KEY"];
 
         const resp = await db.setup.configure(provider, chatModel, embedModel, apiKey);
         expect(resp.success).toBe(true);

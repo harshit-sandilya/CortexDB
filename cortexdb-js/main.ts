@@ -17,39 +17,56 @@ import { CortexDB } from "./src/index.js";
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const API_URL = process.env["CORTEXDB_URL"] ?? "http://localhost:8080";
-const PROVIDER = "GEMINI";
-const API_KEY = process.env["GEMINI_API_KEY"];
-const CHAT_MODEL = process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
-const EMBED_MODEL = process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
+const PROVIDER = process.env["LLM_PROVIDER"] ?? "GEMINI";
+const API_KEY = process.env["LLM_API_KEY"] ?? process.env["GEMINI_API_KEY"];
+const CHAT_MODEL = process.env["LLM_CHAT_MODEL"] ?? process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
+const EMBED_MODEL = process.env["LLM_EMBED_MODEL"] ?? process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
 
 if (!API_KEY) {
-    console.error("❌ GEMINI_API_KEY environment variable not set. Check your .env file.");
+    console.error("❌ LLM_API_KEY (or GEMINI_API_KEY) environment variable not set. Check your .env file.");
     process.exit(1);
 }
 
-// ─── Tiny Gemini LLM helper ───────────────────────────────────────────────────
+// ─── Tiny LLM helper ───────────────────────────────────────────────────────────
 
-/** Call the Gemini generateContent REST endpoint and return the text reply. */
-async function callGemini(prompt: string): Promise<string> {
-    const url =
-        `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${API_KEY}`;
+/** Call the LLM REST endpoint and return the text reply. */
+async function callLLM(prompt: string): Promise<string> {
+    const isGemini = PROVIDER.toUpperCase() === "GEMINI";
 
-    const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-        }),
-        signal: AbortSignal.timeout(30_000),
-    });
+    if (isGemini) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${API_KEY}`;
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+            signal: AbortSignal.timeout(30_000),
+        });
 
-    if (!res.ok) {
-        const err = await res.text().catch(() => "");
-        throw new Error(`Gemini API error ${res.status}: ${err}`);
+        if (!res.ok) throw new Error(`Gemini API error ${res.status}: ${await res.text().catch(() => "")}`);
+        const data: any = await res.json();
+        return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "(no response)";
+    } else {
+        // Simple fallback for OpenAI-compatible APIs in the demo script
+        let baseUrl = "https://api.openai.com/v1";
+        if (PROVIDER.toUpperCase() === "OPENROUTER") baseUrl = "https://openrouter.ai/api/v1";
+
+        const res = await fetch(`${baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${API_KEY}`
+            },
+            body: JSON.stringify({
+                model: CHAT_MODEL,
+                messages: [{ role: "user", content: prompt }]
+            }),
+            signal: AbortSignal.timeout(30_000),
+        });
+
+        if (!res.ok) throw new Error(`LLM API error ${res.status}: ${await res.text().catch(() => "")}`);
+        const data: any = await res.json();
+        return data?.choices?.[0]?.message?.content ?? "(no response)";
     }
-
-    const data: any = await res.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "(no response)";
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -186,10 +203,10 @@ async function main() {
             }
             prompt += `Question: ${query}\nAnswer:`;
 
-            // F. Generate answer via Gemini
+            // F. Generate answer via LLM
             process.stdout.write("\n   🤖 Generating answer... ");
             try {
-                const answer = await callGemini(prompt);
+                const answer = await callLLM(prompt);
                 console.log("Done.");
                 console.log(`\nBot: ${answer}\n`);
             } catch (e: any) {

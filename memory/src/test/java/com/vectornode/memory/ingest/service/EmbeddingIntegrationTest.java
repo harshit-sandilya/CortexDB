@@ -14,7 +14,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for embedding generation using real LLM API calls.
- * These tests require a valid GEMINI_API_KEY in environment or .env file.
+ * These tests require a valid LLM_API_KEY (or GEMINI_API_KEY) in environment or
+ * .env file.
  * 
  * Run with: mvn test -Dtest=EmbeddingIntegrationTest
  */
@@ -29,38 +30,49 @@ class EmbeddingIntegrationTest {
     static void setUpLLMProvider() {
         Map<String, String> envVars = loadEnvFile();
 
-        apiKey = envVars.get("GEMINI_API_KEY");
+        // Resolve provider-agnostic env vars with legacy fallback
+        String provider = resolveVar(envVars, "LLM_PROVIDER", "GEMINI");
+        apiKey = resolveVar(envVars, "LLM_API_KEY", null);
+
+        // Legacy fallback
         if (apiKey == null || apiKey.isEmpty()) {
-            apiKey = System.getenv("GEMINI_API_KEY");
+            apiKey = resolveVar(envVars, "GEMINI_API_KEY", null);
+            if (apiKey != null && !apiKey.isEmpty()) {
+                provider = "GEMINI";
+            }
         }
 
         if (apiKey != null && !apiKey.isEmpty()) {
-            String chatModel = envVars.get("GEMINI_CHAT_MODEL");
+            String chatModel = resolveVar(envVars, "LLM_CHAT_MODEL", null);
             if (chatModel == null || chatModel.isEmpty()) {
-                chatModel = System.getenv("GEMINI_CHAT_MODEL");
-                if (chatModel == null || chatModel.isEmpty()) {
-                    chatModel = "gemini-2.0-flash";
-                }
+                chatModel = resolveVar(envVars, "GEMINI_CHAT_MODEL", "gemini-2.0-flash");
             }
 
-            String embedModel = envVars.get("GEMINI_EMBED_MODEL");
+            String embedModel = resolveVar(envVars, "LLM_EMBED_MODEL", null);
             if (embedModel == null || embedModel.isEmpty()) {
-                embedModel = System.getenv("GEMINI_EMBED_MODEL");
-                if (embedModel == null || embedModel.isEmpty()) {
-                    embedModel = "gemini-embedding-001";
-                }
+                embedModel = resolveVar(envVars, "GEMINI_EMBED_MODEL", "gemini-embedding-001");
             }
 
             try {
-                new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
+                new LLMProvider(provider, apiKey, null, chatModel, embedModel);
                 initialized = true;
-                System.out.println("LLMProvider initialized for embedding tests");
+                System.out.println("LLMProvider initialized for embedding tests (provider=" + provider + ")");
             } catch (Exception e) {
                 System.err.println("Failed to initialize LLMProvider: " + e.getMessage());
             }
         } else {
-            System.out.println("Skipping integration tests - GEMINI_API_KEY not found");
+            System.out.println("Skipping integration tests - LLM_API_KEY not found");
         }
+    }
+
+    private static String resolveVar(Map<String, String> envVars, String name, String defaultValue) {
+        String value = envVars.get(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        value = System.getenv(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        return defaultValue;
     }
 
     private static Map<String, String> loadEnvFile() {
@@ -92,7 +104,7 @@ class EmbeddingIntegrationTest {
 
     private void assumeInitialized() {
         Assumptions.assumeTrue(initialized,
-                "Skipping: LLMProvider not initialized (GEMINI_API_KEY missing)");
+                "Skipping: LLMProvider not initialized (LLM_API_KEY missing)");
     }
 
     @Test
@@ -108,7 +120,6 @@ class EmbeddingIntegrationTest {
         assertThat(embedding).isNotNull();
         assertThat(embedding.length).isGreaterThan(0);
 
-        // Gemini text-embedding-004 typically produces 768-dimensional vectors
         System.out.printf("Generated embedding with %d dimensions%n", embedding.length);
 
         // First few values should be valid floats
@@ -214,7 +225,7 @@ class EmbeddingIntegrationTest {
     void shouldMeasureEmbeddingPerformance() {
         assumeInitialized();
 
-        String text = "Performance test for embedding generation using the Gemini API.";
+        String text = "Performance test for embedding generation using the LLM API.";
 
         // Warm up
         LLMProvider.getEmbedding("warmup");

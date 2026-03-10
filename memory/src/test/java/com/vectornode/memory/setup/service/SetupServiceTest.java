@@ -116,7 +116,7 @@ class SetupServiceTest {
         assertNotNull(response);
         assertTrue(response.isSuccess());
         assertEquals("AZURE", response.getConfiguredProvider());
-        assertEquals("https://api.azure.com", response.getBaseUrl());
+        assertEquals("https://cortexdb.openai.azure.com/", response.getBaseUrl());
     }
 
     @Test
@@ -170,8 +170,8 @@ class SetupServiceTest {
         SetupRequest request = new SetupRequest();
         request.setProvider(LLMApiProvider.OPENROUTER);
         request.setApiKey("test-openrouter-key");
-        request.setChatModelName("openai/gpt-4");
-        request.setEmbedModelName("openai/text-embedding-ada-002");
+        request.setChatModelName("openrouter/free");
+        request.setEmbedModelName("openai/text-embedding-3-small");
 
         SetupResponse response = setupService.configureLLM(request);
 
