@@ -71,7 +71,10 @@ public class LLMProvider {
                             .build();
                     break;
                 case "OPENAI":
-                    OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
+                    String openaiBaseUrl = (baseUrl == null || baseUrl.isBlank())
+                            ? "https://api.openai.com/"
+                            : baseUrl;
+                    OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(openaiBaseUrl).apiKey(apiKey).build();
 
                     embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
@@ -87,7 +90,15 @@ public class LLMProvider {
                 case "ANTHROPIC":
                 case "OPENROUTER":
                     // Both Anthropic and OpenRouter expose OpenAI-compatible APIs
-                    OpenAiApi compatApi = OpenAiApi.builder().baseUrl(baseUrl).apiKey(apiKey).build();
+                    String compatBaseUrl;
+                    if (baseUrl != null && !baseUrl.isBlank()) {
+                        compatBaseUrl = baseUrl;
+                    } else if (provider.equalsIgnoreCase("ANTHROPIC")) {
+                        compatBaseUrl = "https://api.anthropic.com";
+                    } else {
+                        compatBaseUrl = "https://openrouter.ai/api";
+                    }
+                    OpenAiApi compatApi = OpenAiApi.builder().baseUrl(compatBaseUrl).apiKey(apiKey).build();
 
                     embeddingModel = new OpenAiEmbeddingModel(compatApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
@@ -101,19 +112,24 @@ public class LLMProvider {
                             .build();
                     break;
                 case "AZURE":
+                    String azureBaseUrl = (baseUrl == null || baseUrl.isBlank())
+                            ? "https://cortexdb.openai.azure.com/"
+                            : baseUrl;
+
                     OpenAIClientBuilder azClientBuilder = new OpenAIClientBuilder()
-                            .endpoint(baseUrl)
+                            .endpoint(azureBaseUrl)
                             .credential(new AzureKeyCredential(apiKey));
 
                     embeddingModel = new AzureOpenAiEmbeddingModel(azClientBuilder.buildClient(),
                             MetadataMode.EMBED,
                             AzureOpenAiEmbeddingOptions.builder().deploymentName(embedModelName).build(),
-                            null);
-
-                    chatModel = new AzureOpenAiChatModel(azClientBuilder,
-                            AzureOpenAiChatOptions.builder().deploymentName(chatModelName).build(),
-                            null,
                             ObservationRegistry.NOOP);
+
+                    chatModel = AzureOpenAiChatModel.builder()
+                            .openAIClientBuilder(azClientBuilder)
+                            .defaultOptions(AzureOpenAiChatOptions.builder().deploymentName(chatModelName).build())
+                            .observationRegistry(ObservationRegistry.NOOP)
+                            .build();
                     break;
                 default:
                     throw new IllegalArgumentException("Unsupported provider: " + provider);

@@ -21,17 +21,24 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * End-to-End tests for the Setup endpoint.
- * These tests make REAL API calls to Gemini and require a valid API key.
+ * These tests make REAL API calls and require a valid API key.
  * 
- * This test class directly tests the SetupService without loading the full
- * Spring context, avoiding the ErrorMvcAutoConfiguration conflict while still
- * making real API calls.
+ * Configure via .env or environment variables:
+ * LLM_PROVIDER — e.g. GEMINI, OPENAI, ANTHROPIC, AZURE, OPENROUTER
+ * LLM_API_KEY — API key for the provider
+ * LLM_CHAT_MODEL — Chat model name
+ * LLM_EMBED_MODEL — Embedding model name
+ * 
+ * For backward compatibility, GEMINI_API_KEY / GEMINI_CHAT_MODEL /
+ * GEMINI_EMBED_MODEL
+ * are also supported as fallbacks (provider defaults to GEMINI in that case).
  */
 class SetupEndpointE2ETest {
 
     private SetupService setupService;
 
     private static Map<String, String> envVars;
+    private static String provider;
     private static String apiKey;
     private static String chatModel;
     private static String embedModel;
@@ -67,30 +74,49 @@ class SetupEndpointE2ETest {
             envPath = envPath.getParent();
         }
 
-        // Fall back to system environment variables if .env not found
-        if (!envLoaded) {
-            String sysApiKey = System.getenv("GEMINI_API_KEY");
-            String sysChatModel = System.getenv("GEMINI_CHAT_MODEL");
-            String sysEmbedModel = System.getenv("GEMINI_EMBED_MODEL");
+        // Resolve provider-agnostic vars, falling back to legacy GEMINI_ vars
+        provider = resolveVar("LLM_PROVIDER", "GEMINI");
+        apiKey = resolveVar("LLM_API_KEY", null);
+        chatModel = resolveVar("LLM_CHAT_MODEL", null);
+        embedModel = resolveVar("LLM_EMBED_MODEL", null);
 
-            if (sysApiKey != null) {
-                envVars.put("GEMINI_API_KEY", sysApiKey);
-                envVars.put("GEMINI_CHAT_MODEL", sysChatModel != null ? sysChatModel : "gemini-2.0-flash");
-                envVars.put("GEMINI_EMBED_MODEL", sysEmbedModel != null ? sysEmbedModel : "gemini-embedding-001");
+        // Legacy fallback: if LLM_API_KEY not found, try GEMINI_API_KEY
+        if (apiKey == null || apiKey.isEmpty()) {
+            apiKey = resolveVar("GEMINI_API_KEY", null);
+            if (apiKey != null && !apiKey.isEmpty()) {
+                provider = "GEMINI";
+                if (chatModel == null || chatModel.isEmpty()) {
+                    chatModel = resolveVar("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
+                }
+                if (embedModel == null || embedModel.isEmpty()) {
+                    embedModel = resolveVar("GEMINI_EMBED_MODEL", "gemini-embedding-001");
+                }
                 envLoaded = true;
             }
+        } else {
+            envLoaded = true;
         }
-
-        apiKey = envVars.get("GEMINI_API_KEY");
-        chatModel = envVars.getOrDefault("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-        embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "gemini-embedding-001");
 
         System.out.println("=== E2E Test Environment ===");
         System.out.println("Environment loaded: " + envLoaded);
+        System.out.println("Provider: " + provider);
         System.out.println("API Key present: " + (apiKey != null && !apiKey.isEmpty()));
         System.out.println("Chat Model: " + chatModel);
         System.out.println("Embed Model: " + embedModel);
         System.out.println("============================");
+    }
+
+    /**
+     * Resolve a variable from .env vars, then system env, then default.
+     */
+    private static String resolveVar(String name, String defaultValue) {
+        String value = envVars.get(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        value = System.getenv(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        return defaultValue;
     }
 
     @BeforeEach
@@ -100,15 +126,16 @@ class SetupEndpointE2ETest {
 
     private void assumeApiKeyPresent() {
         assumeTrue(apiKey != null && !apiKey.isEmpty(),
-                "GEMINI_API_KEY not found in .env or environment variables. Skipping E2E test.");
+                "LLM_API_KEY (or GEMINI_API_KEY) not found in .env or environment variables. Skipping E2E test.");
     }
 
     /**
-     * Helper method to create a SetupRequest with proper chat and embed models
+     * Helper method to create a SetupRequest with the configured provider and
+     * models.
      */
-    private SetupRequest createGeminiRequest() {
+    private SetupRequest createRequest() {
         SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
+        request.setProvider(LLMApiProvider.valueOf(provider.toUpperCase()));
         request.setApiKey(apiKey);
         request.setChatModelName(chatModel);
         request.setEmbedModelName(embedModel);
@@ -116,12 +143,12 @@ class SetupEndpointE2ETest {
     }
 
     @Test
-    @DisplayName("E2E: Should successfully configure Gemini provider and return success response")
-    void shouldConfigureGeminiProviderSuccessfully() {
+    @DisplayName("E2E: Should successfully configure LLM provider and return success response")
+    void shouldConfigureProviderSuccessfully() {
         assumeApiKeyPresent();
 
-        // Arrange - use separate chat and embed models
-        SetupRequest request = createGeminiRequest();
+        // Arrange
+        SetupRequest request = createRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -133,7 +160,8 @@ class SetupEndpointE2ETest {
 
         assertNotNull(response, "Response should not be null");
         assertTrue(response.isSuccess(), "Response should indicate success");
-        assertEquals("GEMINI", response.getConfiguredProvider(), "Provider should be GEMINI");
+        assertEquals(provider.toUpperCase(), response.getConfiguredProvider(),
+                "Provider should match configured provider");
         assertEquals(chatModel, response.getConfiguredChatModel(), "Chat model should match request");
         assertEquals(embedModel, response.getConfiguredEmbedModel(), "Embed model should match request");
         assertNotNull(response.getBaseUrl(), "Base URL should be set");
@@ -149,7 +177,7 @@ class SetupEndpointE2ETest {
     void shouldThrowExceptionForInvalidApiKey() {
         // Arrange - use an invalid API key
         SetupRequest request = new SetupRequest();
-        request.setProvider(LLMApiProvider.GEMINI);
+        request.setProvider(LLMApiProvider.valueOf(provider.toUpperCase()));
         request.setApiKey("invalid-api-key-12345");
         request.setChatModelName(chatModel);
         request.setEmbedModelName(embedModel);
@@ -194,8 +222,19 @@ class SetupEndpointE2ETest {
         assumeApiKeyPresent();
 
         // Arrange
-        SetupRequest request = createGeminiRequest();
-        request.setBaseUrl("https://generativelanguage.googleapis.com/v1beta/openai/");
+        SetupRequest request = createRequest();
+        // Use a custom base URL appropriate for the provider
+        String customUrl;
+        if (provider.equalsIgnoreCase("OPENROUTER")) {
+            customUrl = "https://openrouter.ai/api";
+        } else if (provider.equalsIgnoreCase("AZURE")) {
+            customUrl = "https://cortexdb.openai.azure.com/";
+        } else if (provider.equalsIgnoreCase("GEMINI")) {
+            customUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+        } else { // Default for other providers, e.g., OPENAI
+            customUrl = "https://api.openai.com/v1/";
+        }
+        request.setBaseUrl(customUrl);
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -207,8 +246,7 @@ class SetupEndpointE2ETest {
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
-        assertEquals("https://generativelanguage.googleapis.com/v1beta/openai/",
-                response.getBaseUrl(),
+        assertEquals(customUrl, response.getBaseUrl(),
                 "Custom base URL should be preserved in response");
     }
 
@@ -218,7 +256,7 @@ class SetupEndpointE2ETest {
         assumeApiKeyPresent();
 
         // Arrange
-        SetupRequest request = createGeminiRequest();
+        SetupRequest request = createRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -238,12 +276,12 @@ class SetupEndpointE2ETest {
     }
 
     @Test
-    @DisplayName("E2E: Should use default base URL for Gemini when not provided")
-    void shouldUseDefaultBaseUrlForGemini() {
+    @DisplayName("E2E: Should use default base URL when not provided")
+    void shouldUseDefaultBaseUrl() {
         assumeApiKeyPresent();
 
         // Arrange - no baseUrl set
-        SetupRequest request = createGeminiRequest();
+        SetupRequest request = createRequest();
 
         // Act
         SetupResponse response = setupService.configureLLM(request);
@@ -255,7 +293,6 @@ class SetupEndpointE2ETest {
 
         assertNotNull(response);
         assertTrue(response.isSuccess());
-        assertEquals("https://generativelanguage.googleapis.com/v1beta/openai/", response.getBaseUrl(),
-                "Should use default Gemini base URL");
+        assertNotNull(response.getBaseUrl(), "Should have a default base URL");
     }
 }

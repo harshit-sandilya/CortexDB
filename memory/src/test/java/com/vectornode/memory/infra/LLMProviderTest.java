@@ -4,7 +4,6 @@ import com.vectornode.memory.config.LLMProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,11 +15,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for LLMProvider with Gemini API.
- * These tests require a valid GEMINI_API_KEY in the .env file.
+ * Integration tests for LLMProvider with real API calls.
+ * These tests require a valid LLM_API_KEY (or GEMINI_API_KEY) in the .env file.
  */
 class LLMProviderTest {
 
+    private static String provider;
     private static String apiKey;
     private static String chatModel;
     private static String embedModel;
@@ -57,49 +57,68 @@ class LLMProviderTest {
             envPath = envPath.getParent();
         }
 
-        // Fall back to system environment variables if .env not found
-        if (!envLoaded) {
-            String sysApiKey = System.getenv("GEMINI_API_KEY");
-            String sysChatModel = System.getenv("GEMINI_CHAT_MODEL");
-            String sysEmbedModel = System.getenv("GEMINI_EMBED_MODEL");
+        // Resolve provider-agnostic vars, falling back to legacy GEMINI_ vars
+        provider = resolveVar("LLM_PROVIDER", "GEMINI");
+        apiKey = resolveVar("LLM_API_KEY", null);
+        chatModel = resolveVar("LLM_CHAT_MODEL", null);
+        embedModel = resolveVar("LLM_EMBED_MODEL", null);
 
-            if (sysApiKey != null) {
-                envVars.put("GEMINI_API_KEY", sysApiKey);
-                envVars.put("GEMINI_CHAT_MODEL", sysChatModel != null ? sysChatModel : "gemini-2.0-flash");
-                envVars.put("GEMINI_EMBED_MODEL", sysEmbedModel != null ? sysEmbedModel : "gemini-embedding-001");
+        // Legacy fallback: if LLM_API_KEY not found, try GEMINI_API_KEY
+        if (apiKey == null || apiKey.isEmpty()) {
+            apiKey = resolveVar("GEMINI_API_KEY", null);
+            if (apiKey != null && !apiKey.isEmpty()) {
+                provider = "GEMINI";
+                if (chatModel == null || chatModel.isEmpty()) {
+                    chatModel = resolveVar("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
+                }
+                if (embedModel == null || embedModel.isEmpty()) {
+                    embedModel = resolveVar("GEMINI_EMBED_MODEL", "gemini-embedding-001");
+                }
                 envLoaded = true;
             }
+        } else {
+            envLoaded = true;
         }
 
-        apiKey = envVars.get("GEMINI_API_KEY");
-        chatModel = envVars.getOrDefault("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-        embedModel = envVars.getOrDefault("GEMINI_EMBED_MODEL", "gemini-embedding-001");
-
         System.out.println("Environment loaded: " + envLoaded);
+        System.out.println("Provider: " + provider);
         System.out.println("API Key present: " + (apiKey != null && !apiKey.isEmpty()));
         System.out.println("Chat Model: " + chatModel);
         System.out.println("Embed Model: " + embedModel);
+    }
+
+    /**
+     * Resolve a variable from .env vars, then system env, then default.
+     */
+    private static String resolveVar(String name, String defaultValue) {
+        String value = envVars.get(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        value = System.getenv(name);
+        if (value != null && !value.isEmpty())
+            return value;
+        return defaultValue;
     }
 
     @Test
     @DisplayName("Should load environment variables from .env file")
     void shouldLoadEnvVariables() {
         assertTrue(envLoaded, "Environment variables should be loaded from .env or system env");
-        assertNotNull(apiKey, "GEMINI_API_KEY should not be null");
-        assertFalse(apiKey.isEmpty(), "GEMINI_API_KEY should not be empty");
-        assertNotNull(chatModel, "GEMINI_CHAT_MODEL should not be null");
-        assertNotNull(embedModel, "GEMINI_EMBED_MODEL should not be null");
+        assertNotNull(apiKey, "LLM_API_KEY should not be null");
+        assertFalse(apiKey.isEmpty(), "LLM_API_KEY should not be empty");
+        assertNotNull(chatModel, "LLM_CHAT_MODEL should not be null");
+        assertNotNull(embedModel, "LLM_EMBED_MODEL should not be null");
     }
 
     @Test
-    @DisplayName("Should initialize LLMProvider with Gemini configuration using separate models")
-    void shouldInitializeLLMProviderWithGemini() {
+    @DisplayName("Should initialize LLMProvider with configured provider using separate models")
+    void shouldInitializeLLMProvider() {
         assumeApiKeyPresent();
 
-        // Constructor should not throw an exception - using new 5-parameter constructor
+        // Constructor should not throw an exception
         assertDoesNotThrow(() -> {
-            new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
-        }, "LLMProvider should initialize successfully with Gemini using separate chat and embed models");
+            new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+        }, "LLMProvider should initialize successfully with " + provider + " using separate chat and embed models");
     }
 
     @Test
@@ -107,10 +126,19 @@ class LLMProviderTest {
     void shouldInitializeLLMProviderWithCustomBaseUrl() {
         assumeApiKeyPresent();
 
-        String customBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+        String customBaseUrl;
+        if (provider.equalsIgnoreCase("GEMINI")) {
+            customBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+        } else if (provider.equalsIgnoreCase("OPENROUTER"))
+            customBaseUrl = "https://openrouter.ai/api";
+        else if (provider.equalsIgnoreCase("AZURE")) {
+            customBaseUrl = "https://cortexdb.openai.azure.com/";
+        } else { // Default, likely for OPENAI
+            customBaseUrl = "https://api.openai.com/v1/";
+        }
 
         assertDoesNotThrow(() -> {
-            new LLMProvider("GEMINI", apiKey, customBaseUrl, chatModel, embedModel);
+            new LLMProvider(provider, apiKey, customBaseUrl, chatModel, embedModel);
         }, "LLMProvider should initialize with custom base URL");
     }
 
@@ -131,7 +159,7 @@ class LLMProviderTest {
     void shouldThrowExceptionForNullApiKey() {
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new LLMProvider("GEMINI", null, null, chatModel, embedModel));
+                () -> new LLMProvider(provider, null, null, chatModel, embedModel));
 
         assertNotNull(exception.getMessage());
     }
@@ -142,7 +170,7 @@ class LLMProviderTest {
         assumeApiKeyPresent();
 
         // Initialize provider with SEPARATE chat and embedding models
-        new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
+        new LLMProvider(provider, apiKey, null, chatModel, embedModel);
 
         String testText = "This is a test sentence for embedding generation.";
 
@@ -162,7 +190,7 @@ class LLMProviderTest {
         assumeApiKeyPresent();
 
         // Initialize provider with SEPARATE chat and embedding models
-        new LLMProvider("GEMINI", apiKey, null, chatModel, embedModel);
+        new LLMProvider(provider, apiKey, null, chatModel, embedModel);
 
         String prompt = "Reply with exactly one word: Hello";
 
@@ -183,12 +211,13 @@ class LLMProviderTest {
 
         // Test lowercase
         assertDoesNotThrow(() -> {
-            new LLMProvider("gemini", apiKey, null, chatModel, embedModel);
+            new LLMProvider(provider.toLowerCase(), apiKey, null, chatModel, embedModel);
         }, "Provider should accept lowercase");
 
         // Test mixed case
+        String mixedCase = provider.substring(0, 1).toUpperCase() + provider.substring(1).toLowerCase();
         assertDoesNotThrow(() -> {
-            new LLMProvider("Gemini", apiKey, null, chatModel, embedModel);
+            new LLMProvider(mixedCase, apiKey, null, chatModel, embedModel);
         }, "Provider should accept mixed case");
     }
 
@@ -248,11 +277,11 @@ class LLMProviderTest {
     @DisplayName("Provider constants should be valid")
     void providerConstantsShouldBeValid() {
         // Test valid provider strings
-        String[] validProviders = { "OPENAI", "GEMINI", "AZURE" };
+        String[] validProviders = { "GEMINI", "OPENAI", "ANTHROPIC", "AZURE", "OPENROUTER" };
 
-        for (String provider : validProviders) {
-            assertNotNull(provider);
-            assertFalse(provider.isEmpty());
+        for (String p : validProviders) {
+            assertNotNull(p);
+            assertFalse(p.isEmpty());
         }
     }
 
@@ -263,7 +292,7 @@ class LLMProviderTest {
 
         // The 4-parameter constructor should still work (uses same model for both)
         assertDoesNotThrow(() -> {
-            new LLMProvider("GEMINI", apiKey, null, embedModel);
+            new LLMProvider(provider, apiKey, null, embedModel);
         }, "Legacy 4-parameter constructor should still work");
     }
 
@@ -271,6 +300,6 @@ class LLMProviderTest {
     private void assumeApiKeyPresent() {
         org.junit.jupiter.api.Assumptions.assumeTrue(
                 apiKey != null && !apiKey.isEmpty(),
-                "Skipping test: GEMINI_API_KEY not found in .env or environment");
+                "Skipping test: LLM_API_KEY not found in .env or environment");
     }
 }
