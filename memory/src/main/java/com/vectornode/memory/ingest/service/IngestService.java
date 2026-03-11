@@ -3,7 +3,8 @@ package com.vectornode.memory.ingest.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vectornode.memory.config.LLMProvider;
 import com.vectornode.memory.entity.KnowledgeBase;
-import com.vectornode.memory.ingest.dto.request.IngestContentRequest;
+import com.vectornode.memory.ingest.dto.request.IngestDocumentRequest;
+import com.vectornode.memory.ingest.dto.request.IngestPromptRequest;
 import com.vectornode.memory.ingest.dto.response.IngestResponse;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -27,31 +28,31 @@ public class IngestService {
         private EntityManager entityManager;
 
         /**
-         * Processes a content ingestion request.
+         * Processes a prompt ingestion request.
          * Generates embeddings, persists to database, and returns the inserted row.
          */
         @Transactional
-        public IngestResponse ingestContent(IngestContentRequest request) {
-                log.info("Ingesting document for uid: {}, converser: {}", request.getUid(), request.getConverser());
+        public IngestResponse processPrompt(IngestPromptRequest request) {
+                log.info("Ingesting prompt for uid: {}, converser: {}", request.getUid(), request.getConverser());
                 long startTime = System.currentTimeMillis();
 
                 try {
                         // Generate Embedding
                         long embeddingStart = System.currentTimeMillis();
-                        float[] embedding = LLMProvider.getEmbedding(request.getContent());
+                        float[] embedding = LLMProvider.getEmbedding(request.getText());
                         long embeddingTime = System.currentTimeMillis() - embeddingStart;
 
                         // Create KnowledgeBase entity with metadata
                         KnowledgeBase knowledgeBase = KnowledgeBase.builder()
                                         .uid(request.getUid())
                                         .converser(request.getConverser())
-                                        .content(request.getContent())
+                                        .content(request.getText())
                                         .vectorEmbedding(embedding)
                                         .build();
 
                         // Add metadata
                         knowledgeBase.setMetadata(objectMapper.createObjectNode()
-                                        .put("contentLength", request.getContent().length())
+                                        .put("contentLength", request.getText().length())
                                         .put("embeddingDimensions", embedding.length)
                                         .put("embeddingTimeMs", embeddingTime));
 
@@ -75,9 +76,63 @@ public class IngestService {
                         return IngestResponse.builder()
                                         .knowledgeBase(knowledgeBase)
                                         .status("SUCCESS")
-                                        .message("Document ingested successfully")
+                                        .message("Prompt ingested successfully")
                                         .processingTimeMs(processingTime)
                                         .embeddingTimeMs(embeddingTime)
+                                        .build();
+
+                } catch (Exception e) {
+                        log.error("Failed to ingest prompt", e);
+                        throw new RuntimeException("Ingestion failed: " + e.getMessage(), e);
+                }
+        }
+
+        /**
+         * Processes a document ingestion request.
+         * For now, it simply saves the document in the DB.
+         * The async listener or direct invocation will trigger Phase 2 (PageIndex).
+         */
+        @Transactional
+        public IngestResponse processDocument(IngestDocumentRequest request) {
+                log.info("Ingesting document for uid: {}, title: {}", request.getUid(), request.getDocumentTitle());
+                long startTime = System.currentTimeMillis();
+
+                try {
+                        // Create KnowledgeBase entity with metadata
+                        // We use the new DOCUMENT converser role
+                        KnowledgeBase knowledgeBase = KnowledgeBase.builder()
+                                        .uid(request.getUid())
+                                        .converser(com.vectornode.memory.entity.enums.ConverserRole.DOCUMENT)
+                                        .content(request.getDocumentText())
+                                        // Documents might be too large to embed whole natively - we will leave it null
+                                        .vectorEmbedding(new float[768])
+                                        .build();
+
+                        // Add metadata
+                        knowledgeBase.setMetadata(objectMapper.createObjectNode()
+                                        .put("documentTitle", request.getDocumentTitle())
+                                        .put("contentLength", request.getDocumentText().length()));
+
+                        // Persist directly using EntityManager
+                        entityManager.persist(knowledgeBase);
+                        entityManager.flush(); // Ensure ID is generated
+
+                        long processingTime = System.currentTimeMillis() - startTime;
+
+                        log.info("KB_ROW | id={} | uid={} | converser=DOCUMENT | content_length={} | metadata={} | created_at={}",
+                                        knowledgeBase.getId(),
+                                        knowledgeBase.getUid(),
+                                        knowledgeBase.getContent().length(),
+                                        knowledgeBase.getMetadata(),
+                                        knowledgeBase.getCreatedAt());
+
+                        // Return response with the full persisted entity
+                        return IngestResponse.builder()
+                                        .knowledgeBase(knowledgeBase)
+                                        .status("SUCCESS")
+                                        .message("Document ingested successfully")
+                                        .processingTimeMs(processingTime)
+                                        .embeddingTimeMs(0L)
                                         .build();
 
                 } catch (Exception e) {

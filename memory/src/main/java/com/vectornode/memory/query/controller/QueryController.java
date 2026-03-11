@@ -211,4 +211,11 @@ public class QueryController {
     public ResponseEntity<QueryResponse> hybridSearch(@Valid @RequestBody QueryRequest request) {
         return ResponseEntity.ok(queryService.hybridSearch(request));
     }
+
+    // ==================== AGENTIC ROUTER ====================
+
+    @PostMapping("/route")
+    public ResponseEntity<QueryResponse> routeQuery(@Valid @RequestBody QueryRequest request) {
+        return ResponseEntity.ok(queryService.routeQuery(request));
+    }
 }

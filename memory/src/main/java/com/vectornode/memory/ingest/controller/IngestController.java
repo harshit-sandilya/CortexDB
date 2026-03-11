@@ -1,6 +1,7 @@
 package com.vectornode.memory.ingest.controller;
 
-import com.vectornode.memory.ingest.dto.request.IngestContentRequest;
+import com.vectornode.memory.ingest.dto.request.IngestDocumentRequest;
+import com.vectornode.memory.ingest.dto.request.IngestPromptRequest;
 import com.vectornode.memory.ingest.dto.response.IngestResponse;
 import com.vectornode.memory.ingest.service.IngestService;
 import jakarta.validation.Valid;
@@ -18,9 +19,15 @@ public class IngestController {
 
     private final IngestService ingestService;
 
+    @PostMapping("/prompt")
+    public ResponseEntity<IngestResponse> ingestPrompt(@Valid @RequestBody IngestPromptRequest request) {
+        IngestResponse response = ingestService.processPrompt(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/document")
-    public ResponseEntity<IngestResponse> ingestContent(@Valid @RequestBody IngestContentRequest request) {
-        IngestResponse response = ingestService.ingestContent(request);
+    public ResponseEntity<IngestResponse> ingestDocument(@Valid @RequestBody IngestDocumentRequest request) {
+        IngestResponse response = ingestService.processDocument(request);
         return ResponseEntity.ok(response);
     }
 }

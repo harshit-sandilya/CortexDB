@@ -89,6 +89,7 @@ BEGIN
     PERFORM pg_notify('rag_events', json_build_object(
         'type', 'KB_CREATED',
         'id', NEW.id,
+        'converser', NEW.converser,
         'content', NEW.content
     )::text);
     RETURN NEW;

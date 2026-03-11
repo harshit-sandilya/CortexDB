@@ -32,6 +32,12 @@ class IngestionWorkerTest {
     private ExtractionService extractionService;
 
     @Mock
+    private PageIndexService pageIndexService;
+
+    @Mock
+    private com.vectornode.memory.query.repository.ContextRepository contextRepository;
+
+    @Mock
     private EntityManager entityManager;
 
     private IngestionWorker ingestionWorker;
@@ -40,7 +46,7 @@ class IngestionWorkerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        ingestionWorker = new IngestionWorker(chunkingService, extractionService, objectMapper);
+        ingestionWorker = new IngestionWorker(chunkingService, extractionService, pageIndexService, contextRepository, objectMapper);
         ReflectionTestUtils.setField(ingestionWorker, "entityManager", entityManager);
     }
 
@@ -63,30 +69,33 @@ class IngestionWorkerTest {
         }
 
         @Test
-        @DisplayName("should chunk content and generate embeddings")
-        void shouldChunkContentAndGenerateEmbeddings() {
+        @DisplayName("should compress prompt, check similarity, and insert new context when no similarity found")
+        void shouldProcessPromptAndInsert() {
             UUID kbId = UUID.randomUUID();
-            String content = "This is test content. More content here.";
-            List<String> chunks = List.of("This is test content.", "More content here.");
+            String content = "This is a new isolated prompt.";
             float[] mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+            ChunkingService.CompressedChunk compressed = new ChunkingService.CompressedChunk(
+                "Restated prompt.", List.of("kw1"), "Topic", null
+            );
 
             // Mock KnowledgeBase reference
             com.vectornode.memory.entity.KnowledgeBase mockKb = mock(com.vectornode.memory.entity.KnowledgeBase.class);
             when(mockKb.getId()).thenReturn(kbId);
             when(entityManager.getReference(com.vectornode.memory.entity.KnowledgeBase.class, kbId)).thenReturn(mockKb);
 
-            when(chunkingService.chunkText(eq(content), anyInt(), anyInt())).thenReturn(chunks);
+            when(chunkingService.compressPrompt(content)).thenReturn(compressed);
+            when(contextRepository.findHighlySimilar(anyString(), anyDouble())).thenReturn(java.util.Collections.emptyList());
 
             try (MockedStatic<LLMProvider> mockedLLM = mockStatic(LLMProvider.class)) {
                 mockedLLM.when(() -> LLMProvider.getEmbedding(anyString())).thenReturn(mockEmbedding);
 
                 ingestionWorker.processKnowledgeBase(kbId, content);
 
-                verify(chunkingService).chunkText(eq(content), anyInt(), anyInt());
-                // LLMProvider.getEmbedding called once per chunk
-                mockedLLM.verify(() -> LLMProvider.getEmbedding(anyString()), times(2));
-                // Verify Context entities were persisted
-                verify(entityManager, times(chunks.size())).persist(any(com.vectornode.memory.entity.Context.class));
+                verify(chunkingService).compressPrompt(content);
+                mockedLLM.verify(() -> LLMProvider.getEmbedding("Restated prompt."));
+                verify(contextRepository).findHighlySimilar(anyString(), anyDouble());
+                // Verify Context entity was persisted (insert path)
+                verify(entityManager).persist(any(com.vectornode.memory.entity.Context.class));
             }
         }
     }
@@ -140,6 +149,9 @@ class IngestionWorkerTest {
             when(mockRelationQuery.getResultList()).thenReturn(java.util.Collections.emptyList());
 
             ExtractionService.ExtractionResult result = new ExtractionService.ExtractionResult();
+            result.setEntities(new java.util.ArrayList<>());
+            result.setRelations(new java.util.ArrayList<>());
+            result.setMetadata(new ExtractionService.ExtractedMetadata());
 
             ExtractionService.ExtractedEntity entity1 = new ExtractionService.ExtractedEntity();
             entity1.setName("John");
