@@ -67,17 +67,27 @@ public class MedicalChatbot {
     // ── Configuration ─────────────────────────────────────────────────────────
 
     private static final String API_URL = env("CORTEXDB_URL", "http://localhost:8080");
-    private static final String PROVIDER = "GEMINI";
-    private static final String API_KEY = env("GEMINI_API_KEY", null);
-    private static final String CHAT_MODEL = env("GEMINI_CHAT_MODEL", "gemini-2.0-flash");
-    private static final String EMBED_MODEL = env("GEMINI_EMBED_MODEL", "gemini-embedding-001");
+    private static final String PROVIDER = env("LLM_PROVIDER", "GEMINI");
+    private static final String API_KEY = resolveApiKey();
+    private static final String CHAT_MODEL = env("LLM_CHAT_MODEL",
+            env("GEMINI_CHAT_MODEL", "gemini-2.0-flash"));
+    private static final String EMBED_MODEL = env("LLM_EMBED_MODEL",
+            env("GEMINI_EMBED_MODEL", "gemini-embedding-001"));
+
+    private static String resolveApiKey() {
+        String key = env("LLM_API_KEY", null);
+        if (key == null || key.isBlank()) {
+            key = env("GEMINI_API_KEY", null);
+        }
+        return key;
+    }
 
     // ── Entry point ───────────────────────────────────────────────────────────
 
     public static void main(String[] args) throws InterruptedException {
         if (API_KEY == null || API_KEY.isBlank()) {
-            System.err.println("GEMINI_API_KEY environment variable not set.");
-            System.err.println("Set it before running:  set GEMINI_API_KEY=your-key");
+            System.err.println("LLM_API_KEY (or GEMINI_API_KEY) environment variable not set.");
+            System.err.println("Set it before running:  set LLM_API_KEY=your-key");
             System.exit(1);
         }
 
@@ -97,7 +107,7 @@ public class MedicalChatbot {
         printStep("Configuring LLM Provider...");
         try {
             SetupResponse resp = db.setup().configure(
-                    LLMApiProvider.GEMINI, API_KEY, CHAT_MODEL, EMBED_MODEL);
+                    LLMApiProvider.valueOf(PROVIDER.toUpperCase()), API_KEY, CHAT_MODEL, EMBED_MODEL);
             if (resp.isSuccess()) {
                 System.out.println("LLM Configured: " + resp.getConfiguredProvider());
             } else {
@@ -217,7 +227,7 @@ public class MedicalChatbot {
                     }
                     prompt += "Question: " + query + "\nAnswer:";
 
-                    // F. Generate answer via Gemini
+                    // F. Generate answer via LLM
                     System.out.print("\n  Generating answer... ");
                     System.out.flush();
                     try {

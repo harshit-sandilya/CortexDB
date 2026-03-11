@@ -33,7 +33,7 @@ public class SetupService {
                     effectiveBaseUrl = "https://api.anthropic.com";
                     break;
                 case AZURE:
-                    effectiveBaseUrl = "https://api.azure.com";
+                    effectiveBaseUrl = "https://cortexdb.openai.azure.com/";
                     break;
                 case OPENROUTER:
                     effectiveBaseUrl = "https://openrouter.ai/api";
