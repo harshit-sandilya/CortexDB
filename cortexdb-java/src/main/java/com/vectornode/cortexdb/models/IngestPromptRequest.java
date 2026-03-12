@@ -4,29 +4,25 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 
 /**
- * Request to ingest a document into CortexDB.
- * Mirrors the backend {@code IngestContentRequest} DTO.
+ * Request to ingest a prompt payload into CortexDB.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class IngestRequest {
+public class IngestPromptRequest {
 
     private String uid;
     private ConverserRole converser;
-    private String content;
+    private String text;
     private Map<String, Object> metadata;
 
-    public IngestRequest() {
+    public IngestPromptRequest() {
     }
 
-    public IngestRequest(String uid, ConverserRole converser, String content,
-            Map<String, Object> metadata) {
+    public IngestPromptRequest(String uid, ConverserRole converser, String text, Map<String, Object> metadata) {
         this.uid = uid;
         this.converser = converser;
-        this.content = content;
+        this.text = text;
         this.metadata = metadata;
     }
-
-    // ── Getters & Setters ────────────────────────────────────────
 
     public String getUid() {
         return uid;
@@ -44,12 +40,12 @@ public class IngestRequest {
         this.converser = converser;
     }
 
-    public String getContent() {
-        return content;
+    public String getText() {
+        return text;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setText(String text) {
+        this.text = text;
     }
 
     public Map<String, Object> getMetadata() {

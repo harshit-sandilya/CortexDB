@@ -52,7 +52,7 @@ class QueryApiTest {
 
     @Test
     void searchContexts_default() {
-        when(http.post(eq("/api/query/contexts"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
+        when(http.post(eq("/api/v1/memory/query/contexts"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.searchContexts("test");
@@ -62,7 +62,7 @@ class QueryApiTest {
 
     @Test
     void searchContexts_withParams() {
-        when(http.post(eq("/api/query/contexts"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
+        when(http.post(eq("/api/v1/memory/query/contexts"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.searchContexts("test", 10, 0.8, null);
@@ -72,7 +72,7 @@ class QueryApiTest {
     @Test
     void getContextsByKb() {
         UUID kbId = UUID.randomUUID();
-        when(http.get(eq("/api/query/contexts/kb/" + kbId), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/contexts/kb/" + kbId), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getContextsByKb(kbId);
@@ -81,7 +81,7 @@ class QueryApiTest {
 
     @Test
     void getRecentContexts() {
-        when(http.get(eq("/api/query/contexts/recent"), eq(Map.of("days", "7")), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/contexts/recent"), eq(Map.of("days", "7")), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getRecentContexts(7);
@@ -91,7 +91,7 @@ class QueryApiTest {
     @Test
     void getSiblingContexts() {
         UUID contextId = UUID.randomUUID();
-        when(http.get(eq("/api/query/contexts/siblings/" + contextId), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/contexts/siblings/" + contextId), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getSiblingContexts(contextId);
@@ -102,7 +102,7 @@ class QueryApiTest {
 
     @Test
     void searchEntities() {
-        when(http.post(eq("/api/query/entities"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
+        when(http.post(eq("/api/v1/memory/query/entities"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.searchEntities("test");
@@ -115,7 +115,7 @@ class QueryApiTest {
                 .registerModule(new JavaTimeModule())
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         when(http.objectMapper()).thenReturn(mapper);
-        when(http.getRawOrNull("/api/query/entities/name/Google"))
+        when(http.getRawOrNull("/api/v1/memory/query/entities/name/Google"))
                 .thenReturn("{\"id\":\"550e8400-e29b-41d4-a716-446655440000\",\"name\":\"Google\",\"type\":\"ORG\"}");
 
         Entity entity = queryApi.getEntityByName("Google");
@@ -125,7 +125,7 @@ class QueryApiTest {
 
     @Test
     void getEntityByName_notFound() {
-        when(http.getRawOrNull("/api/query/entities/name/Unknown"))
+        when(http.getRawOrNull("/api/v1/memory/query/entities/name/Unknown"))
                 .thenReturn(null);
 
         Entity entity = queryApi.getEntityByName("Unknown");
@@ -139,7 +139,7 @@ class QueryApiTest {
                 .registerModule(new JavaTimeModule())
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         when(http.objectMapper()).thenReturn(mapper);
-        when(http.getRawOrNull("/api/query/entities/id/Google"))
+        when(http.getRawOrNull("/api/v1/memory/query/entities/id/Google"))
                 .thenReturn("{\"id\":\"550e8400-e29b-41d4-a716-446655440000\"}");
 
         UUID id = queryApi.getEntityIdByName("Google");
@@ -148,7 +148,7 @@ class QueryApiTest {
 
     @Test
     void getEntityIdByName_notFound() {
-        when(http.getRawOrNull("/api/query/entities/id/Unknown"))
+        when(http.getRawOrNull("/api/v1/memory/query/entities/id/Unknown"))
                 .thenReturn(null);
 
         UUID id = queryApi.getEntityIdByName("Unknown");
@@ -162,7 +162,7 @@ class QueryApiTest {
 
         queryApi.mergeEntities(source, target);
 
-        verify(http).postNoBody(eq("/api/query/entities/merge"),
+        verify(http).postNoBody(eq("/api/v1/memory/query/entities/merge"),
                 eq(Map.of("sourceEntityId", source.toString(),
                         "targetEntityId", target.toString())));
     }
@@ -171,7 +171,7 @@ class QueryApiTest {
 
     @Test
     void searchHistory() {
-        when(http.post(eq("/api/query/history"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
+        when(http.post(eq("/api/v1/memory/query/history"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.searchHistory("test");
@@ -180,7 +180,7 @@ class QueryApiTest {
 
     @Test
     void getHistoryByUser() {
-        when(http.get(eq("/api/query/history/user/user-1"), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/history/user/user-1"), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getHistoryByUser("user-1");
@@ -189,7 +189,7 @@ class QueryApiTest {
 
     @Test
     void getRecentKbs() {
-        when(http.get(eq("/api/query/history/recent"), eq(Map.of("hours", "24")), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/history/recent"), eq(Map.of("hours", "24")), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getRecentKbs(24);
@@ -201,7 +201,7 @@ class QueryApiTest {
     @Test
     void deleteUserData() {
         queryApi.deleteUserData("user-1");
-        verify(http).delete("/api/query/history/user/user-1");
+        verify(http).delete("/api/v1/memory/query/history/user/user-1");
     }
 
     // ── Graph endpoints ──────────────────────────────────────────
@@ -209,7 +209,7 @@ class QueryApiTest {
     @Test
     void getOutgoingConnections() {
         UUID entityId = UUID.randomUUID();
-        when(http.get(eq("/api/query/graph/outgoing/" + entityId), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/graph/outgoing/" + entityId), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getOutgoingConnections(entityId);
@@ -219,7 +219,7 @@ class QueryApiTest {
     @Test
     void getIncomingConnections() {
         UUID entityId = UUID.randomUUID();
-        when(http.get(eq("/api/query/graph/incoming/" + entityId), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/graph/incoming/" + entityId), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getIncomingConnections(entityId);
@@ -229,7 +229,7 @@ class QueryApiTest {
     @Test
     void getTwoHopConnections() {
         UUID entityId = UUID.randomUUID();
-        when(http.get(eq("/api/query/graph/2hop/" + entityId), eq(QueryResponse.class)))
+        when(http.get(eq("/api/v1/memory/query/graph/2hop/" + entityId), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.getTwoHopConnections(entityId);
@@ -240,7 +240,7 @@ class QueryApiTest {
 
     @Test
     void hybridSearch() {
-        when(http.post(eq("/api/query/hybrid"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
+        when(http.post(eq("/api/v1/memory/query/hybrid"), isNull(), any(QueryRequest.class), eq(QueryResponse.class)))
                 .thenReturn(mockQueryResponse());
 
         QueryResponse result = queryApi.hybridSearch("test");

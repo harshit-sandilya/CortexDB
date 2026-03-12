@@ -75,17 +75,29 @@ class ModelsTest {
         assertNotNull(resp.getTimestamp());
     }
 
-    // ── IngestRequest ────────────────────────────────────────────
+    // ── IngestPromptRequest ───────────────────────────────────────────
 
     @Test
-    void ingestRequest_serializesCorrectly() throws Exception {
-        IngestRequest req = new IngestRequest("user-1", ConverserRole.USER,
+    void ingestPromptRequest_serializesCorrectly() throws Exception {
+        IngestPromptRequest req = new IngestPromptRequest("user-1", ConverserRole.USER,
                 "Hello world", Map.of("source", "test"));
 
         String json = mapper.writeValueAsString(req);
         assertTrue(json.contains("\"converser\":\"USER\""));
         assertTrue(json.contains("\"uid\":\"user-1\""));
-        assertTrue(json.contains("\"content\":\"Hello world\""));
+        assertTrue(json.contains("\"text\":\"Hello world\""));
+    }
+
+    // ── IngestDocumentRequest ──────────────────────────────────────────
+
+    @Test
+    void ingestDocumentRequest_serializesCorrectly() throws Exception {
+        IngestDocumentRequest req = new IngestDocumentRequest("user-1", "Title", "Document text");
+
+        String json = mapper.writeValueAsString(req);
+        assertTrue(json.contains("\"uid\":\"user-1\""));
+        assertTrue(json.contains("\"documentTitle\":\"Title\""));
+        assertTrue(json.contains("\"documentText\":\"Document text\""));
     }
 
     // ── IngestResponse ───────────────────────────────────────────
@@ -192,10 +204,11 @@ class ModelsTest {
 
     @Test
     void converserRole_valuesExist() {
-        assertEquals(3, ConverserRole.values().length);
+        assertEquals(4, ConverserRole.values().length);
         assertNotNull(ConverserRole.valueOf("USER"));
         assertNotNull(ConverserRole.valueOf("AGENT"));
         assertNotNull(ConverserRole.valueOf("SYSTEM"));
+        assertNotNull(ConverserRole.valueOf("DOCUMENT"));
     }
 
     @Test

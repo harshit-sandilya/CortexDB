@@ -5,13 +5,14 @@ from uuid import UUID
 from cortexdb.models import (
     ConverserRole,
     Entity,
-    IngestRequest,
+    IngestPromptRequest,
+    IngestDocumentRequest,
     IngestResponse,
     LLMApiProvider,
     QueryRequest,
     QueryResponse,
     Relation,
-    SearchResult,
+    SearchResult,   
     SetupRequest,
     SetupResponse,
 )
@@ -57,11 +58,18 @@ class TestSetupModels:
 
 class TestIngestModels:
     def test_ingest_request_serialization(self):
-        req = IngestRequest(uid="user-1", converser=ConverserRole.USER, content="Hello")
+        req = IngestPromptRequest(uid="user-1", converser=ConverserRole.USER, text="Hello")
         data = req.model_dump(exclude_none=True)
         assert data["uid"] == "user-1"
         assert data["converser"] == "USER"
-        assert data["content"] == "Hello"
+        assert data["text"] == "Hello"
+
+    def test_ingest_document_request_serialization(self):
+        req = IngestDocumentRequest(uid="user-1", documentTitle="My Doc", documentText="Hello Doc")
+        data = req.model_dump(by_alias=True, exclude_none=True)
+        assert data["uid"] == "user-1"
+        assert data["documentTitle"] == "My Doc"
+        assert data["documentText"] == "Hello Doc"
 
     def test_ingest_response_from_json(self):
         resp = IngestResponse.model_validate({

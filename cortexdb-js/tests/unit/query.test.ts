@@ -28,7 +28,7 @@ describe("QueryAPI — Context endpoints", () => {
         let capturedBody: any;
 
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/contexts");
+            expect(req.url).toBe("/api/v1/memory/query/contexts");
             expect(req.method).toBe("POST");
             capturedBody = req.body;
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
@@ -58,7 +58,7 @@ describe("QueryAPI — Context endpoints", () => {
 
     it("getContextsByKb() calls correct GET endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/contexts/kb/${KB_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/contexts/kb/${KB_ID}`);
             expect(req.method).toBe("GET");
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
@@ -70,7 +70,7 @@ describe("QueryAPI — Context endpoints", () => {
 
     it("getRecentContexts() sends days as query param", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/contexts/recent");
+            expect(req.url).toBe("/api/v1/memory/query/contexts/recent");
             expect(req.searchParams.get("days")).toBe("14");
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
@@ -83,7 +83,7 @@ describe("QueryAPI — Context endpoints", () => {
     it("searchRecentContexts() sends both days param and POST body", async () => {
         let capturedBody: any;
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/contexts/recent/search");
+            expect(req.url).toBe("/api/v1/memory/query/contexts/recent/search");
             expect(req.searchParams.get("days")).toBe("3");
             capturedBody = req.body;
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
@@ -97,7 +97,7 @@ describe("QueryAPI — Context endpoints", () => {
     it("getSiblingContexts() calls correct GET endpoint", async () => {
         const contextId = "abc-123";
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/contexts/${contextId}/siblings`);
+            expect(req.url).toBe(`/api/v1/memory/query/contexts/${contextId}/siblings`);
             return { status: 200, body: EMPTY_QUERY_RESPONSE };
         });
 
@@ -110,9 +110,9 @@ describe("QueryAPI — Context endpoints", () => {
 // ─── Entity endpoints ────────────────────────────────────────────────
 
 describe("QueryAPI — Entity endpoints", () => {
-    it("searchEntities() POSTs to /api/query/entities", async () => {
+    it("searchEntities() POSTs to /api/v1/memory/query/entities", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/entities");
+            expect(req.url).toBe("/api/v1/memory/query/entities");
             expect(req.method).toBe("POST");
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
@@ -124,7 +124,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("getEntityByName() returns an entity when found", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/entities/name/Google");
+            expect(req.url).toBe("/api/v1/memory/query/entities/name/Google");
             return { status: 200, body: SAMPLE_ENTITY };
         });
 
@@ -146,7 +146,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("getEntityByNameIgnoreCase() calls ignorecase endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/entities/name/google/ignorecase");
+            expect(req.url).toBe("/api/v1/memory/query/entities/name/google/ignorecase");
             return { status: 200, body: SAMPLE_ENTITY };
         });
 
@@ -157,7 +157,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("getEntityIdByName() returns the id string when found", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/entities/id/Google");
+            expect(req.url).toBe("/api/v1/memory/query/entities/id/Google");
             return { status: 200, body: { id: ENTITY_ID } };
         });
 
@@ -176,7 +176,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("getContextsForEntity() returns an array", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/entities/${ENTITY_ID}/contexts`);
+            expect(req.url).toBe(`/api/v1/memory/query/entities/${ENTITY_ID}/contexts`);
             return { status: 200, body: [{ id: "ctx-1" }] };
         });
 
@@ -187,7 +187,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("getEntitiesForContext() returns entity array", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/contexts/${ENTITY_ID}/entities`);
+            expect(req.url).toBe(`/api/v1/memory/query/contexts/${ENTITY_ID}/entities`);
             return { status: 200, body: [SAMPLE_ENTITY] };
         });
 
@@ -199,7 +199,7 @@ describe("QueryAPI — Entity endpoints", () => {
 
     it("mergeEntities() POSTs to merge endpoint with correct params", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/entities/merge");
+            expect(req.url).toBe("/api/v1/memory/query/entities/merge");
             expect(req.method).toBe("POST");
             expect(req.searchParams.get("sourceEntityId")).toBe(SOURCE_ID);
             expect(req.searchParams.get("targetEntityId")).toBe(TARGET_ID);
@@ -214,9 +214,9 @@ describe("QueryAPI — Entity endpoints", () => {
 // ─── History endpoints ───────────────────────────────────────────────
 
 describe("QueryAPI — History endpoints", () => {
-    it("searchHistory() POSTs to /api/query/history", async () => {
+    it("searchHistory() POSTs to /api/v1/memory/query/history", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/history");
+            expect(req.url).toBe("/api/v1/memory/query/history");
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
 
@@ -227,7 +227,7 @@ describe("QueryAPI — History endpoints", () => {
 
     it("getHistoryByUser() GETs user history", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/history/user/user-1");
+            expect(req.url).toBe("/api/v1/memory/query/history/user/user-1");
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
 
@@ -266,7 +266,7 @@ describe("QueryAPI — History endpoints", () => {
 
     it("deleteUserData() sends DELETE request", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/user/user-1");
+            expect(req.url).toBe("/api/v1/memory/query/user/user-1");
             expect(req.method).toBe("DELETE");
             return { status: 200 };
         });
@@ -281,7 +281,7 @@ describe("QueryAPI — History endpoints", () => {
 describe("QueryAPI — Graph endpoints", () => {
     it("getOutgoingConnections() calls correct endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/graph/outgoing/${ENTITY_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/graph/outgoing/${ENTITY_ID}`);
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
         });
 
@@ -292,7 +292,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getIncomingConnections() calls correct endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/graph/incoming/${ENTITY_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/graph/incoming/${ENTITY_ID}`);
             return { status: 200, body: EMPTY_QUERY_RESPONSE };
         });
 
@@ -303,7 +303,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getTwoHopConnections() returns an array of strings", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/graph/two-hop/${ENTITY_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/graph/two-hop/${ENTITY_ID}`);
             return { status: 200, body: ["Entity A", "Entity B"] };
         });
 
@@ -314,7 +314,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getTopRelations() uses limit param and returns relations array", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/graph/top-relations");
+            expect(req.url).toBe("/api/v1/memory/query/graph/top-relations");
             expect(req.searchParams.get("limit")).toBe("5");
             return { status: 200, body: [SAMPLE_RELATION] };
         });
@@ -328,7 +328,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getRelationsBySource() calls correct endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/graph/relations/source/${SOURCE_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/graph/relations/source/${SOURCE_ID}`);
             return { status: 200, body: [SAMPLE_RELATION] };
         });
 
@@ -339,7 +339,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getRelationsByTarget() calls correct endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe(`/api/query/graph/relations/target/${TARGET_ID}`);
+            expect(req.url).toBe(`/api/v1/memory/query/graph/relations/target/${TARGET_ID}`);
             return { status: 200, body: [] };
         });
 
@@ -350,7 +350,7 @@ describe("QueryAPI — Graph endpoints", () => {
 
     it("getRelationsByType() calls correct endpoint", async () => {
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/graph/relations/type/WORKS_FOR");
+            expect(req.url).toBe("/api/v1/memory/query/graph/relations/type/WORKS_FOR");
             return { status: 200, body: [] };
         });
 
@@ -363,10 +363,10 @@ describe("QueryAPI — Graph endpoints", () => {
 // ─── Hybrid search ───────────────────────────────────────────────────
 
 describe("QueryAPI — Hybrid search", () => {
-    it("hybridSearch() POSTs to /api/query/hybrid", async () => {
+    it("hybridSearch() POSTs to /api/v1/memory/query/hybrid", async () => {
         let capturedBody: any;
         mockFetch((req) => {
-            expect(req.url).toBe("/api/query/hybrid");
+            expect(req.url).toBe("/api/v1/memory/query/hybrid");
             expect(req.method).toBe("POST");
             capturedBody = req.body;
             return { status: 200, body: SAMPLE_QUERY_RESPONSE };
@@ -377,5 +377,21 @@ describe("QueryAPI — Hybrid search", () => {
         expect(resp.results).toHaveLength(1);
         expect(capturedBody.limit).toBe(3);
         expect(capturedBody.minRelevance).toBe(0.6);
+    });
+});
+
+// ─── Routing ─────────────────────────────────────────────────────────
+
+describe("QueryAPI — Routing", () => {
+    it("routeQuery() POSTs to /api/v1/memory/query/route", async () => {
+        mockFetch((req) => {
+            expect(req.url).toBe("/api/v1/memory/query/route");
+            expect(req.method).toBe("POST");
+            return { status: 200, body: SAMPLE_QUERY_RESPONSE };
+        });
+
+        const db = new CortexDB("http://testserver");
+        const resp = await db.query.routeQuery("test query");
+        expect(resp.results).toHaveLength(1);
     });
 });

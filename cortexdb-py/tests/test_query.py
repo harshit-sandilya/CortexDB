@@ -29,7 +29,7 @@ EMPTY_QUERY_RESPONSE = {"query": "empty", "results": [], "processingTimeMs": 5}
 class TestContextEndpoints:
     @respx.mock
     def test_search_contexts(self):
-        route = respx.post("http://testserver/api/query/contexts").mock(
+        route = respx.post("http://testserver/api/v1/memory/query/contexts").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -48,7 +48,7 @@ class TestContextEndpoints:
 
     @respx.mock
     def test_get_recent_contexts(self):
-        route = respx.get("http://testserver/api/query/contexts/recent").mock(
+        route = respx.get("http://testserver/api/v1/memory/query/contexts/recent").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -61,7 +61,7 @@ class TestContextEndpoints:
     @respx.mock
     def test_get_contexts_by_kb(self):
         kb_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get(f"http://testserver/api/query/contexts/kb/{kb_id}").mock(
+        respx.get(f"http://testserver/api/v1/memory/query/contexts/kb/{kb_id}").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -73,7 +73,7 @@ class TestContextEndpoints:
     @respx.mock
     def test_get_sibling_contexts(self):
         ctx_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get(f"http://testserver/api/query/contexts/{ctx_id}/siblings").mock(
+        respx.get(f"http://testserver/api/v1/memory/query/contexts/{ctx_id}/siblings").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -86,7 +86,7 @@ class TestContextEndpoints:
 class TestEntityEndpoints:
     @respx.mock
     def test_search_entities(self):
-        respx.post("http://testserver/api/query/entities").mock(
+        respx.post("http://testserver/api/v1/memory/query/entities").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -97,7 +97,7 @@ class TestEntityEndpoints:
 
     @respx.mock
     def test_get_entity_by_name_found(self):
-        respx.get("http://testserver/api/query/entities/name/Google").mock(
+        respx.get("http://testserver/api/v1/memory/query/entities/name/Google").mock(
             return_value=httpx.Response(200, json={
                 "id": "550e8400-e29b-41d4-a716-446655440000",
                 "name": "Google",
@@ -115,7 +115,7 @@ class TestEntityEndpoints:
 
     @respx.mock
     def test_get_entity_by_name_not_found(self):
-        respx.get("http://testserver/api/query/entities/name/NonExistent").mock(
+        respx.get("http://testserver/api/v1/memory/query/entities/name/NonExistent").mock(
             return_value=httpx.Response(404)
         )
 
@@ -127,7 +127,7 @@ class TestEntityEndpoints:
     @respx.mock
     def test_get_entity_id_by_name(self):
         entity_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get("http://testserver/api/query/entities/id/Google").mock(
+        respx.get("http://testserver/api/v1/memory/query/entities/id/Google").mock(
             return_value=httpx.Response(200, json={"id": entity_id})
         )
 
@@ -138,7 +138,7 @@ class TestEntityEndpoints:
 
     @respx.mock
     def test_get_entity_id_by_name_not_found(self):
-        respx.get("http://testserver/api/query/entities/id/Missing").mock(
+        respx.get("http://testserver/api/v1/memory/query/entities/id/Missing").mock(
             return_value=httpx.Response(404)
         )
 
@@ -149,7 +149,7 @@ class TestEntityEndpoints:
 
     @respx.mock
     def test_merge_entities(self):
-        route = respx.post("http://testserver/api/query/entities/merge").mock(
+        route = respx.post("http://testserver/api/v1/memory/query/entities/merge").mock(
             return_value=httpx.Response(200)
         )
 
@@ -165,7 +165,7 @@ class TestEntityEndpoints:
 class TestHistoryEndpoints:
     @respx.mock
     def test_search_history(self):
-        respx.post("http://testserver/api/query/history").mock(
+        respx.post("http://testserver/api/v1/memory/query/history").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -176,7 +176,7 @@ class TestHistoryEndpoints:
 
     @respx.mock
     def test_get_history_by_user(self):
-        respx.get("http://testserver/api/query/history/user/user-1").mock(
+        respx.get("http://testserver/api/v1/memory/query/history/user/user-1").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -187,7 +187,7 @@ class TestHistoryEndpoints:
 
     @respx.mock
     def test_get_history_by_user_empty(self):
-        respx.get("http://testserver/api/query/history/user/unknown").mock(
+        respx.get("http://testserver/api/v1/memory/query/history/user/unknown").mock(
             return_value=httpx.Response(200, json=EMPTY_QUERY_RESPONSE)
         )
 
@@ -198,7 +198,7 @@ class TestHistoryEndpoints:
 
     @respx.mock
     def test_delete_user_data(self):
-        route = respx.delete("http://testserver/api/query/user/user-1").mock(
+        route = respx.delete("http://testserver/api/v1/memory/query/user/user-1").mock(
             return_value=httpx.Response(200)
         )
 
@@ -212,7 +212,7 @@ class TestGraphEndpoints:
     @respx.mock
     def test_get_outgoing_connections(self):
         entity_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get(f"http://testserver/api/query/graph/outgoing/{entity_id}").mock(
+        respx.get(f"http://testserver/api/v1/memory/query/graph/outgoing/{entity_id}").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -224,7 +224,7 @@ class TestGraphEndpoints:
     @respx.mock
     def test_get_incoming_connections(self):
         entity_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get(f"http://testserver/api/query/graph/incoming/{entity_id}").mock(
+        respx.get(f"http://testserver/api/v1/memory/query/graph/incoming/{entity_id}").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
@@ -236,7 +236,7 @@ class TestGraphEndpoints:
     @respx.mock
     def test_get_two_hop_connections(self):
         entity_id = "550e8400-e29b-41d4-a716-446655440000"
-        respx.get(f"http://testserver/api/query/graph/two-hop/{entity_id}").mock(
+        respx.get(f"http://testserver/api/v1/memory/query/graph/two-hop/{entity_id}").mock(
             return_value=httpx.Response(200, json=["Entity A", "Entity B"])
         )
 
@@ -247,7 +247,7 @@ class TestGraphEndpoints:
 
     @respx.mock
     def test_get_top_relations(self):
-        respx.get("http://testserver/api/query/graph/top-relations").mock(
+        respx.get("http://testserver/api/v1/memory/query/graph/top-relations").mock(
             return_value=httpx.Response(200, json=[
                 {
                     "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -267,7 +267,7 @@ class TestGraphEndpoints:
 
     @respx.mock
     def test_get_relations_by_type(self):
-        respx.get("http://testserver/api/query/graph/relations/type/WORKS_FOR").mock(
+        respx.get("http://testserver/api/v1/memory/query/graph/relations/type/WORKS_FOR").mock(
             return_value=httpx.Response(200, json=[])
         )
 
@@ -280,11 +280,23 @@ class TestGraphEndpoints:
 class TestHybridSearch:
     @respx.mock
     def test_hybrid_search(self):
-        respx.post("http://testserver/api/query/hybrid").mock(
+        respx.post("http://testserver/api/v1/memory/query/hybrid").mock(
             return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
         )
 
         with CortexDB("http://testserver") as db:
             resp = db.query.hybrid_search("combined search")
+
+        assert len(resp.results) == 1
+
+class TestPreRoutingEndpoints:
+    @respx.mock
+    def test_route_query(self):
+        respx.post("http://testserver/api/v1/memory/query/route").mock(
+            return_value=httpx.Response(200, json=SAMPLE_QUERY_RESPONSE)
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.query.route_query("routing test")
 
         assert len(resp.results) == 1

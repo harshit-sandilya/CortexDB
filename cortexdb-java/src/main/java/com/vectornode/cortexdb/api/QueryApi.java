@@ -10,7 +10,7 @@ import com.vectornode.cortexdb.models.*;
 import java.util.*;
 
 /**
- * Wraps all {@code /api/query} endpoints — contexts, entities, history, graph,
+ * Wraps all {@code /api/v1/memory/query} endpoints — contexts, entities, history, graph,
  * and hybrid search.
  */
 public class QueryApi {
@@ -32,23 +32,23 @@ public class QueryApi {
     public QueryResponse searchContexts(String query, int limit,
             double minRelevance,
             Map<String, Object> filters) {
-        return postQuery("/api/query/contexts", query, limit, minRelevance, filters, null);
+        return postQuery("/api/v1/memory/query/contexts", query, limit, minRelevance, filters, null);
     }
 
     /** Get all contexts for a knowledge base. */
     public QueryResponse getContextsByKb(UUID kbId) {
-        return http.get("/api/query/contexts/kb/" + kbId, QueryResponse.class);
+        return http.get("/api/v1/memory/query/contexts/kb/" + kbId, QueryResponse.class);
     }
 
     /** Get recent contexts from the last N days. */
     public QueryResponse getRecentContexts(int days) {
-        return http.get("/api/query/contexts/recent",
+        return http.get("/api/v1/memory/query/contexts/recent",
                 Map.of("days", String.valueOf(days)), QueryResponse.class);
     }
 
     /** Get contexts by date range (ISO-8601 strings). */
     public QueryResponse getContextsByDateRange(String startDate, String endDate) {
-        return http.get("/api/query/contexts/range",
+        return http.get("/api/v1/memory/query/contexts/range",
                 Map.of("startDate", startDate, "endDate", endDate), QueryResponse.class);
     }
 
@@ -60,13 +60,13 @@ public class QueryApi {
     /** Search recent contexts with vector similarity and parameters. */
     public QueryResponse searchRecentContexts(String query, int days,
             int limit, double minRelevance) {
-        return postQuery("/api/query/contexts/recent", query, limit, minRelevance, null,
+        return postQuery("/api/v1/memory/query/contexts/recent", query, limit, minRelevance, null,
                 Map.of("days", String.valueOf(days)));
     }
 
     /** Get sibling contexts (other chunks from same document). */
     public QueryResponse getSiblingContexts(UUID contextId) {
-        return http.get("/api/query/contexts/siblings/" + contextId, QueryResponse.class);
+        return http.get("/api/v1/memory/query/contexts/siblings/" + contextId, QueryResponse.class);
     }
 
     // ── Entity endpoints ─────────────────────────────────────────
@@ -78,12 +78,12 @@ public class QueryApi {
 
     /** Semantic search on entities with parameters. */
     public QueryResponse searchEntities(String query, int limit, double minRelevance) {
-        return postQuery("/api/query/entities", query, limit, minRelevance, null, null);
+        return postQuery("/api/v1/memory/query/entities", query, limit, minRelevance, null, null);
     }
 
     /** Find entity by exact name. Returns {@code null} if not found. */
     public Entity getEntityByName(String name) {
-        String json = http.getRawOrNull("/api/query/entities/name/" + name);
+        String json = http.getRawOrNull("/api/v1/memory/query/entities/name/" + name);
         if (json == null)
             return null;
         return deserialize(json, Entity.class);
@@ -93,7 +93,7 @@ public class QueryApi {
      * Find entity by name (case-insensitive). Returns {@code null} if not found.
      */
     public Entity getEntityByNameIgnoreCase(String name) {
-        String json = http.getRawOrNull("/api/query/entities/name-ignore-case/" + name);
+        String json = http.getRawOrNull("/api/v1/memory/query/entities/name-ignore-case/" + name);
         if (json == null)
             return null;
         return deserialize(json, Entity.class);
@@ -101,7 +101,7 @@ public class QueryApi {
 
     /** Get entity ID by name. Returns {@code null} if not found. */
     public UUID getEntityIdByName(String name) {
-        String json = http.getRawOrNull("/api/query/entities/id/" + name);
+        String json = http.getRawOrNull("/api/v1/memory/query/entities/id/" + name);
         if (json == null)
             return null;
         Map<String, String> data = deserialize(json, new TypeReference<Map<String, String>>() {
@@ -115,7 +115,7 @@ public class QueryApi {
         String json;
         try {
             // POST with plain-text body and entityName as query param
-            json = http.getRawOrNull("/api/query/entities/disambiguate");
+            json = http.getRawOrNull("/api/v1/memory/query/entities/disambiguate");
             // Actually need to use postPlainText with nullable handling
         } catch (Exception e) {
             // Fall through to direct call
@@ -123,7 +123,7 @@ public class QueryApi {
         }
         // Use direct post with plain text
         try {
-            return http.postPlainText("/api/query/entities/disambiguate",
+            return http.postPlainText("/api/v1/memory/query/entities/disambiguate",
                     Map.of("entityName", entityName),
                     contextText, Entity.class);
         } catch (com.vectornode.cortexdb.exceptions.ApiException e) {
@@ -135,17 +135,17 @@ public class QueryApi {
 
     /** Get all contexts where an entity is mentioned. */
     public QueryResponse getContextsForEntity(UUID entityId) {
-        return http.get("/api/query/entities/" + entityId + "/contexts", QueryResponse.class);
+        return http.get("/api/v1/memory/query/entities/" + entityId + "/contexts", QueryResponse.class);
     }
 
     /** Get all entities mentioned in a context. */
     public QueryResponse getEntitiesForContext(UUID contextId) {
-        return http.get("/api/query/contexts/" + contextId + "/entities", QueryResponse.class);
+        return http.get("/api/v1/memory/query/contexts/" + contextId + "/entities", QueryResponse.class);
     }
 
     /** Merge two entities (source into target). */
     public void mergeEntities(UUID sourceEntityId, UUID targetEntityId) {
-        http.postNoBody("/api/query/entities/merge",
+        http.postNoBody("/api/v1/memory/query/entities/merge",
                 Map.of("sourceEntityId", sourceEntityId.toString(),
                         "targetEntityId", targetEntityId.toString()));
     }
@@ -159,23 +159,23 @@ public class QueryApi {
 
     /** Semantic search on knowledge bases with parameters. */
     public QueryResponse searchHistory(String query, int limit, double minRelevance) {
-        return postQuery("/api/query/history", query, limit, minRelevance, null, null);
+        return postQuery("/api/v1/memory/query/history", query, limit, minRelevance, null, null);
     }
 
     /** Get all history for a user. */
     public QueryResponse getHistoryByUser(String uid) {
-        return http.get("/api/query/history/user/" + uid, QueryResponse.class);
+        return http.get("/api/v1/memory/query/history/user/" + uid, QueryResponse.class);
     }
 
     /** Get recent knowledge bases from the last N hours. */
     public QueryResponse getRecentKbs(int hours) {
-        return http.get("/api/query/history/recent",
+        return http.get("/api/v1/memory/query/history/recent",
                 Map.of("hours", String.valueOf(hours)), QueryResponse.class);
     }
 
     /** Get knowledge bases since a timestamp (ISO-8601). */
     public QueryResponse getKbsSince(String since) {
-        return http.get("/api/query/history/since",
+        return http.get("/api/v1/memory/query/history/since",
                 Map.of("since", since), QueryResponse.class);
     }
 
@@ -183,51 +183,59 @@ public class QueryApi {
 
     /** Delete all data for a user (GDPR compliance). */
     public void deleteUserData(String uid) {
-        http.delete("/api/query/history/user/" + uid);
+        http.delete("/api/v1/memory/query/history/user/" + uid);
     }
 
     // ── Graph endpoints ──────────────────────────────────────────
 
     /** Get outgoing relations for an entity. */
     public QueryResponse getOutgoingConnections(UUID entityId) {
-        return http.get("/api/query/graph/outgoing/" + entityId, QueryResponse.class);
+        return http.get("/api/v1/memory/query/graph/outgoing/" + entityId, QueryResponse.class);
     }
 
     /** Get incoming relations for an entity. */
     public QueryResponse getIncomingConnections(UUID entityId) {
-        return http.get("/api/query/graph/incoming/" + entityId, QueryResponse.class);
+        return http.get("/api/v1/memory/query/graph/incoming/" + entityId, QueryResponse.class);
     }
 
     /** Get 2-hop connections. */
     public QueryResponse getTwoHopConnections(UUID entityId) {
-        return http.get("/api/query/graph/2hop/" + entityId, QueryResponse.class);
+        return http.get("/api/v1/memory/query/graph/2hop/" + entityId, QueryResponse.class);
     }
 
     /** Get top/strongest relations. */
     public QueryResponse getTopRelations(int limit) {
-        return http.get("/api/query/graph/top",
+        return http.get("/api/v1/memory/query/graph/top",
                 Map.of("limit", String.valueOf(limit)), QueryResponse.class);
     }
 
     /** Get relations by source entity. */
     public List<Relation> getRelationsBySource(UUID sourceId) {
-        String json = http.getRaw("/api/query/graph/source/" + sourceId);
+        String json = http.getRaw("/api/v1/memory/query/graph/source/" + sourceId);
         return deserializeList(json, new TypeReference<List<Relation>>() {
         });
     }
 
     /** Get relations by target entity. */
     public List<Relation> getRelationsByTarget(UUID targetId) {
-        String json = http.getRaw("/api/query/graph/target/" + targetId);
+        String json = http.getRaw("/api/v1/memory/query/graph/target/" + targetId);
         return deserializeList(json, new TypeReference<List<Relation>>() {
         });
     }
 
     /** Get relations by type. */
     public List<Relation> getRelationsByType(String relationType) {
-        String json = http.getRaw("/api/query/graph/type/" + relationType);
+        String json = http.getRaw("/api/v1/memory/query/graph/type/" + relationType);
         return deserializeList(json, new TypeReference<List<Relation>>() {
         });
+    }
+
+    // ── Agentic Router ───────────────────────────────────────────
+
+    /** Route a query intelligently based on intent (PROMPT vs DOCUMENT). */
+    public QueryResponse routeQuery(String query) {
+        QueryRequest request = new QueryRequest(query, 5, 0.7, null);
+        return http.post("/api/v1/memory/query/route", request, QueryResponse.class);
     }
 
     // ── Hybrid search ────────────────────────────────────────────
@@ -239,7 +247,7 @@ public class QueryApi {
 
     /** Hybrid search with parameters. */
     public QueryResponse hybridSearch(String query, int limit, double minRelevance) {
-        return postQuery("/api/query/hybrid", query, limit, minRelevance, null, null);
+        return postQuery("/api/v1/memory/query/hybrid", query, limit, minRelevance, null, null);
     }
 
     // ── Internal helpers ─────────────────────────────────────────

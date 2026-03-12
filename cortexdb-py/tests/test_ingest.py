@@ -11,7 +11,7 @@ from cortexdb.client import CortexDB
 class TestIngestAPI:
     @respx.mock
     def test_document_sends_correct_payload(self):
-        route = respx.post("http://testserver/api/ingest/document").mock(
+        route = respx.post("http://testserver/api/v1/memory/ingest/document").mock(
             return_value=httpx.Response(200, json={
                 "status": "SUCCESS",
                 "message": "Document ingested successfully",
@@ -28,8 +28,8 @@ class TestIngestAPI:
         with CortexDB("http://testserver") as db:
             resp = db.ingest.document(
                 uid="user-1",
-                converser="USER",
-                content="Hello world",
+                document_title="Test Doc",
+                document_text="Hello world",
             )
 
         assert route.called
@@ -39,12 +39,36 @@ class TestIngestAPI:
 
         body = json.loads(route.calls[0].request.content)
         assert body["uid"] == "user-1"
+        assert body["documentTitle"] == "Test Doc"
+        assert body["documentText"] == "Hello world"
+
+    @respx.mock
+    def test_prompt_sends_correct_payload(self):
+        route = respx.post("http://testserver/api/v1/memory/ingest/prompt").mock(
+            return_value=httpx.Response(200, json={
+                "status": "SUCCESS",
+                "message": "Prompt ingested successfully",
+            })
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.ingest.prompt(
+                uid="user-1",
+                converser="USER",
+                text="Hello world",
+            )
+
+        assert route.called
+        assert resp.status == "SUCCESS"
+
+        body = json.loads(route.calls[0].request.content)
+        assert body["uid"] == "user-1"
         assert body["converser"] == "USER"
-        assert body["content"] == "Hello world"
+        assert body["text"] == "Hello world"
 
     @respx.mock
     def test_document_with_metadata(self):
-        route = respx.post("http://testserver/api/ingest/document").mock(
+        route = respx.post("http://testserver/api/v1/memory/ingest/prompt").mock(
             return_value=httpx.Response(200, json={
                 "status": "SUCCESS",
                 "message": "OK",
@@ -52,10 +76,10 @@ class TestIngestAPI:
         )
 
         with CortexDB("http://testserver") as db:
-            db.ingest.document(
+            db.ingest.prompt(
                 uid="user-1",
                 converser="AGENT",
-                content="Some content",
+                text="Some content",
                 metadata={"source": "test", "priority": 1},
             )
 
@@ -67,15 +91,15 @@ class TestIngestAPI:
     def test_document_accepts_enum_converser(self):
         from cortexdb.models import ConverserRole
 
-        respx.post("http://testserver/api/ingest/document").mock(
+        respx.post("http://testserver/api/v1/memory/ingest/prompt").mock(
             return_value=httpx.Response(200, json={"status": "SUCCESS"})
         )
 
         with CortexDB("http://testserver") as db:
-            resp = db.ingest.document(
+            resp = db.ingest.prompt(
                 uid="user-1",
                 converser=ConverserRole.SYSTEM,
-                content="System message",
+                text="System message",
             )
 
         assert resp.status == "SUCCESS"

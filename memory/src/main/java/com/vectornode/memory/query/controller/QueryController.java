@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/query")
+@RequestMapping("/api/v1/memory/query")
 @RequiredArgsConstructor
 public class QueryController {
 
