@@ -103,30 +103,28 @@
             <div class="endpoint open">
                 <div class="endpoint-header">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/ingest/document</span>
-                    <span class="endpoint-desc">Ingest a document</span>
+                    <span class="endpoint-path">/api/v1/memory/ingest/document</span>
+                    <span class="endpoint-desc">Ingest a structured document (PageIndex)</span>
                 </div>
                 <div class="endpoint-body">
                     <h4>Request Body</h4>
                     <ul class="field-list">
                         <li><span class="field-name">uid</span> <span class="field-type">string</span> <span
                                 class="badge badge-required">required</span> — User identifier</li>
-                        <li><span class="field-name">converser</span> <span class="field-type">string</span> <span
-                                class="badge badge-required">required</span> — Role: <code>USER</code>,
-                            <code>AGENT</code>, or <code>SYSTEM</code>
-                        </li>
-                        <li><span class="field-name">content</span> <span class="field-type">string</span> <span
-                                class="badge badge-required">required</span> — Text content to ingest</li>
+                        <li><span class="field-name">documentTitle</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Title of the document</li>
+                        <li><span class="field-name">documentText</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Full text content to ingest</li>
                         <li><span class="field-name">metadata</span> <span class="field-type">object</span> <span
                                 class="badge badge-optional">optional</span> — Arbitrary key-value metadata</li>
                     </ul>
                     <h4>Example</h4>
-                    <pre><code>curl -X POST http://localhost:8080/api/ingest/document \
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/ingest/document \
   -H "Content-Type: application/json" \
   -d '{
     "uid": "user-1",
-    "converser": "USER",
-    "content": "Java uses garbage collection for memory management."
+    "documentTitle": "Memory Management in Java",
+    "documentText": "Java uses garbage collection for memory management."
   }'</code></pre>
                     <h4>Response — <code>IngestResponse</code></h4>
                     <pre><code>{
@@ -140,6 +138,50 @@
   "message": "Document ingested successfully",
   "processingTimeMs": 245,
   "embeddingTimeMs": 120
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/memory/ingest/prompt</span>
+                    <span class="endpoint-desc">Ingest a conversational prompt (SimpleMem)</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body</h4>
+                    <ul class="field-list">
+                        <li><span class="field-name">uid</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — User identifier</li>
+                        <li><span class="field-name">converser</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Role: <code>USER</code>,
+                            <code>AGENT</code>, or <code>SYSTEM</code>
+                        </li>
+                        <li><span class="field-name">text</span> <span class="field-type">string</span> <span
+                                class="badge badge-required">required</span> — Conversational text to ingest</li>
+                        <li><span class="field-name">metadata</span> <span class="field-type">object</span> <span
+                                class="badge badge-optional">optional</span> — Arbitrary key-value metadata</li>
+                    </ul>
+                    <h4>Example</h4>
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/ingest/prompt \
+  -H "Content-Type: application/json" \
+  -d '{
+    "uid": "user-1",
+    "converser": "USER",
+    "text": "What is the capital of France?"
+  }'</code></pre>
+                    <h4>Response — <code>IngestResponse</code></h4>
+                    <pre><code>{
+  "knowledgeBase": {
+    "id": "b2c3d4e5-...",
+    "uid": "user-1",
+    "content": "What is the capital of France?",
+    "createdAt": "2025-01-15T10:01:00Z"
+  },
+  "status": "SUCCESS",
+  "message": "Prompt ingested successfully",
+  "processingTimeMs": 150,
+  "embeddingTimeMs": 85
 }</code></pre>
                     <div class="callout callout-info">
                         <strong>ℹ️ Async Processing:</strong>
@@ -156,7 +198,7 @@
             <div class="endpoint open">
                 <div class="endpoint-header">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/contexts</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts</span>
                     <span class="endpoint-desc">Semantic search on contexts</span>
                 </div>
                 <div class="endpoint-body">
@@ -172,7 +214,7 @@
                                 class="badge badge-optional">optional</span> — Metadata filters</li>
                     </ul>
                     <h4>Example</h4>
-                    <pre><code>curl -X POST http://localhost:8080/api/query/contexts \
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/query/contexts \
   -H "Content-Type: application/json" \
   -d '{"query": "memory management", "limit": 5, "minRelevance": 0.7}'</code></pre>
                 </div>
@@ -181,7 +223,7 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/contexts/kb/{kbId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/kb/{kbId}</span>
                     <span class="endpoint-desc">Get contexts by knowledge base ID</span>
                 </div>
                 <div class="endpoint-body">
@@ -190,14 +232,14 @@
                         <li><span class="field-name">kbId</span> <span class="field-type">UUID</span> <span
                                 class="badge badge-required">required</span> — Knowledge base ID</li>
                     </ul>
-                    <pre><code>curl http://localhost:8080/api/query/contexts/kb/a1b2c3d4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/contexts/kb/a1b2c3d4-...</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/contexts/recent</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/recent</span>
                     <span class="endpoint-desc">Get recent contexts</span>
                 </div>
                 <div class="endpoint-body">
@@ -206,14 +248,14 @@
                         <li><span class="field-name">days</span> <span class="field-type">int</span> <span
                                 class="badge badge-optional">optional</span> — Lookback period (default: 7)</li>
                     </ul>
-                    <pre><code>curl "http://localhost:8080/api/query/contexts/recent?days=7"</code></pre>
+                    <pre><code>curl "http://localhost:8080/api/v1/memory/query/contexts/recent?days=7"</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/contexts/range</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/range</span>
                     <span class="endpoint-desc">Get contexts by date range</span>
                 </div>
                 <div class="endpoint-body">
@@ -224,14 +266,14 @@
                         <li><span class="field-name">endDate</span> <span class="field-type">string</span> <span
                                 class="badge badge-required">required</span> — ISO-8601 end date</li>
                     </ul>
-                    <pre><code>curl "http://localhost:8080/api/query/contexts/range?startDate=2025-01-01&endDate=2025-01-31"</code></pre>
+                    <pre><code>curl "http://localhost:8080/api/v1/memory/query/contexts/range?startDate=2025-01-01&endDate=2025-01-31"</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/contexts/recent</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/recent</span>
                     <span class="endpoint-desc">Search recent contexts with vector similarity</span>
                 </div>
                 <div class="endpoint-body">
@@ -241,8 +283,8 @@
                                 class="badge badge-optional">optional</span> — Lookback period (default: 7)</li>
                     </ul>
                     <h4>Request Body — <code>QueryRequest</code></h4>
-                    <p>Same as <code>POST /api/query/contexts</code>.</p>
-                    <pre><code>curl -X POST "http://localhost:8080/api/query/contexts/recent?days=7" \
+                    <p>Same as <code>POST /api/v1/memory/query/contexts</code>.</p>
+                    <pre><code>curl -X POST "http://localhost:8080/api/v1/memory/query/contexts/recent?days=7" \
   -H "Content-Type: application/json" \
   -d '{"query": "memory", "limit": 5, "minRelevance": 0.7}'</code></pre>
                 </div>
@@ -251,7 +293,7 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/contexts/siblings/{contextId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/siblings/{contextId}</span>
                     <span class="endpoint-desc">Get sibling contexts (same document)</span>
                 </div>
                 <div class="endpoint-body">
@@ -260,7 +302,7 @@
                         <li><span class="field-name">contextId</span> <span class="field-type">UUID</span> <span
                                 class="badge badge-required">required</span> — Context ID</li>
                     </ul>
-                    <pre><code>curl http://localhost:8080/api/query/contexts/siblings/c1d2e3f4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/contexts/siblings/c1d2e3f4-...</code></pre>
                 </div>
             </div>
 
@@ -271,13 +313,13 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/entities</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities</span>
                     <span class="endpoint-desc">Semantic search on entities</span>
                 </div>
                 <div class="endpoint-body">
                     <h4>Request Body — <code>QueryRequest</code></h4>
                     <p>Same schema as context search.</p>
-                    <pre><code>curl -X POST http://localhost:8080/api/query/entities \
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/query/entities \
   -H "Content-Type: application/json" \
   -d '{"query": "Java programming", "limit": 5, "minRelevance": 0.7}'</code></pre>
                 </div>
@@ -286,12 +328,12 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/entities/name/{name}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/name/{name}</span>
                     <span class="endpoint-desc">Find entity by exact name</span>
                 </div>
                 <div class="endpoint-body">
                     <p>Returns <code>404</code> if not found.</p>
-                    <pre><code>curl http://localhost:8080/api/query/entities/name/Java</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/entities/name/Java</code></pre>
                     <h4>Response — <code>RagEntity</code></h4>
                     <pre><code>{
   "id": "e1...",
@@ -306,22 +348,22 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/entities/name-ignore-case/{name}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/name-ignore-case/{name}</span>
                     <span class="endpoint-desc">Find entity by name (case-insensitive)</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/entities/name-ignore-case/java</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/entities/name-ignore-case/java</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/entities/id/{name}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/id/{name}</span>
                     <span class="endpoint-desc">Get entity ID by name</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/entities/id/Java</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/entities/id/Java</code></pre>
                     <h4>Response</h4>
                     <pre><code>{ "id": "e1a2b3c4-..." }</code></pre>
                 </div>
@@ -330,7 +372,7 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/entities/disambiguate</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/disambiguate</span>
                     <span class="endpoint-desc">Disambiguate entity with context</span>
                 </div>
                 <div class="endpoint-body">
@@ -341,7 +383,7 @@
                     </ul>
                     <h4>Request Body</h4>
                     <p>Plain text (<code>Content-Type: text/plain</code>) providing context for disambiguation.</p>
-                    <pre><code>curl -X POST "http://localhost:8080/api/query/entities/disambiguate?entityName=Apple" \
+                    <pre><code>curl -X POST "http://localhost:8080/api/v1/memory/query/entities/disambiguate?entityName=Apple" \
   -H "Content-Type: text/plain" \
   -d "I was eating a fresh apple from the orchard"</code></pre>
                 </div>
@@ -350,29 +392,29 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/entities/{entityId}/contexts</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/{entityId}/contexts</span>
                     <span class="endpoint-desc">Get all contexts mentioning an entity</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/entities/e1a2b3c4-.../contexts</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/entities/e1a2b3c4-.../contexts</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/contexts/{contextId}/entities</span>
+                    <span class="endpoint-path">/api/v1/memory/query/contexts/{contextId}/entities</span>
                     <span class="endpoint-desc">Get all entities mentioned in a context</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/contexts/c1d2e3f4-.../entities</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/contexts/c1d2e3f4-.../entities</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/entities/merge</span>
+                    <span class="endpoint-path">/api/v1/memory/query/entities/merge</span>
                     <span class="endpoint-desc">Merge two entities</span>
                 </div>
                 <div class="endpoint-body">
@@ -383,7 +425,7 @@
                         <li><span class="field-name">targetEntityId</span> <span class="field-type">UUID</span> <span
                                 class="badge badge-required">required</span> — Entity to merge into</li>
                     </ul>
-                    <pre><code>curl -X POST "http://localhost:8080/api/query/entities/merge?sourceEntityId=e1...&targetEntityId=e2..."</code></pre>
+                    <pre><code>curl -X POST "http://localhost:8080/api/v1/memory/query/entities/merge?sourceEntityId=e1...&targetEntityId=e2..."</code></pre>
                     <div class="callout callout-warning">
                         <strong>⚠️ Destructive:</strong>
                         <p>This reassigns all context links and relations from the source entity to the target entity.
@@ -399,12 +441,12 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/history</span>
+                    <span class="endpoint-path">/api/v1/memory/query/history</span>
                     <span class="endpoint-desc">Semantic search on history</span>
                 </div>
                 <div class="endpoint-body">
                     <h4>Request Body — <code>QueryRequest</code></h4>
-                    <pre><code>curl -X POST http://localhost:8080/api/query/history \
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/query/history \
   -H "Content-Type: application/json" \
   -d '{"query": "Java memory", "limit": 5}'</code></pre>
                 </div>
@@ -413,18 +455,18 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/history/user/{uid}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/history/user/{uid}</span>
                     <span class="endpoint-desc">Get all history for a user</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/history/user/user-1</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/history/user/user-1</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/history/recent</span>
+                    <span class="endpoint-path">/api/v1/memory/query/history/recent</span>
                     <span class="endpoint-desc">Get recent knowledge bases</span>
                 </div>
                 <div class="endpoint-body">
@@ -433,14 +475,14 @@
                         <li><span class="field-name">hours</span> <span class="field-type">int</span> <span
                                 class="badge badge-optional">optional</span> — Lookback period (default: 24)</li>
                     </ul>
-                    <pre><code>curl "http://localhost:8080/api/query/history/recent?hours=24"</code></pre>
+                    <pre><code>curl "http://localhost:8080/api/v1/memory/query/history/recent?hours=24"</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/history/since</span>
+                    <span class="endpoint-path">/api/v1/memory/query/history/since</span>
                     <span class="endpoint-desc">Get knowledge bases since timestamp</span>
                 </div>
                 <div class="endpoint-body">
@@ -449,7 +491,7 @@
                         <li><span class="field-name">since</span> <span class="field-type">string</span> <span
                                 class="badge badge-required">required</span> — ISO-8601 timestamp</li>
                     </ul>
-                    <pre><code>curl "http://localhost:8080/api/query/history/since?since=2025-01-01T00:00:00Z"</code></pre>
+                    <pre><code>curl "http://localhost:8080/api/v1/memory/query/history/since?since=2025-01-01T00:00:00Z"</code></pre>
                 </div>
             </div>
 
@@ -459,12 +501,12 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-delete">DELETE</span>
-                    <span class="endpoint-path">/api/query/user/{uid}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/user/{uid}</span>
                     <span class="endpoint-desc">Delete all user data (GDPR)</span>
                 </div>
                 <div class="endpoint-body">
                     <p>Deletes all knowledge base entries, contexts, and associated data for the specified user.</p>
-                    <pre><code>curl -X DELETE http://localhost:8080/api/query/user/user-1</code></pre>
+                    <pre><code>curl -X DELETE http://localhost:8080/api/v1/memory/query/user/user-1</code></pre>
                     <div class="callout callout-warning">
                         <strong>⚠️ Irreversible:</strong>
                         <p>This permanently removes all data. Use for GDPR "Right to be Forgotten" compliance.</p>
@@ -479,43 +521,43 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/outgoing/{entityId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/outgoing/{entityId}</span>
                     <span class="endpoint-desc">Get outgoing relations</span>
                 </div>
                 <div class="endpoint-body">
                     <p>What does this entity connect <strong>to</strong>? (e.g. Java → uses → GC)</p>
-                    <pre><code>curl http://localhost:8080/api/query/graph/outgoing/e1a2b3c4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/outgoing/e1a2b3c4-...</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/incoming/{entityId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/incoming/{entityId}</span>
                     <span class="endpoint-desc">Get incoming relations</span>
                 </div>
                 <div class="endpoint-body">
                     <p>What connects <strong>to</strong> this entity? (e.g. SpringBoot → uses → Java)</p>
-                    <pre><code>curl http://localhost:8080/api/query/graph/incoming/e1a2b3c4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/incoming/e1a2b3c4-...</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/2hop/{entityId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/2hop/{entityId}</span>
                     <span class="endpoint-desc">Get 2-hop connections</span>
                 </div>
                 <div class="endpoint-body">
                     <p>"Friends of friends" — entities reachable in exactly 2 hops.</p>
-                    <pre><code>curl http://localhost:8080/api/query/graph/2hop/e1a2b3c4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/2hop/e1a2b3c4-...</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/top</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/top</span>
                     <span class="endpoint-desc">Get top/strongest relations</span>
                 </div>
                 <div class="endpoint-body">
@@ -524,18 +566,18 @@
                         <li><span class="field-name">limit</span> <span class="field-type">int</span> <span
                                 class="badge badge-optional">optional</span> — Max results (default: 10)</li>
                     </ul>
-                    <pre><code>curl "http://localhost:8080/api/query/graph/top?limit=10"</code></pre>
+                    <pre><code>curl "http://localhost:8080/api/v1/memory/query/graph/top?limit=10"</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/source/{sourceId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/source/{sourceId}</span>
                     <span class="endpoint-desc">Get relations by source entity</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/graph/source/e1a2b3c4-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/source/e1a2b3c4-...</code></pre>
                     <h4>Response — <code>List&lt;Relation&gt;</code></h4>
                     <pre><code>[
   {
@@ -553,22 +595,22 @@
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/target/{targetId}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/target/{targetId}</span>
                     <span class="endpoint-desc">Get relations by target entity</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/graph/target/e2b3c4d5-...</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/target/e2b3c4d5-...</code></pre>
                 </div>
             </div>
 
             <div class="endpoint">
                 <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
                     <span class="method method-get">GET</span>
-                    <span class="endpoint-path">/api/query/graph/type/{relationType}</span>
+                    <span class="endpoint-path">/api/v1/memory/query/graph/type/{relationType}</span>
                     <span class="endpoint-desc">Get relations by type</span>
                 </div>
                 <div class="endpoint-body">
-                    <pre><code>curl http://localhost:8080/api/query/graph/type/uses</code></pre>
+                    <pre><code>curl http://localhost:8080/api/v1/memory/query/graph/type/uses</code></pre>
                 </div>
             </div>
 
@@ -579,15 +621,34 @@
             <div class="endpoint open">
                 <div class="endpoint-header">
                     <span class="method method-post">POST</span>
-                    <span class="endpoint-path">/api/query/hybrid</span>
+                    <span class="endpoint-path">/api/v1/memory/query/hybrid</span>
                     <span class="endpoint-desc">Hybrid vector + graph search</span>
                 </div>
                 <div class="endpoint-body">
                     <h4>Request Body — <code>QueryRequest</code></h4>
                     <p>Same schema as context search.</p>
-                    <pre><code>curl -X POST http://localhost:8080/api/query/hybrid \
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/query/hybrid \
   -H "Content-Type: application/json" \
   -d '{"query": "How does Java handle memory?", "limit": 10, "minRelevance": 0.6}'</code></pre>
+                </div>
+            </div>
+
+            <!-- ═══ ROUTE (AGENTIC ROUTER) ═══ -->
+            <h2 id="route-endpoint">Query Routing</h2>
+            <p>Automatically classify intent and route the query to the correct retrieval pipeline.</p>
+
+            <div class="endpoint open">
+                <div class="endpoint-header">
+                    <span class="method method-post">POST</span>
+                    <span class="endpoint-path">/api/v1/memory/query/route</span>
+                    <span class="endpoint-desc">Route query (PROMPT vs DOCUMENT)</span>
+                </div>
+                <div class="endpoint-body">
+                    <h4>Request Body — <code>QueryRequest</code></h4>
+                    <p>Same schema as context search.</p>
+                    <pre><code>curl -X POST http://localhost:8080/api/v1/memory/query/route \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Summarize the document about Java memory.", "limit": 10}'</code></pre>
                 </div>
             </div>
 

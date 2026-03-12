@@ -28,7 +28,8 @@ db = CortexDB("http://localhost:8080")
 db.setup.configure(provider="GEMINI", api_key="...", chat_model="gemini-2.0-flash", embed_model="gemini-embedding-001")
 
 # Ingest
-db.ingest.document(uid="user-1", converser="USER", content="Hello world")
+db.ingest.document(uid="user-1", document_title="Test Doc", document_text="Hello world")
+db.ingest.prompt(uid="user-1", converser="USER", text="What is this?")
 
 # Query
 results = db.query.search_contexts("Hello", limit=5)

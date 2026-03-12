@@ -54,19 +54,19 @@ curl -X POST http://localhost:8080/api/setup \
 ### 3. Ingest a Document
 
 ```bash
-curl -X POST http://localhost:8080/api/ingest/document \
+curl -X POST http://localhost:8080/api/v1/memory/ingest/document \
   -H "Content-Type: application/json" \
   -d '{
     "uid": "user-1",
-    "converser": "USER",
-    "content": "Java uses garbage collection for automatic memory management. The JVM handles this process."
+    "documentTitle": "Java Memory",
+    "documentText": "Java uses garbage collection for automatic memory management. The JVM handles this process."
   }'
 ```
 
 ### 4. Query
 
 ```bash
-curl -X POST http://localhost:8080/api/query/contexts \
+curl -X POST http://localhost:8080/api/v1/memory/query/contexts \
   -H "Content-Type: application/json" \
   -d '{"query": "How does Java manage memory?", "limit": 5, "minRelevance": 0.7}'
 ```
@@ -164,9 +164,9 @@ When you ingest a document, CortexDB processes it through a multi-stage async pi
                     │              CortexDB Server                 │
                     │          (Spring Boot 3.5 + Java 21)         │
                     │                                              │
-  SDK / curl ──────▶│  /api/setup    → SetupController             │
-                    │  /api/ingest   → IngestController            │
-                    │  /api/query    → QueryController (20+ routes)│
+  SDK / curl ──────▶│  /api/setup                   → SetupCtrl    │
+                    │  /api/v1/memory/ingest/*      → IngestCtrl   │
+                    │  /api/v1/memory/query/*       → QueryCtrl    │
                     │                                              │
                     │  ┌──────────┐  ┌─────────────┐               │
                     │  │ LLM      │  │ Ingestion   │               │
@@ -222,8 +222,9 @@ db.setup.configure(provider="GEMINI", api_key="...",
                    chat_model="gemini-2.0-flash",
                    embed_model="gemini-embedding-001")
 
-db.ingest.document(uid="user-1", converser="USER",
-                   content="Your document text here...")
+db.ingest.document(uid="user-1", document_title="Test Doc",
+                   document_text="Your document text here...")
+db.ingest.prompt(uid="user-1", converser="USER", text="Hello world")
 
 results = db.query.search_contexts("your question", limit=5)
 ```
@@ -237,13 +238,13 @@ Full API docs: [**📖 Documentation Site**](https://harshit-sandilya.github.io/
 | Group | Endpoints | Description |
 |-------|-----------|-------------|
 | **Setup** | `POST /api/setup` | Configure LLM provider |
-| **Ingest** | `POST /api/ingest/document` | Ingest a document |
+| **Ingest** | `POST /api/v1/memory/ingest/*` | Ingest document or prompt |
 | **Contexts** | 6 endpoints | Semantic search, by KB, recent, date range, siblings |
 | **Entities** | 8 endpoints | Search, lookup, disambiguate, merge |
 | **History** | 4 endpoints | Search history, by user, recent, since timestamp |
 | **Graph** | 7 endpoints | Outgoing, incoming, 2-hop, top relations, by source/target/type |
-| **Hybrid** | `POST /api/query/hybrid` | Combined vector + graph search |
-| **User Data** | `DELETE /api/query/user/{uid}` | GDPR deletion |
+| **Hybrid** | `POST /api/v1/memory/query/hybrid` | Combined vector + graph search |
+| **User Data** | `DELETE /api/v1/memory/query/user/{uid}` | GDPR deletion |
 
 ---
 

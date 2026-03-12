@@ -47,14 +47,14 @@
                     │              CortexDB Server                 │
                     │          (Spring Boot 3.5 + Java 21)         │
                     │                                              │
-  SDK / curl ──────▶│  /api/setup    → SetupController             │
-                    │  /api/ingest   → IngestController            │
-                    │  /api/query    → QueryController (22 routes) │
+  SDK / curl ──────▶│  /api/setup                   → SetupCtrl    │
+                    │  /api/v1/memory/ingest/*      → IngestCtrl   │
+                    │  /api/v1/memory/query/*       → QueryCtrl    │
                     │                                              │
                     │  ┌──────────┐  ┌─────────────┐               │
-                    │  │ LLM      │  │ Ingestion   │               │
-                    │  │ Provider │  │ Worker      │               │
-                    │  │ (chat +  │  │ (@Async)    │               │
+                    │  │ LLM      │  │ Dual Pplns  │               │
+                    │  │ Provider │  │ (Prompt &   │               │
+                    │  │ (chat +  │  │  Document)  │               │
                     │  │ embed)   │  │             │               │
                     │  └──────────┘  └─────────────┘               │
                     └───────────────────┬──────────────────────────┘
@@ -353,10 +353,17 @@
             <div class="step">
                 <div class="step-number">1</div>
                 <div class="step-content">
-                    <h3>API receives document</h3>
-                    <p><code>IngestController</code> → <code>IngestService</code>. The service generates an embedding
-                        for the full document, creates a <code>KnowledgeBase</code> entity with JSONB metadata, persists
-                        it, and <strong>returns the response immediately</strong>.</p>
+                    <h3>API receives input</h3>
+                    <p><code>IngestController</code> routes input to either <code>/prompt</code> or <code>/document</code> endpoints. The <code>IngestService</code> generates an embedding for the full content, creates a <code>KnowledgeBase</code> entity with JSONB metadata, persists it, and begins processing based on the pipeline type.</p>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Dual Pipeline Selection</h3>
+                    <p><strong>Prompt (SimpleMem):</strong> Restates the prompt with LLM to extract meaning and timestamp context, then merges with highly similar existing contexts (Cosine Similarity > 0.85) to form a flowing continuous memory state.<br>
+                    <strong>Document (PageIndex):</strong> Generates a hierarchical table-of-contents via LLM, then recursively processes subsections via <code>PageIndexService</code>, establishing <code>HAS_SUBSECTION</code> relations.</p>
                 </div>
             </div>
 
@@ -425,10 +432,16 @@ RELATION_NEW | id=... | source=Java | target=GC | type=uses | edge_weight=1</cod
             </div>
 
             <!-- ═══ QUERY PIPELINE ═══ -->
-            <h2 id="query-pipeline">Query Pipeline</h2>
-            <p>CortexDB supports three query strategies:</p>
+            <h2 id="query-pipeline">Query Pipeline &amp; Agentic Router</h2>
+            <p>CortexDB uses an <strong>Agentic Router</strong> to classify queries. The <code>/route</code> endpoint forwards the question to an LLM evaluator to determine the query intent (<code>PROMPT</code> or <code>DOCUMENT</code>). Based on intent, it leverages different traversal strategies.</p>
 
             <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon" style="background: rgba(251, 113, 133, 0.15); color: var(--accent-rose);">🧭
+                    </div>
+                    <div class="card-title">Agentic Routing</div>
+                    <div class="card-desc">Dynamically analyzes query intent. Conversational queries trigger Hybrid SimpleMem search, while analytical queries trigger PageIndex graph traversal.</div>
+                </div>
                 <div class="card">
                     <div class="card-icon" style="background: rgba(96, 165, 250, 0.15); color: var(--accent-blue);">🔍
                     </div>

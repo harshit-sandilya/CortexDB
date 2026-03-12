@@ -33,7 +33,7 @@ SetupResponse setup = db.setup().configure(
 
 // 2. Ingest a document
 IngestResponse ingest = db.ingest().document(
-    "user-1", ConverserRole.USER,
+    "user-1", "Quantum Computing",
     "Quantum computing uses qubits to perform computations..."
 );
 
@@ -60,8 +60,10 @@ db.setup().configure(provider, apiKey, chatModel, embedModel, baseUrl);
 
 ### Ingest
 ```java
-db.ingest().document(uid, converser, content);
-db.ingest().document(uid, converser, content, metadata);
+db.ingest().document(uid, documentTitle, documentText);
+db.ingest().document(uid, documentTitle, documentText, metadata);
+db.ingest().prompt(uid, converser, text);
+db.ingest().prompt(uid, converser, text, metadata);
 ```
 
 ### Query — Contexts
