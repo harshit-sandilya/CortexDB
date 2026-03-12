@@ -7,7 +7,8 @@
 import { HttpClient } from "./httpWrapper.js";
 import {
     ConverserRole,
-    type IngestRequest,
+    type IngestPromptRequest,
+    type IngestDocumentRequest,
     type IngestResponse,
 } from "./models.js";
 
@@ -16,21 +17,19 @@ export class IngestAPI {
     constructor(private readonly http: HttpClient) { }
 
     /**
-     * Ingest a document into CortexDB.
-     *
-     * The server will chunk the content, generate embeddings,
-     * and extract entities/relations automatically.
+     * Ingest a prompt payload into CortexDB.
+     * The server will perform semantic compression and online synthesis.
      *
      * @param uid        User identifier.
      * @param converser  Role of the converser ("USER", "AGENT", or "SYSTEM").
-     * @param content    The text content to ingest.
+     * @param text       The text content to ingest.
      * @param metadata   Optional metadata dictionary.
      * @returns IngestResponse with the created KnowledgeBase and processing info.
      */
-    async document(
+    async prompt(
         uid: string,
         converser: string | ConverserRole,
-        content: string,
+        text: string,
         metadata?: Record<string, any>,
     ): Promise<IngestResponse> {
         // Normalise string converser to enum value
@@ -39,13 +38,36 @@ export class IngestAPI {
                 ? (converser.toUpperCase() as ConverserRole)
                 : converser;
 
-        const request: IngestRequest = {
+        const request: IngestPromptRequest = {
             uid,
             converser: resolvedConverser,
-            content,
+            text,
             ...(metadata !== undefined && { metadata }),
         };
 
-        return this.http.post<IngestResponse>("/api/ingest/document", request);
+        return this.http.post<IngestResponse>("/api/v1/memory/ingest/prompt", request);
+    }
+
+    /**
+     * Ingest a large document into CortexDB.
+     * The server will extract a hierarchical page index (document tree).
+     *
+     * @param uid           User identifier.
+     * @param documentTitle Title of the document.
+     * @param documentText  The full text content of the document.
+     * @returns IngestResponse with the created KnowledgeBase and processing info.
+     */
+    async document(
+        uid: string,
+        documentTitle: string,
+        documentText: string,
+    ): Promise<IngestResponse> {
+        const request: IngestDocumentRequest = {
+            uid,
+            documentTitle,
+            documentText,
+        };
+
+        return this.http.post<IngestResponse>("/api/v1/memory/ingest/document", request);
     }
 }

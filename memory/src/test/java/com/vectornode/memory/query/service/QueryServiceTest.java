@@ -378,4 +378,78 @@ class QueryServiceTest {
 
         assertEquals(2, response.getResults().size()); // 1 context + 1 linked entity
     }
+
+    // ==================== AGENTIC ROUTER TESTS ====================
+
+    @Test
+    void routeQuery_ShouldRouteToPromptSearch_WhenClassifiedAsPrompt() {
+        String query = "What did I say yesterday?";
+        
+        // 1. Classification Mock
+        llmProviderMock.when(() -> LLMProvider.callLLM(anyString()))
+                .thenReturn("PROMPT");
+                
+        // 2. Execution Mock (executePromptSearch uses contextRepository.findSimilarWithScore)
+        float[] dummyEmbedding = new float[] { 0.1f };
+        llmProviderMock.when(() -> LLMProvider.getEmbedding(eq(query)))
+                .thenReturn(dummyEmbedding);
+                
+        UUID contextId = UUID.randomUUID();
+        Object[] contextRow = new Object[] { contextId, "Yesterday I said hello.", 0, 0.95 };
+        when(contextRepository.findSimilarWithScore(anyString(), anyInt()))
+                .thenReturn(Collections.singletonList(contextRow));
+                
+        QueryRequest request = new QueryRequest();
+        request.setQuery(query);
+        request.setLimit(5);
+
+        QueryResponse response = queryService.routeQuery(request);
+
+        assertNotNull(response);
+        // Classification LLM call + Final generation LLM call
+        llmProviderMock.verify(() -> LLMProvider.callLLM(anyString()), Mockito.times(2));
+        // Verify we hit the prompt branch
+        verify(contextRepository).findSimilarWithScore(anyString(), anyInt());
+        // Answer logic is mocked to return PROMPT for both calls in this simplified test structure,
+        // Since the second callLLM is the final generation, we don't strictly care about its content here
+    }
+
+    @Test
+    void routeQuery_ShouldRouteToDocumentSearch_WhenClassifiedAsDocument() {
+        String query = "What is the installation process?";
+        
+        // 1. Classification Mock (First call returns DOCUMENT, second returns final answer)
+        llmProviderMock.when(() -> LLMProvider.callLLM(anyString()))
+                .thenReturn("DOCUMENT")
+                .thenReturn("The installation process is easy.");
+                
+        // 2. Execution Mock (executeDocumentSearch uses entityRepository.findSimilarEntitiesWithScore)
+        float[] dummyEmbedding = new float[] { 0.1f };
+        llmProviderMock.when(() -> LLMProvider.getEmbedding(eq(query)))
+                .thenReturn(dummyEmbedding);
+                
+        UUID rootEntityId = UUID.randomUUID();
+        Object[] entityRow = new Object[] { rootEntityId, "Installation Guide", "DOCUMENT_SECTION", "", 0.9 };
+        when(entityRepository.findSimilarEntitiesWithScore(anyString(), anyInt()))
+                .thenReturn(Collections.singletonList(entityRow));
+                
+        // Mock traversal dependencies for root node
+        Object[] contextRow = new Object[] { UUID.randomUUID(), "Install by running setup.exe" };
+        when(entityRepository.findContextsForEntity(rootEntityId))
+                .thenReturn(Collections.singletonList(contextRow));
+                
+        when(relationRepository.findOutgoingRelations(rootEntityId))
+                .thenReturn(Collections.emptyList()); // Leaf node to stop traversal
+
+        QueryRequest request = new QueryRequest();
+        request.setQuery(query);
+
+        QueryResponse response = queryService.routeQuery(request);
+
+        assertNotNull(response);
+        // Verify we hit the document branch
+        verify(entityRepository).findSimilarEntitiesWithScore(anyString(), anyInt());
+        assertEquals(1, response.getResults().size());
+        assertEquals("DOCUMENT_NODE", response.getResults().get(0).getType());
+    }
 }

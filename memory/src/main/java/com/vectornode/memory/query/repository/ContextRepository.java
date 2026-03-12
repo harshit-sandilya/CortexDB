@@ -79,4 +79,18 @@ public interface ContextRepository extends JpaRepository<Context, UUID> {
                      ORDER BY chunk_index ASC
                      """, nativeQuery = true)
        List<Context> findSiblingContexts(@Param("contextId") UUID contextId);
+
+       // HIGHLY SIMILAR: Used for Online Semantic Synthesis. Finds chunks with
+       // similarity > threshold.
+       // Returns [id, text_chunk, similarity_score]
+       @Query(value = """
+                     SELECT c.id, c.text_chunk, 1 - (c.vector_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+                     FROM contexts c
+                     WHERE (1 - (c.vector_embedding <=> CAST(:queryVector AS vector))) >= :threshold
+                     ORDER BY similarity_score DESC
+                     LIMIT 1
+                     """, nativeQuery = true)
+       List<Object[]> findHighlySimilar(
+                     @Param("queryVector") String queryVector,
+                     @Param("threshold") double threshold);
 }

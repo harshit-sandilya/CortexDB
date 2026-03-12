@@ -132,17 +132,24 @@ public class PostgresNotificationListener {
     }
 
     /**
-     * Fire-and-forget: Dispatch KB processing to worker.
-     * Payload: {"type": "KB_CREATED", "id": "uuid", "content": "text"}
+     * Fire-and-forget: Dispatch KB processing to worker based on converser role.
+     * Payload: {"type": "KB_CREATED", "id": "uuid", "converser": "USER", "content":
+     * "text"}
      */
     private void handleKbCreated(JsonNode json) {
         UUID kbId = UUID.fromString(json.get("id").asText());
         String content = json.get("content").asText();
 
-        log.info("Dispatching KB_CREATED for id: {} (fire-and-forget)", kbId);
+        // Default to USER if converser is missing from legacy payloads
+        String converser = json.has("converser") ? json.get("converser").asText() : "USER";
 
-        // Fire-and-forget - don't wait for result
-        ingestionWorker.processKnowledgeBase(kbId, content);
+        if ("DOCUMENT".equals(converser)) {
+            log.info("Dispatching KB_CREATED for id: {} to Document Pipeline (fire-and-forget)", kbId);
+            ingestionWorker.processDocumentTree(kbId, content);
+        } else {
+            log.info("Dispatching KB_CREATED for id: {} to Prompt Pipeline (fire-and-forget)", kbId);
+            ingestionWorker.processKnowledgeBase(kbId, content);
+        }
     }
 
     /**

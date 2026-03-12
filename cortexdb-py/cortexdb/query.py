@@ -38,17 +38,17 @@ class QueryAPI:
         Returns:
             QueryResponse with matching contexts.
         """
-        return self._post_query("/api/query/contexts", query, limit, min_relevance, filters)
+        return self._post_query("/api/v1/memory/query/contexts", query, limit, min_relevance, filters)
 
     def get_contexts_by_kb(self, kb_id: UUID | str) -> QueryResponse:
         """Get all contexts for a knowledge base."""
-        resp = self._http.get(f"/api/query/contexts/kb/{kb_id}")
+        resp = self._http.get(f"/api/v1/memory/query/contexts/kb/{kb_id}")
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
     def get_recent_contexts(self, days: int = 7) -> QueryResponse:
         """Get recent contexts from the last N days."""
-        resp = self._http.get("/api/query/contexts/recent", params={"days": days})
+        resp = self._http.get("/api/v1/memory/query/contexts/recent", params={"days": days})
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
@@ -61,14 +61,14 @@ class QueryAPI:
     ) -> QueryResponse:
         """Search recent contexts with vector similarity."""
         return self._post_query(
-            "/api/query/contexts/recent/search",
+            "/api/v1/memory/query/contexts/recent/search",
             query, limit, min_relevance,
             params={"days": days},
         )
 
     def get_sibling_contexts(self, context_id: UUID | str) -> QueryResponse:
         """Get sibling contexts (other chunks from same document)."""
-        resp = self._http.get(f"/api/query/contexts/{context_id}/siblings")
+        resp = self._http.get(f"/api/v1/memory/query/contexts/{context_id}/siblings")
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
@@ -81,11 +81,11 @@ class QueryAPI:
         min_relevance: float = 0.7,
     ) -> QueryResponse:
         """Semantic search on entities."""
-        return self._post_query("/api/query/entities", query, limit, min_relevance)
+        return self._post_query("/api/v1/memory/query/entities", query, limit, min_relevance)
 
     def get_entity_by_name(self, name: str) -> Entity | None:
         """Find entity by exact name. Returns None if not found."""
-        resp = self._http.get(f"/api/query/entities/name/{name}")
+        resp = self._http.get(f"/api/v1/memory/query/entities/name/{name}")
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
@@ -93,7 +93,7 @@ class QueryAPI:
 
     def get_entity_by_name_ignore_case(self, name: str) -> Entity | None:
         """Find entity by name (case-insensitive). Returns None if not found."""
-        resp = self._http.get(f"/api/query/entities/name/{name}/ignorecase")
+        resp = self._http.get(f"/api/v1/memory/query/entities/name/{name}/ignorecase")
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
@@ -101,7 +101,7 @@ class QueryAPI:
 
     def get_entity_id_by_name(self, name: str) -> UUID | None:
         """Get entity ID by name. Returns None if not found."""
-        resp = self._http.get(f"/api/query/entities/id/{name}")
+        resp = self._http.get(f"/api/v1/memory/query/entities/id/{name}")
         if resp.status_code == 404:
             return None
         resp.raise_for_status()
@@ -111,7 +111,7 @@ class QueryAPI:
     def disambiguate_entity(self, entity_name: str, context_text: str) -> Entity | None:
         """Disambiguate entity using vector similarity with context."""
         resp = self._http.post(
-            "/api/query/entities/disambiguate",
+            "/api/v1/memory/query/entities/disambiguate",
             params={"entityName": entity_name},
             content=context_text,
             headers={"Content-Type": "text/plain"},
@@ -123,20 +123,20 @@ class QueryAPI:
 
     def get_contexts_for_entity(self, entity_id: UUID | str) -> list[Any]:
         """Get all contexts where an entity is mentioned."""
-        resp = self._http.get(f"/api/query/entities/{entity_id}/contexts")
+        resp = self._http.get(f"/api/v1/memory/query/entities/{entity_id}/contexts")
         resp.raise_for_status()
         return resp.json()
 
     def get_entities_for_context(self, context_id: UUID | str) -> list[Entity]:
         """Get all entities mentioned in a context."""
-        resp = self._http.get(f"/api/query/contexts/{context_id}/entities")
+        resp = self._http.get(f"/api/v1/memory/query/contexts/{context_id}/entities")
         resp.raise_for_status()
         return [Entity.model_validate(e) for e in resp.json()]
 
     def merge_entities(self, source_entity_id: UUID | str, target_entity_id: UUID | str) -> None:
         """Merge two entities (source into target)."""
         resp = self._http.post(
-            "/api/query/entities/merge",
+            "/api/v1/memory/query/entities/merge",
             params={
                 "sourceEntityId": str(source_entity_id),
                 "targetEntityId": str(target_entity_id),
@@ -153,23 +153,23 @@ class QueryAPI:
         min_relevance: float = 0.7,
     ) -> QueryResponse:
         """Semantic search on knowledge bases (history)."""
-        return self._post_query("/api/query/history", query, limit, min_relevance)
+        return self._post_query("/api/v1/memory/query/history", query, limit, min_relevance)
 
     def get_history_by_user(self, uid: str) -> QueryResponse:
         """Get all history for a user."""
-        resp = self._http.get(f"/api/query/history/user/{uid}")
+        resp = self._http.get(f"/api/v1/memory/query/history/user/{uid}")
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
     def get_recent_kbs(self, hours: int = 24) -> QueryResponse:
         """Get recent knowledge bases from the last N hours."""
-        resp = self._http.get("/api/query/history/recent", params={"hours": hours})
+        resp = self._http.get("/api/v1/memory/query/history/recent", params={"hours": hours})
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
     def get_kbs_since(self, since: str) -> QueryResponse:
         """Get knowledge bases since a timestamp (ISO-8601)."""
-        resp = self._http.get("/api/query/history/since", params={"since": since})
+        resp = self._http.get("/api/v1/memory/query/history/since", params={"since": since})
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
@@ -177,50 +177,50 @@ class QueryAPI:
 
     def delete_user_data(self, uid: str) -> None:
         """Delete all data for a user (GDPR compliance)."""
-        resp = self._http.delete(f"/api/query/user/{uid}")
+        resp = self._http.delete(f"/api/v1/memory/query/user/{uid}")
         resp.raise_for_status()
 
     # ── Graph endpoints ──────────────────────────────────────────────
 
     def get_outgoing_connections(self, entity_id: UUID | str) -> QueryResponse:
         """Get outgoing relations for an entity."""
-        resp = self._http.get(f"/api/query/graph/outgoing/{entity_id}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/outgoing/{entity_id}")
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
     def get_incoming_connections(self, entity_id: UUID | str) -> QueryResponse:
         """Get incoming relations for an entity."""
-        resp = self._http.get(f"/api/query/graph/incoming/{entity_id}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/incoming/{entity_id}")
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
 
     def get_two_hop_connections(self, entity_id: UUID | str) -> list[str]:
         """Get 2-hop connections (entity names reachable in 2 hops)."""
-        resp = self._http.get(f"/api/query/graph/two-hop/{entity_id}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/two-hop/{entity_id}")
         resp.raise_for_status()
         return resp.json()
 
     def get_top_relations(self, limit: int = 10) -> list[Relation]:
         """Get top/strongest relations."""
-        resp = self._http.get("/api/query/graph/top-relations", params={"limit": limit})
+        resp = self._http.get("/api/v1/memory/query/graph/top-relations", params={"limit": limit})
         resp.raise_for_status()
         return [Relation.model_validate(r) for r in resp.json()]
 
     def get_relations_by_source(self, source_id: UUID | str) -> list[Relation]:
         """Get relations by source entity."""
-        resp = self._http.get(f"/api/query/graph/relations/source/{source_id}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/relations/source/{source_id}")
         resp.raise_for_status()
         return [Relation.model_validate(r) for r in resp.json()]
 
     def get_relations_by_target(self, target_id: UUID | str) -> list[Relation]:
         """Get relations by target entity."""
-        resp = self._http.get(f"/api/query/graph/relations/target/{target_id}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/relations/target/{target_id}")
         resp.raise_for_status()
         return [Relation.model_validate(r) for r in resp.json()]
 
     def get_relations_by_type(self, relation_type: str) -> list[Relation]:
         """Get relations by type."""
-        resp = self._http.get(f"/api/query/graph/relations/type/{relation_type}")
+        resp = self._http.get(f"/api/v1/memory/query/graph/relations/type/{relation_type}")
         resp.raise_for_status()
         return [Relation.model_validate(r) for r in resp.json()]
 
@@ -233,7 +233,15 @@ class QueryAPI:
         min_relevance: float = 0.7,
     ) -> QueryResponse:
         """Hybrid search combining vector and graph results."""
-        return self._post_query("/api/query/hybrid", query, limit, min_relevance)
+        return self._post_query("/api/v1/memory/query/hybrid", query, limit, min_relevance)
+
+    # ── Pre-Routing / Agentic endpoints ──────────────────────────────
+
+    def route_query(self, query: str) -> QueryResponse:
+        """Route a query intelligently based on intent (PROMPT vs DOCUMENT)."""
+        resp = self._http.post("/api/v1/memory/query/route", json={"query": query, "limit": 5, "minRelevance": 0.7})
+        resp.raise_for_status()
+        return QueryResponse.model_validate(resp.json())
 
     # ── Internal helpers ─────────────────────────────────────────────
 

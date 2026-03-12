@@ -186,5 +186,54 @@ class ChunkingServiceTest {
             assertThat(chunks).isNotEmpty();
             assertThat(chunks.get(0)).contains("text");
         }
+    @Nested
+    @DisplayName("compressPrompt")
+    class CompressPromptTests {
+
+        @Test
+        @DisplayName("should successfully compress prompt with LLM")
+        void shouldSuccessfullyCompressPrompt() {
+            String originalPrompt = "Remind me to call John tomorrow at 5pm. He owes me money.";
+            String mockJson = """
+                {
+                    "restatement": "User needs to call John on Tuesday at 5:00 PM regarding owed money.",
+                    "topic": "Reminder",
+                    "keywords": ["Call", "John", "Money", "Tuesday", "5:00 PM"],
+                    "timestamp": "2024-05-21T17:00:00Z"
+                }
+                """;
+            
+            try (org.mockito.MockedStatic<com.vectornode.memory.config.LLMProvider> mockedLLM = org.mockito.Mockito.mockStatic(com.vectornode.memory.config.LLMProvider.class)) {
+                mockedLLM.when(() -> com.vectornode.memory.config.LLMProvider.callLLM(org.mockito.ArgumentMatchers.anyString()))
+                         .thenReturn(mockJson);
+
+                ChunkingService.CompressedChunk result = chunkingService.compressPrompt(originalPrompt);
+
+                assertThat(result).isNotNull();
+                assertThat(result.restatement()).isEqualTo("User needs to call John on Tuesday at 5:00 PM regarding owed money.");
+                assertThat(result.topic()).isEqualTo("Reminder");
+                assertThat(result.keywords()).containsExactly("Call", "John", "Money", "Tuesday", "5:00 PM");
+                assertThat(result.timestamp()).isEqualTo("2024-05-21T17:00:00Z");
+            }
+        }
+        
+        @Test
+        @DisplayName("should fallback to basic compression when LLM fails or returns invalid JSON")
+        void shouldFallbackOnLLMFailure() {
+            String originalPrompt = "Simple prompt";
+            
+            try (org.mockito.MockedStatic<com.vectornode.memory.config.LLMProvider> mockedLLM = org.mockito.Mockito.mockStatic(com.vectornode.memory.config.LLMProvider.class)) {
+                mockedLLM.when(() -> com.vectornode.memory.config.LLMProvider.callLLM(org.mockito.ArgumentMatchers.anyString()))
+                         .thenThrow(new RuntimeException("LLM API Error"));
+
+                ChunkingService.CompressedChunk result = chunkingService.compressPrompt(originalPrompt);
+
+                assertThat(result).isNotNull();
+                assertThat(result.restatement()).isEqualTo(originalPrompt);
+                assertThat(result.topic()).isEqualTo("General");
+                assertThat(result.keywords()).isEmpty();
+            }
+        }
     }
+}
 }

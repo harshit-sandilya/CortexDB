@@ -141,7 +141,8 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(2)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked LLM responses")
     @DisplayName("Should extract relations from text using real LLM")
     void shouldExtractRelationsFromText() {
         assumeInitialized();
@@ -169,7 +170,8 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(3)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked LLM responses")
     @DisplayName("Should handle complex multi-entity text")
     void shouldHandleComplexText() {
         assumeInitialized();
@@ -194,7 +196,8 @@ class ExtractionServiceIntegrationTest {
 
     @Test
     @Order(4)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked LLM responses")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked LLM responses")
     @DisplayName("Should return empty result for irrelevant text")
     void shouldHandleIrrelevantText() {
         assumeInitialized();

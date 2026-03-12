@@ -232,7 +232,7 @@ class SetupEndpointE2ETest {
         } else if (provider.equalsIgnoreCase("GEMINI")) {
             customUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
         } else { // Default for other providers, e.g., OPENAI
-            customUrl = "https://api.openai.com/v1/";
+            customUrl = "https://api.openai.com/";
         }
         request.setBaseUrl(customUrl);
 

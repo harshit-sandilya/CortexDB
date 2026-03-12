@@ -140,9 +140,8 @@ public class MedicalChatbot {
             try {
                 db.ingest().document(
                         patientId,
-                        ConverserRole.SYSTEM,
-                        medicalNotes.get(i),
-                        Map.of("type", "medical_record", "priority", "high"));
+                        "Medical Record " + (i + 1),
+                        medicalNotes.get(i));
                 System.out.println("Done.");
             } catch (CortexDBException e) {
                 System.out.println("Failed: " + e.getMessage());

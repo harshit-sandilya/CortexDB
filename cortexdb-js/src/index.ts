@@ -24,7 +24,8 @@ export {
     type SetupRequest,
     type SetupResponse,
     // Ingest
-    type IngestRequest,
+    type IngestPromptRequest,
+    type IngestDocumentRequest,
     type KnowledgeBase,
     type IngestResponse,
     // Query

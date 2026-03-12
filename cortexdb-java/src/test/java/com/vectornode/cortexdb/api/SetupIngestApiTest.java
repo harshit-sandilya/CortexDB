@@ -89,45 +89,46 @@ class SetupIngestApiTest {
     // ── IngestApi ────────────────────────────────────────────────
 
     @Test
-    void document_sendsCorrectRequest() {
+    void prompt_sendsCorrectRequest() {
         IngestResponse mockResponse = new IngestResponse();
         mockResponse.setStatus("SUCCESS");
         mockResponse.setMessage("Ingested successfully");
 
-        when(http.post(eq("/api/ingest/document"), any(IngestRequest.class), eq(IngestResponse.class)))
+        when(http.post(eq("/api/v1/memory/ingest/prompt"), any(IngestPromptRequest.class), eq(IngestResponse.class)))
                 .thenReturn(mockResponse);
 
-        IngestResponse result = ingestApi.document("user-1", ConverserRole.USER,
+        IngestResponse result = ingestApi.prompt("user-1", ConverserRole.USER,
                 "Hello world");
 
         assertEquals("SUCCESS", result.getStatus());
-        verify(http).post(eq("/api/ingest/document"), any(IngestRequest.class), eq(IngestResponse.class));
+        verify(http).post(eq("/api/v1/memory/ingest/prompt"), any(IngestPromptRequest.class), eq(IngestResponse.class));
     }
 
     @Test
-    void document_withMetadata() {
+    void prompt_withMetadata() {
         IngestResponse mockResponse = new IngestResponse();
         mockResponse.setStatus("SUCCESS");
 
-        when(http.post(eq("/api/ingest/document"), any(IngestRequest.class), eq(IngestResponse.class)))
+        when(http.post(eq("/api/v1/memory/ingest/prompt"), any(IngestPromptRequest.class), eq(IngestResponse.class)))
                 .thenReturn(mockResponse);
 
-        IngestResponse result = ingestApi.document("user-1", ConverserRole.AGENT,
+        IngestResponse result = ingestApi.prompt("user-1", ConverserRole.AGENT,
                 "AI response", Map.of("source", "test"));
 
         assertEquals("SUCCESS", result.getStatus());
     }
 
     @Test
-    void document_withStringConverser() {
+    void document_sendsCorrectRequest() {
         IngestResponse mockResponse = new IngestResponse();
         mockResponse.setStatus("SUCCESS");
 
-        when(http.post(eq("/api/ingest/document"), any(IngestRequest.class), eq(IngestResponse.class)))
+        when(http.post(eq("/api/v1/memory/ingest/document"), any(IngestDocumentRequest.class), eq(IngestResponse.class)))
                 .thenReturn(mockResponse);
 
-        IngestResponse result = ingestApi.document("user-1", "user", "Hello");
+        IngestResponse result = ingestApi.document("user-1", "Doc Title", "Document content");
 
         assertEquals("SUCCESS", result.getStatus());
+        verify(http).post(eq("/api/v1/memory/ingest/document"), any(IngestDocumentRequest.class), eq(IngestResponse.class));
     }
 }

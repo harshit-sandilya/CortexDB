@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/query")
+@RequestMapping("/api/v1/memory/query")
 @RequiredArgsConstructor
 public class QueryController {
 
@@ -210,5 +210,12 @@ public class QueryController {
     @PostMapping("/hybrid")
     public ResponseEntity<QueryResponse> hybridSearch(@Valid @RequestBody QueryRequest request) {
         return ResponseEntity.ok(queryService.hybridSearch(request));
+    }
+
+    // ==================== AGENTIC ROUTER ====================
+
+    @PostMapping("/route")
+    public ResponseEntity<QueryResponse> routeQuery(@Valid @RequestBody QueryRequest request) {
+        return ResponseEntity.ok(queryService.routeQuery(request));
     }
 }

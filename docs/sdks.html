@@ -92,11 +92,19 @@ db.setup.configure(
     embed_model="gemini-embedding-001"
 )
 
-# Ingest
+# Ingest structured document
 response = db.ingest.document(
     uid="user-1",
+    document_title="Memory Management in Java",
+    document_text="Java uses garbage collection for memory management."
+)
+print(f"Ingested: {response.knowledge_base.id}")
+
+# Ingest conversational prompt
+prompt_resp = db.ingest.prompt(
+    uid="user-1",
     converser="USER",
-    content="Java uses garbage collection for memory management."
+    text="How does Java handle memory?"
 )
 print(f"Ingested: {response.knowledge_base.id}")
 
@@ -193,9 +201,9 @@ const db = new CortexDB("http://localhost:8080");
 await db.setup.configure("GEMINI", "gemini-2.0-flash",
                          "gemini-embedding-001", "YOUR_API_KEY");
 
-// Ingest
+// Ingest structured document
 const response = await db.ingest.document(
-  "user-1", ConverserRole.USER,
+  "user-1", "Memory Management in Java",
   "Java uses garbage collection for memory management."
 );
 console.log(`Ingested: ${response.knowledgeBase?.id}`);
@@ -253,9 +261,9 @@ SetupResponse setup = db.setup().configure(
     "gemini-2.0-flash", "gemini-embedding-001"
 );
 
-// Ingest
+// Ingest structured document
 IngestResponse ingest = db.ingest().document(
-    "user-1", ConverserRole.USER,
+    "user-1", "Memory Management in Java",
     "Java uses garbage collection for memory management."
 );
 System.out.println("Ingested: " + ingest.getKnowledgeBase().getId());
@@ -296,7 +304,8 @@ String response = llm.callLLM("Explain quantum computing");</code></pre>
             <h2 id="api-pattern">API Pattern</h2>
             <p>All SDKs follow the same sub-API pattern:</p>
             <pre><code>client.setup.configure(...)     // Configure LLM
-client.ingest.document(...)     // Ingest a document
+client.ingest.document(...)     // Ingest structured document
+client.ingest.prompt(...)       // Ingest conversational prompt
 client.query.searchContexts(...)// Semantic search on contexts
 client.query.getEntityByName(...)// Entity lookup
 client.query.hybridSearch(...)  // Hybrid vector + graph search</code></pre>

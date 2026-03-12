@@ -77,7 +77,10 @@ public class LLMProvider {
                     OpenAiApi openAiApi = OpenAiApi.builder().baseUrl(openaiBaseUrl).apiKey(apiKey).build();
 
                     embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
+                            OpenAiEmbeddingOptions.builder()
+                                    .model(embedModelName)
+                                    .dimensions(768)
+                                    .build(),
                             RetryTemplate.builder().build());
 
                     chatModel = OpenAiChatModel.builder()
@@ -101,7 +104,10 @@ public class LLMProvider {
                     OpenAiApi compatApi = OpenAiApi.builder().baseUrl(compatBaseUrl).apiKey(apiKey).build();
 
                     embeddingModel = new OpenAiEmbeddingModel(compatApi, MetadataMode.EMBED,
-                            OpenAiEmbeddingOptions.builder().model(embedModelName).build(),
+                            OpenAiEmbeddingOptions.builder()
+                                    .model(embedModelName)
+                                    .dimensions(768)
+                                    .build(),
                             RetryTemplate.builder().build());
 
                     chatModel = OpenAiChatModel.builder()

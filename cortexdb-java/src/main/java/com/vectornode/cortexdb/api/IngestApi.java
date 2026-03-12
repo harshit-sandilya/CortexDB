@@ -2,13 +2,14 @@ package com.vectornode.cortexdb.api;
 
 import com.vectornode.cortexdb.config.HttpClientWrapper;
 import com.vectornode.cortexdb.models.ConverserRole;
-import com.vectornode.cortexdb.models.IngestRequest;
+import com.vectornode.cortexdb.models.IngestDocumentRequest;
+import com.vectornode.cortexdb.models.IngestPromptRequest;
 import com.vectornode.cortexdb.models.IngestResponse;
 
 import java.util.Map;
 
 /**
- * Wraps the {@code /api/ingest} endpoints.
+ * Wraps the {@code /api/v1/memory/ingest} endpoints.
  */
 public class IngestApi {
 
@@ -19,38 +20,50 @@ public class IngestApi {
     }
 
     /**
-     * Ingest a document into CortexDB.
-     * The server will chunk the content, generate embeddings,
-     * and extract entities/relations automatically.
+     * Ingest a prompt payload into CortexDB.
+     * The server will perform semantic compression and online synthesis.
      *
      * @param uid       User identifier.
      * @param converser Role of the converser (USER, AGENT, or SYSTEM).
-     * @param content   The text content to ingest.
+     * @param text      The text content to ingest.
      * @return IngestResponse with the created KnowledgeBase and processing info.
      */
-    public IngestResponse document(String uid, ConverserRole converser, String content) {
-        return document(uid, converser, content, null);
+    public IngestResponse prompt(String uid, ConverserRole converser, String text) {
+        return prompt(uid, converser, text, null);
     }
 
     /**
-     * Ingest a document with optional metadata.
+     * Ingest a prompt with optional metadata.
      *
      * @param uid       User identifier.
      * @param converser Role of the converser.
-     * @param content   The text content to ingest.
+     * @param text      The text content to ingest.
      * @param metadata  Optional metadata map.
      * @return IngestResponse with the created KnowledgeBase and processing info.
      */
-    public IngestResponse document(String uid, ConverserRole converser,
-            String content, Map<String, Object> metadata) {
-        IngestRequest request = new IngestRequest(uid, converser, content, metadata);
-        return http.post("/api/ingest/document", request, IngestResponse.class);
+    public IngestResponse prompt(String uid, ConverserRole converser, String text, Map<String, Object> metadata) {
+        IngestPromptRequest request = new IngestPromptRequest(uid, converser, text, metadata);
+        return http.post("/api/v1/memory/ingest/prompt", request, IngestResponse.class);
     }
 
     /**
-     * Ingest a document using a string converser role (convenience overload).
+     * Ingest a prompt using a string converser role (convenience overload).
      */
-    public IngestResponse document(String uid, String converser, String content) {
-        return document(uid, ConverserRole.valueOf(converser.toUpperCase()), content);
+    public IngestResponse prompt(String uid, String converser, String text) {
+        return prompt(uid, ConverserRole.valueOf(converser.toUpperCase()), text);
+    }
+
+    /**
+     * Ingest a large document into CortexDB.
+     * The server will extract a hierarchical page index (document tree).
+     *
+     * @param uid           User identifier.
+     * @param documentTitle Title of the document.
+     * @param documentText  The full text content of the document.
+     * @return IngestResponse with the created KnowledgeBase and processing info.
+     */
+    public IngestResponse document(String uid, String documentTitle, String documentText) {
+        IngestDocumentRequest request = new IngestDocumentRequest(uid, documentTitle, documentText);
+        return http.post("/api/v1/memory/ingest/document", request, IngestResponse.class);
     }
 }

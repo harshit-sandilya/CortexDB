@@ -23,11 +23,12 @@ const db = new CortexDB("http://localhost:8080");
 // 1. Configure LLM provider
 await db.setup.configure("GEMINI", "gemini-2.0-flash", "gemini-embedding-001", "your-api-key");
 
-// 2. Ingest a document
+// 2. Ingest structured document or prompt
 await db.ingest.document(
-  "user-1", ConverserRole.USER,
+  "user-1", "Quantum Computing",
   "Quantum computing uses qubits to perform computations..."
 );
+await db.ingest.prompt("user-1", ConverserRole.USER, "What are qubits?");
 
 // 3. Search contexts
 const results = await db.query.searchContexts("What is quantum computing?");
@@ -57,8 +58,10 @@ Supported providers: `GEMINI`, `OPENAI`, `ANTHROPIC`, `AZURE`, `OPENROUTER`.
 ### Ingest
 
 ```ts
-await db.ingest.document(uid, converser, content);
-await db.ingest.document(uid, converser, content, metadata);
+await db.ingest.document(uid, documentTitle, documentText);
+await db.ingest.document(uid, documentTitle, documentText, metadata);
+await db.ingest.prompt(uid, converser, text);
+await db.ingest.prompt(uid, converser, text, metadata);
 ```
 
 Converser roles: `USER`, `AGENT`, `SYSTEM`.

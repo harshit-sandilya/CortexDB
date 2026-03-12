@@ -35,7 +35,9 @@ import static org.mockito.Mockito.mockStatic;
         "management.endpoint.health.enabled=false",
         // Dummy Azure OpenAI endpoint to satisfy autoconfiguration
         "spring.ai.azure.openai.endpoint=https://dummy.openai.azure.com",
-        "spring.ai.azure.openai.api-key=dummy-key"
+        "spring.ai.azure.openai.api-key=dummy-key",
+        "spring.ai.openai.api-key=dummy-key",
+        "spring.ai.openai.base-url=https://dummy.openai.com"
 })
 @Transactional
 class QueryServiceIntegrationTest {

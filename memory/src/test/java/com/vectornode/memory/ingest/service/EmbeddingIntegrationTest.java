@@ -129,7 +129,8 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(2)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked embeddings")
     @DisplayName("Should generate different embeddings for different texts")
     void shouldGenerateDifferentEmbeddingsForDifferentTexts() {
         assumeInitialized();
@@ -155,7 +156,8 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(3)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked embeddings")
     @DisplayName("Should generate similar embeddings for semantically similar texts")
     void shouldGenerateSimilarEmbeddingsForSimilarTexts() {
         assumeInitialized();
@@ -179,7 +181,8 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(4)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked embeddings")
     @DisplayName("Should handle long text for embedding")
     void shouldHandleLongTextForEmbedding() {
         assumeInitialized();
@@ -204,7 +207,8 @@ class EmbeddingIntegrationTest {
 
     @Test
     @Order(5)
-    @Disabled("Disabled to reduce LLM API calls - this can be verified with mocked embeddings")
+    // @Disabled("Disabled to reduce LLM API calls - this can be verified with
+    // mocked embeddings")
     @DisplayName("Should generate embeddings for entity names")
     void shouldGenerateEmbeddingsForEntityNames() {
         assumeInitialized();

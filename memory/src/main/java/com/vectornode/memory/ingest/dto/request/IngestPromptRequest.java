@@ -10,15 +10,15 @@ import java.util.Map;
 
 @Data
 @Builder
-public class IngestContentRequest {
+public class IngestPromptRequest {
     @NotBlank(message = "UID cannot be blank")
     private String uid;
 
     @NotNull(message = "Converser role cannot be null")
     private ConverserRole converser;
 
-    @NotBlank(message = "Content cannot be blank")
-    private String content;
+    @NotBlank(message = "Text cannot be blank")
+    private String text;
 
     private Map<String, Object> metadata;
 }

@@ -83,10 +83,10 @@ def main() -> None:
     for i, note in enumerate(medical_notes, 1):
         print(f"   Ingesting note {i}/{len(medical_notes)}...", end=" ", flush=True)
         try:
-            db.ingest.document(
+            db.ingest.prompt(
                 uid=patient_id,
                 converser="SYSTEM",
-                content=note,
+                text=note,
                 metadata={"type": "medical_record", "priority": "high"},
             )
             print("Done.")

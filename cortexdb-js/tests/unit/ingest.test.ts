@@ -14,7 +14,7 @@ describe("IngestAPI", () => {
         let capturedBody: any;
 
         mockFetch((req) => {
-            expect(req.url).toBe("/api/ingest/document");
+            expect(req.url).toBe("/api/v1/memory/ingest/document");
             expect(req.method).toBe("POST");
             capturedBody = req.body;
             return {
@@ -34,7 +34,46 @@ describe("IngestAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        const resp = await db.ingest.document("user-1", "USER", "Hello world");
+        const resp = await db.ingest.document("user-1", "Test Title", "Hello world");
+
+        // Response parsed correctly
+        expect(resp.status).toBe("SUCCESS");
+        expect(resp.processingTimeMs).toBe(250);
+        expect(resp.embeddingTimeMs).toBe(80);
+        expect(resp.knowledgeBase?.uid).toBe("user-1");
+        expect(resp.knowledgeBase?.content).toBe("Hello world");
+
+        // Request body is correct
+        expect(capturedBody.uid).toBe("user-1");
+        expect(capturedBody.documentTitle).toBe("Test Title");
+        expect(capturedBody.documentText).toBe("Hello world");
+    });
+
+    it("prompt() sends correct payload", async () => {
+        let capturedBody: any;
+
+        mockFetch((req) => {
+            expect(req.url).toBe("/api/v1/memory/ingest/prompt");
+            expect(req.method).toBe("POST");
+            capturedBody = req.body;
+            return {
+                status: 200,
+                body: {
+                    status: "SUCCESS",
+                    message: "Prompt ingested successfully",
+                    processingTimeMs: 250,
+                    embeddingTimeMs: 80,
+                    knowledgeBase: {
+                        id: "550e8400-e29b-41d4-a716-446655440000",
+                        uid: "user-1",
+                        content: "Hello world",
+                    },
+                },
+            };
+        });
+
+        const db = new CortexDB("http://testserver");
+        const resp = await db.ingest.prompt("user-1", "USER", "Hello world");
 
         // Response parsed correctly
         expect(resp.status).toBe("SUCCESS");
@@ -46,7 +85,7 @@ describe("IngestAPI", () => {
         // Request body is correct
         expect(capturedBody.uid).toBe("user-1");
         expect(capturedBody.converser).toBe("USER");
-        expect(capturedBody.content).toBe("Hello world");
+        expect(capturedBody.text).toBe("Hello world");
     });
 
     it("document() sends metadata when provided", async () => {
@@ -58,7 +97,7 @@ describe("IngestAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        await db.ingest.document("user-1", "AGENT", "Some content", {
+        await db.ingest.prompt("user-1", "AGENT", "Some content", {
             source: "test",
             priority: 1,
         });
@@ -76,7 +115,7 @@ describe("IngestAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        await db.ingest.document("user-1", "USER", "Content");
+        await db.ingest.prompt("user-1", "USER", "Content");
 
         expect(capturedBody.metadata).toBeUndefined();
     });
@@ -90,7 +129,7 @@ describe("IngestAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        await db.ingest.document("user-1", ConverserRole.SYSTEM, "System message");
+        await db.ingest.prompt("user-1", ConverserRole.SYSTEM, "System message");
 
         expect(capturedBody.converser).toBe("SYSTEM");
     });
@@ -104,7 +143,7 @@ describe("IngestAPI", () => {
         });
 
         const db = new CortexDB("http://testserver");
-        await db.ingest.document("user-1", "agent", "Content");
+        await db.ingest.prompt("user-1", "agent", "Content");
 
         expect(capturedBody.converser).toBe("AGENT");
     });
@@ -114,7 +153,7 @@ describe("IngestAPI", () => {
 
         const db = new CortexDB("http://testserver");
         await expect(
-            db.ingest.document("user-1", "USER", ""),
+            db.ingest.prompt("user-1", "USER", ""),
         ).rejects.toThrow("CortexDB HTTP Error: 400");
     });
 });
