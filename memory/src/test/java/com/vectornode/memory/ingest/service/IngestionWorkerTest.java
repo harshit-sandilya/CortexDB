@@ -46,7 +46,8 @@ class IngestionWorkerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        ingestionWorker = new IngestionWorker(chunkingService, extractionService, pageIndexService, contextRepository, objectMapper);
+        ingestionWorker = new IngestionWorker(chunkingService, extractionService, pageIndexService, contextRepository,
+                objectMapper);
         ReflectionTestUtils.setField(ingestionWorker, "entityManager", entityManager);
     }
 
@@ -75,16 +76,21 @@ class IngestionWorkerTest {
             String content = "This is a new isolated prompt.";
             float[] mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
             ChunkingService.CompressedChunk compressed = new ChunkingService.CompressedChunk(
-                "Restated prompt.", List.of("kw1"), "Topic", null
-            );
+                    "Restated prompt.", List.of("kw1"), "Topic", null);
 
-            // Mock KnowledgeBase reference
             com.vectornode.memory.entity.KnowledgeBase mockKb = mock(com.vectornode.memory.entity.KnowledgeBase.class);
             when(mockKb.getId()).thenReturn(kbId);
             when(entityManager.getReference(com.vectornode.memory.entity.KnowledgeBase.class, kbId)).thenReturn(mockKb);
 
+            ExtractionService.ExtractionResult result = new ExtractionService.ExtractionResult();
+            result.setEntities(new java.util.ArrayList<>());
+            result.setRelations(new java.util.ArrayList<>());
+            result.setMetadata(new ExtractionService.ExtractedMetadata());
+            lenient().when(extractionService.extractFromText(anyString())).thenReturn(result);
+
             when(chunkingService.compressPrompt(content)).thenReturn(compressed);
-            when(contextRepository.findHighlySimilar(anyString(), anyDouble())).thenReturn(java.util.Collections.emptyList());
+            when(contextRepository.findHighlySimilar(anyString(), anyDouble()))
+                    .thenReturn(java.util.Collections.emptyList());
 
             try (MockedStatic<LLMProvider> mockedLLM = mockStatic(LLMProvider.class)) {
                 mockedLLM.when(() -> LLMProvider.getEmbedding(anyString())).thenReturn(mockEmbedding);
