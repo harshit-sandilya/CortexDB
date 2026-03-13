@@ -1,7 +1,14 @@
 {
-  "name": "cortexdb-js",
-  "version": "0.2.0",
+  "name": "@harshit-sandilya/cortexdb-js",
+  "version": "0.2.1",
   "description": "CortexDB JavaScript/TypeScript SDK — A RAG-powered memory database client.",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/harshit-sandilya/CortexDB.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
