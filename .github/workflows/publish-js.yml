@@ -1,0 +1,60 @@
+name: Publish JS SDK
+
+on:
+  release:
+    types: [published]
+  # Alternatively, you can trigger on tag pushes:
+  # push:
+  #   tags:
+  #     - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cortexdb-js
+        
+    permissions:
+      contents: read
+      packages: write   # Needed for GitHub Packages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node for GitHub Packages
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@harshit-sandilya'
+          cache: 'npm'
+          cache-dependency-path: cortexdb-js/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Publish to GitHub Packages
+        # package.json already has publishConfig pointing to github
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+
+      - name: Setup Node for NPM
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+          scope: '@harshit-sandilya'
+
+      - name: Publish to NPM
+        # Remove the GitHub publishConfig so npm knows to publish to the default registry,
+        # and then publish with public access (required for scoped packages).
+        run: |
+          npm pkg delete publishConfig
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

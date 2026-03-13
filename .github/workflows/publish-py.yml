@@ -1,0 +1,41 @@
+name: Publish Python SDK
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cortexdb-py
+        
+    permissions:
+      contents: read
+      packages: write   # Needed for GitHub Packages
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Build package
+        run: poetry build
+
+      - name: Publish to GitHub Packages
+        run: |
+          poetry config repositories.github https://upload.pypi.pkg.github.com/harshit-sandilya
+          poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
+          poetry publish -r github
+
+      - name: Publish to PyPI
+        run: |
+          poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+          poetry publish
