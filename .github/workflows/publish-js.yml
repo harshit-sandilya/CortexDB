@@ -54,17 +54,16 @@ jobs:
 
       - name: Publish to NPM
         run: |
+          echo "🧹 Cleaning up previous GitHub Package configurations..."
           npm pkg delete publishConfig
+          rm -f .npmrc ../.npmrc ~/.npmrc
           
-          # 1. Force the scope to route to NPM instead of GitHub
+          echo "⚙️ Setting up strict NPM registry routing..."
           echo "@harshit-sandilya:registry=https://registry.npmjs.org/" > .npmrc
-          
-          # 2. Append the authentication token
           echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" >> .npmrc
           
-          # 3. Publish
+          echo "🚀 Publishing to NPM..."
           npm publish --access public
         env:
-          # Make sure this points to your actual NPM secret! 
-          # (e.g., secrets.NPM_AUTH_TOKEN if you renamed it)
+          # Make sure your repository secret is actually named NODE_AUTH_TOKEN!
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
