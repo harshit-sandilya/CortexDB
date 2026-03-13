@@ -5,12 +5,11 @@ on:
     types: [published]
 
 jobs:
-  publish:
+  publish-github:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: cortexdb-js
-
     permissions:
       contents: read
       packages: write
@@ -18,7 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Step 1: Publish to GitHub Packages ──────────────────────────────
       - name: Setup Node for GitHub Packages
         uses: actions/setup-node@v4
         with:
@@ -28,31 +26,41 @@ jobs:
           cache: 'npm'
           cache-dependency-path: cortexdb-js/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TypeScript
-        run: npm run build
+      - name: Install & Build
+        run: npm ci && npm run build
 
       - name: Publish to GitHub Packages
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Step 2: Publish to NPM ───────────────────────────────────────────
+  publish-npm:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cortexdb-js
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Setup Node for NPM
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
           scope: '@harshit-sandilya'
+          cache: 'npm'
+          cache-dependency-path: cortexdb-js/package-lock.json
+
+      - name: Install & Build
+        run: npm ci && npm run build
+
+      - name: Remove GitHub publishConfig
+        run: npm pkg delete publishConfig
 
       - name: Publish to NPM
-        run: |
-          # Remove publishConfig from package.json (points to GitHub Packages)
-          npm pkg delete publishConfig
-
-          # Let setup-node's NPM_CONFIG_USERCONFIG handle auth — just publish
-          npm publish --access public --registry https://registry.npmjs.org/
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

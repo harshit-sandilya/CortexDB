@@ -1,6 +1,6 @@
 {
   "name": "@harshit-sandilya/cortexdb-js",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "CortexDB JavaScript/TypeScript SDK — A RAG-powered memory database client.",
   "repository": {
     "type": "git",
