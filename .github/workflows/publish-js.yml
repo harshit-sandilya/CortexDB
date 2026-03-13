@@ -39,9 +39,11 @@ jobs:
 
       - name: Publish to GitHub Packages
         # package.json already has publishConfig pointing to github
-        run: npm publish
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node for NPM
         uses: actions/setup-node@v4
@@ -51,10 +53,9 @@ jobs:
           scope: '@harshit-sandilya'
 
       - name: Publish to NPM
-        # Remove the GitHub publishConfig so npm knows to publish to the default registry,
-        # and then publish with public access (required for scoped packages).
         run: |
           npm pkg delete publishConfig
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
