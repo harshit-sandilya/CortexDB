@@ -4,7 +4,7 @@
   "description": "CortexDB JavaScript/TypeScript SDK — A RAG-powered memory database client.",
   "repository": {
     "type": "git",
-    "url": "git://github.com/harshit-sandilya/CortexDB.git"
+    "url": "https://github.com/harshit-sandilya/CortexDB.git"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
