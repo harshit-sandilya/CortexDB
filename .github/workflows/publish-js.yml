@@ -3,10 +3,6 @@ name: Publish JS SDK
 on:
   release:
     types: [published]
-  # Alternatively, you can trigger on tag pushes:
-  # push:
-  #   tags:
-  #     - 'v*'
 
 jobs:
   publish:
@@ -14,14 +10,15 @@ jobs:
     defaults:
       run:
         working-directory: cortexdb-js
-        
+
     permissions:
       contents: read
-      packages: write   # Needed for GitHub Packages
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
+      # ── Step 1: Publish to GitHub Packages ──────────────────────────────
       - name: Setup Node for GitHub Packages
         uses: actions/setup-node@v4
         with:
@@ -38,13 +35,11 @@ jobs:
         run: npm run build
 
       - name: Publish to GitHub Packages
-        # package.json already has publishConfig pointing to github
-        run: |
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
-          npm publish
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # ── Step 2: Publish to NPM ───────────────────────────────────────────
       - name: Setup Node for NPM
         uses: actions/setup-node@v4
         with:
@@ -54,13 +49,10 @@ jobs:
 
       - name: Publish to NPM
         run: |
-          echo "1. Deleting local publishConfig..."
+          # Remove publishConfig from package.json (points to GitHub Packages)
           npm pkg delete publishConfig
-          
-          echo "2. Destroying any checked-in .npmrc files..."
-          rm -f .npmrc ../.npmrc
-          
-          echo "3. Forcing publish to NPM registry..."
-          npm publish --access public --registry=https://registry.npmjs.org
+
+          # Let setup-node's NPM_CONFIG_USERCONFIG handle auth — just publish
+          npm publish --access public --registry https://registry.npmjs.org/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
