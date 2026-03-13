@@ -5,15 +5,14 @@ on:
     types: [published]
 
 jobs:
-  publish:
+  publish-github:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: cortexdb-py
-        
     permissions:
       contents: read
-      packages: write   # Needed for GitHub Packages
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +30,31 @@ jobs:
 
       - name: Publish to GitHub Packages
         run: |
-          poetry config repositories.github https://upload.pypi.pkg.github.com/harshit-sandilya
+          poetry config repositories.github https://upload.pypi.pkg.github.com/harshit-sandilya/
           poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
           poetry publish -r github
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cortexdb-py
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Build package
+        run: poetry build
 
       - name: Publish to PyPI
         run: |
