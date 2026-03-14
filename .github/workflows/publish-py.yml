@@ -31,7 +31,7 @@ jobs:
       - name: Publish to GitHub Packages
         run: |
           poetry config repositories.github https://upload.pypi.pkg.github.com/harshit-sandilya/
-          poetry config http-basic.github __token__ ${{ secrets.GITHUB_TOKEN }}
+          poetry config http-basic.github __token__ ${{ secrets.ACCESS_TOKEN }}
           poetry publish -r github
 
   publish-pypi:
