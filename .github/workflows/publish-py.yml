@@ -22,17 +22,20 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Poetry
-        run: pip install poetry
+      - name: Install Poetry and Twine
+        run: pip install poetry twine
 
       - name: Build package
         run: poetry build
 
       - name: Publish to GitHub Packages
         run: |
-          poetry config repositories.github https://upload.pypi.pkg.github.com/harshit-sandilya/
-          poetry config http-basic.github __token__ ${{ secrets.ACCESS_TOKEN }}
-          poetry publish -r github
+          twine upload \
+            --repository-url https://upload.pypi.pkg.github.com/harshit-sandilya/ \
+            --username __token__ \
+            --password ${{ secrets.ACCESS_TOKEN }} \
+            --non-interactive \
+            dist/*
 
   publish-pypi:
     runs-on: ubuntu-latest
