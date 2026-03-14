@@ -1,4 +1,7 @@
 # CortexDB Python SDK
+[![PyPI version](https://img.shields.io/pypi/v/cortexdb-py.svg)](https://pypi.org/project/cortexdb-py/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/cortexdb-py.svg)](https://pypi.org/project/cortexdb-py/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cortexdb-py.svg)](https://pypi.org/project/cortexdb-py/)
 
 A Python client for the CortexDB RAG backend, providing easy access to ingestion, querying, and LLM orchestration.
 
@@ -10,10 +13,11 @@ A Python client for the CortexDB RAG backend, providing easy access to ingestion
 - **Native LLM Integration**: Uses `google-genai` for native Gemini support.
 
 ## Installation
-
 ```bash
-pip install -e .
+pip install cortexdb-py
 ```
+
+Or visit the package on [PyPI](https://pypi.org/project/cortexdb-py/).
 
 ## Usage
 
