@@ -93,4 +93,65 @@ public interface ContextRepository extends JpaRepository<Context, UUID> {
        List<Object[]> findHighlySimilar(
                      @Param("queryVector") String queryVector,
                      @Param("threshold") double threshold);
+
+       // SIMILARITY BAND: Finds chunks in a similarity range [minSim, maxSim),
+       // excluding a specific context (self). Used by ContradictionDetector.
+       @Query(value = """
+                     SELECT c.id, c.text_chunk,
+                            1 - (c.vector_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+                     FROM contexts c
+                     WHERE c.id != :excludeId
+                       AND (1 - (c.vector_embedding <=> CAST(:queryVector AS vector)))
+                           BETWEEN :minSim AND :maxSim
+                     ORDER BY similarity_score DESC
+                     LIMIT :limit
+                     """, nativeQuery = true)
+       List<Object[]> findInSimilarityBand(
+                     @Param("queryVector") String queryVector,
+                     @Param("minSim") double minSimilarity,
+                     @Param("maxSim") double maxSimilarity,
+                     @Param("limit") int limit,
+                     @Param("excludeId") UUID excludeId);
+
+       // CONTRADICTION LOOKUP: Finds all contradictions involving a specific context.
+       // Returns [id, context_id_a, context_id_b, contradiction_summary, severity,
+       // resolved, text_a, text_b]
+       @Query(value = """
+                     SELECT cc.id, cc.context_id_a, cc.context_id_b,
+                            cc.contradiction_summary, cc.severity, cc.resolved,
+                            ca.text_chunk AS text_a,
+                            cb.text_chunk AS text_b
+                     FROM context_contradictions cc
+                     JOIN contexts ca ON cc.context_id_a = ca.id
+                     JOIN contexts cb ON cc.context_id_b = cb.id
+                     WHERE (cc.context_id_a = :contextId OR cc.context_id_b = :contextId)
+                       AND cc.resolved = false
+                     """, nativeQuery = true)
+       List<Object[]> findContradictionsForContext(
+                     @Param("contextId") UUID contextId);
+
+       // ALL CONTRADICTIONS: Paginated list of all unresolved contradictions.
+       // Returns [id, context_id_a, context_id_b, contradiction_summary, severity,
+       // created_at, text_a, text_b]
+       @Query(value = """
+                     SELECT cc.id, cc.context_id_a, cc.context_id_b,
+                            cc.contradiction_summary, cc.severity, cc.created_at,
+                            ca.text_chunk AS text_a,
+                            cb.text_chunk AS text_b
+                     FROM context_contradictions cc
+                     JOIN contexts ca ON cc.context_id_a = ca.id
+                     JOIN contexts cb ON cc.context_id_b = cb.id
+                     WHERE cc.resolved = false
+                     ORDER BY cc.created_at DESC
+                     """, nativeQuery = true)
+       List<Object[]> findAllUnresolvedContradictions();
+
+       // RESOLVE: Mark a contradiction as resolved.
+       @org.springframework.data.jpa.repository.Modifying
+       @Query(value = """
+                     UPDATE context_contradictions
+                     SET resolved = true
+                     WHERE id = :contradictionId
+                     """, nativeQuery = true)
+       void resolveContradictionById(@Param("contradictionId") UUID contradictionId);
 }

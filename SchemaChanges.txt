@@ -1,0 +1,344 @@
+Great catch. You're absolutely right — the existing `relations` table is strictly `RagEntity → RagEntity`, so you cannot wire two `Context` chunks together through it. Let me think through this properly.
+
+---
+
+## What Actually Contradicts What?
+
+The confusion comes from mixing two levels:
+
+- **Fact level**: "John is allergic to penicillin" vs "John has no known allergies" — these are **statements in chunks**
+- **Entity level**: the entity "John" appears in both — but the entity itself doesn't contradict anything, the *claims about it* do
+
+So the contradiction lives at the **chunk (Context) level**, not the entity level. The existing schema can't express this. You need a new table.
+
+---
+
+## Schema Addition
+
+```sql
+CREATE TABLE context_contradictions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    context_id_a UUID REFERENCES contexts(id) ON DELETE CASCADE,
+    context_id_b UUID REFERENCES contexts(id) ON DELETE CASCADE,
+    contradiction_summary TEXT,
+    severity VARCHAR(20) DEFAULT 'MODERATE',
+    resolved BOOLEAN DEFAULT FALSE,
+    resolution_context_id UUID REFERENCES contexts(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (context_id_a, context_id_b)
+);
+
+CREATE INDEX idx_contradictions_a ON context_contradictions(context_id_a);
+CREATE INDEX idx_contradictions_b ON context_contradictions(context_id_b);
+```
+
+`severity` can be `LOW`, `MODERATE`, or `HIGH`. `resolved` flips to true when a newer ingest definitively resolves the conflict. `resolution_context_id` points to the chunk that settled it.
+
+---
+
+## Where It Fits in the Pipeline
+
+Looking at your `IngestionWorker.processKnowledgeBase()`, SimpleMem already finds highly similar chunks (similarity > 0.85) and merges them. Contradiction detection slots in **just before** that, in a similarity band you're currently ignoring:
+
+```
+similarity > 0.85  →  SimpleMem MERGE (existing)
+0.75 - 0.85        →  Contradiction CHECK (new)
+< 0.75             →  unrelated, ignore
+```
+
+---
+
+## New Service: ContradictionDetector
+
+```java
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class ContradictionDetector {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private final ContextRepository contextRepository;
+
+    private static final String CONTRADICTION_PROMPT = """
+        You are a fact-checking system. Determine if these two statements contradict each other.
+        
+        Statement A: "%s"
+        Statement B: "%s"
+        
+        Respond ONLY with valid JSON:
+        {
+          "contradicts": true or false,
+          "severity": "LOW" or "MODERATE" or "HIGH",
+          "summary": "One sentence explaining the contradiction, or null if none"
+        }
+        
+        Rules:
+        - HIGH: Direct factual conflict (e.g., different blood types stated for same person)
+        - MODERATE: Partial conflict or one statement partially invalidates the other
+        - LOW: Subtle tension, different perspectives, or temporal inconsistency
+        - false: Statements are compatible, complementary, or about different things
+        """;
+
+    /**
+     * Check a newly ingested chunk against existing similar chunks.
+     * Returns list of contradictions found.
+     */
+    public List<ContradictionResult> checkForContradictions(
+            String newChunkText,
+            float[] newEmbedding,
+            UUID newContextId) {
+
+        String vectorStr = toVectorString(newEmbedding);
+
+        // Find chunks in the middle similarity band (0.75 - 0.85)
+        List<Object[]> candidates = contextRepository
+            .findInSimilarityBand(vectorStr, 0.75, 0.85, 10);
+
+        List<ContradictionResult> found = new ArrayList<>();
+
+        for (Object[] row : candidates) {
+            UUID existingContextId = (UUID) row[0];
+            String existingText = (String) row[1];
+            double similarity = ((Number) row[2]).doubleValue();
+
+            ContradictionCheckResponse check = callLLMForContradiction(
+                newChunkText, existingText
+            );
+
+            if (check.contradicts()) {
+                log.warn("CONTRADICTION_DETECTED | new_context={} | existing_context={} | severity={} | summary={}",
+                    newContextId, existingContextId, 
+                    check.severity(), check.summary());
+
+                persistContradiction(
+                    newContextId, existingContextId,
+                    check.summary(), check.severity()
+                );
+
+                found.add(new ContradictionResult(
+                    existingContextId, existingText,
+                    check.severity(), check.summary()
+                ));
+            }
+        }
+
+        return found;
+    }
+
+    private ContradictionCheckResponse callLLMForContradiction(
+            String textA, String textB) {
+        String prompt = CONTRADICTION_PROMPT.formatted(textA, textB);
+        String response = com.vectornode.memory.config.LLMProvider.callLLM(prompt);
+        return parseContradictionResponse(response);
+    }
+
+    @Transactional
+    private void persistContradiction(
+            UUID contextIdA, UUID contextIdB,
+            String summary, String severity) {
+        entityManager.createNativeQuery("""
+            INSERT INTO context_contradictions 
+                (id, context_id_a, context_id_b, contradiction_summary, severity)
+            VALUES (uuid_generate_v4(), :a, :b, :summary, :severity)
+            ON CONFLICT (context_id_a, context_id_b) DO NOTHING
+            """)
+            .setParameter("a", contextIdA)
+            .setParameter("b", contextIdB)
+            .setParameter("summary", summary)
+            .setParameter("severity", severity)
+            .executeUpdate();
+    }
+
+    private String toVectorString(float[] embedding) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < embedding.length; i++) {
+            sb.append(embedding[i]);
+            if (i < embedding.length - 1) sb.append(",");
+        }
+        return sb.append("]").toString();
+    }
+
+    public record ContradictionResult(
+        UUID conflictingContextId,
+        String conflictingText,
+        String severity,
+        String summary
+    ) {}
+
+    private record ContradictionCheckResponse(
+        boolean contradicts,
+        String severity,
+        String summary
+    ) {}
+
+    private ContradictionCheckResponse parseContradictionResponse(String json) {
+        // strip markdown fences, parse JSON
+        // same pattern as your ExtractionService.cleanJsonResponse()
+        try {
+            json = json.replaceAll("```json|```", "").trim();
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(json);
+            return new ContradictionCheckResponse(
+                root.path("contradicts").asBoolean(false),
+                root.path("severity").asText("MODERATE"),
+                root.path("summary").asText(null)
+            );
+        } catch (Exception e) {
+            log.error("Failed to parse contradiction response", e);
+            return new ContradictionCheckResponse(false, "LOW", null);
+        }
+    }
+}
+```
+
+---
+
+## New Repository Query
+
+Add this to `ContextRepository`:
+
+```java
+// Find chunks in a similarity band (not too similar, not too different)
+@Query(value = """
+    SELECT c.id, c.text_chunk,
+           1 - (c.vector_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+    FROM contexts c
+    WHERE (1 - (c.vector_embedding <=> CAST(:queryVector AS vector))) 
+          BETWEEN :minSim AND :maxSim
+    ORDER BY similarity_score DESC
+    LIMIT :limit
+    """, nativeQuery = true)
+List<Object[]> findInSimilarityBand(
+    @Param("queryVector") String queryVector,
+    @Param("minSim") double minSimilarity,
+    @Param("maxSim") double maxSimilarity,
+    @Param("limit") int limit
+);
+
+// Find all contradictions involving a specific context
+@Query(value = """
+    SELECT cc.*, 
+           ca.text_chunk as text_a, 
+           cb.text_chunk as text_b
+    FROM context_contradictions cc
+    JOIN contexts ca ON cc.context_id_a = ca.id
+    JOIN contexts cb ON cc.context_id_b = cb.id
+    WHERE cc.context_id_a = :contextId 
+       OR cc.context_id_b = :contextId
+    """, nativeQuery = true)
+List<Object[]> findContradictionsForContext(
+    @Param("contextId") UUID contextId
+);
+```
+
+---
+
+## Integration into IngestionWorker
+
+In `processKnowledgeBase()`, slot it in after embedding, before the SimpleMem similarity check:
+
+```java
+// After generating embedding, before findHighlySimilar:
+float[] embedding = LLMProvider.getEmbedding(compressed.restatement());
+
+// NEW: contradiction check runs first
+List<ContradictionDetector.ContradictionResult> contradictions =
+    contradictionDetector.checkForContradictions(
+        compressed.restatement(), embedding, null // contextId not yet assigned
+    );
+
+if (!contradictions.isEmpty()) {
+    log.warn("New chunk contradicts {} existing memories", contradictions.size());
+    // You can still proceed with insert — contradiction is recorded, not blocked
+    // Optionally tag the new context with contradiction metadata
+}
+
+// EXISTING: SimpleMem merge check
+List<Object[]> similar = contextRepository.findHighlySimilar(vectorStr, 0.85);
+// ... rest unchanged
+```
+
+Note that you pass `null` for `contextId` initially since the context isn't persisted yet. After `entityManager.persist(context)` and `entityManager.flush()`, you'd update the contradiction records with the real ID, or restructure to run the check after the initial persist.
+
+---
+
+## Surfacing Contradictions at Query Time
+
+In `QueryService.searchContexts()`, after retrieving results, annotate any result that has known contradictions:
+
+```java
+// After building results list, annotate contradictions
+results = results.stream().map(result -> {
+    List<Object[]> contradictions = contextRepository
+        .findContradictionsForContext(result.getId());
+    
+    if (!contradictions.isEmpty()) {
+        Map<String, Object> enrichedMeta = new HashMap<>(
+            result.getMetadata() != null ? result.getMetadata() : Map.of()
+        );
+        enrichedMeta.put("hasContradiction", true);
+        enrichedMeta.put("contradictionCount", contradictions.size());
+        enrichedMeta.put("contradictionSummary", 
+            contradictions.get(0)[4]); // summary column
+        
+        return QueryResponse.SearchResult.builder()
+            .id(result.getId())
+            .content(result.getContent())
+            .score(result.getScore() * 0.85) // penalize contradicted chunks
+            .type(result.getType())
+            .metadata(enrichedMeta)
+            .build();
+    }
+    return result;
+}).toList();
+```
+
+The score penalty is the subtle but powerful part — contradicted facts naturally sink in results without being removed.
+
+---
+
+## Resolution Flow
+
+When a new chunk clearly resolves a contradiction (SimpleMem merges it), you mark the contradiction resolved:
+
+```java
+// Inside the MERGE FLOW in IngestionWorker, after entityManager.merge(existingContext):
+entityManager.createNativeQuery("""
+    UPDATE context_contradictions 
+    SET resolved = true, resolution_context_id = :resolvedById
+    WHERE context_id_a = :id OR context_id_b = :id
+    """)
+    .setParameter("resolvedById", existingContext.getId())
+    .setParameter("id", existingContext.getId())
+    .executeUpdate();
+```
+
+---
+
+## The Full Picture
+
+```
+INGEST
+  │
+  ├─ Generate embedding
+  │
+  ├─ ContradictionDetector.checkForContradictions()
+  │     ├─ similarity 0.75–0.85 → LLM check → persist to context_contradictions
+  │     └─ returns list of conflicts found
+  │
+  ├─ similarity > 0.85 → SimpleMem MERGE
+  │     └─ marks related contradictions as resolved
+  │
+  └─ similarity < 0.75 → normal INSERT
+
+QUERY
+  │
+  ├─ vector search → top-K contexts
+  ├─ annotate results with contradiction flags
+  ├─ penalize score of contradicted chunks
+  └─ return enriched results with contradiction metadata
+```
+
+The SDK clients already pass `metadata` through `SearchResult`, so the contradiction flags surface to the caller with zero API changes. That's the cleanest part of this design — everything integrates with your existing interfaces.

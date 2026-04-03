@@ -35,6 +35,9 @@ class IngestionWorkerTest {
     private PageIndexService pageIndexService;
 
     @Mock
+    private ContradictionDetector contradictionDetector;
+
+    @Mock
     private com.vectornode.memory.query.repository.ContextRepository contextRepository;
 
     @Mock
@@ -46,7 +49,7 @@ class IngestionWorkerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        ingestionWorker = new IngestionWorker(chunkingService, extractionService, pageIndexService, contextRepository,
+        ingestionWorker = new IngestionWorker(chunkingService, extractionService, pageIndexService, contradictionDetector, contextRepository,
                 objectMapper);
         ReflectionTestUtils.setField(ingestionWorker, "entityManager", entityManager);
     }

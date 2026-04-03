@@ -73,17 +73,17 @@ class QueryControllerTest {
         @Test
         @DisplayName("POST /api/query/contexts - should return search results")
         void searchContexts_ShouldReturnResults() {
-            when(queryService.searchContexts(any(QueryRequest.class)))
+            when(queryService.searchContexts(any(QueryRequest.class), any()))
                     .thenReturn(mockResponse);
 
-            ResponseEntity<QueryResponse> response = queryController.searchContexts(validRequest);
+            ResponseEntity<QueryResponse> response = queryController.searchContexts(validRequest, null);
 
             assertNotNull(response);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertNotNull(response.getBody());
             assertEquals("test query", response.getBody().getQuery());
             assertEquals(1, response.getBody().getResults().size());
-            verify(queryService, times(1)).searchContexts(any(QueryRequest.class));
+            verify(queryService, times(1)).searchContexts(any(QueryRequest.class), any());
         }
 
         @Test
@@ -603,20 +603,20 @@ class QueryControllerTest {
         @Test
         @DisplayName("Should handle multiple sequential requests correctly")
         void shouldHandleMultipleSequentialRequests() {
-            when(queryService.searchContexts(any(QueryRequest.class)))
+            when(queryService.searchContexts(any(QueryRequest.class), any()))
                     .thenReturn(mockResponse);
 
             // First request
-            ResponseEntity<QueryResponse> response1 = queryController.searchContexts(validRequest);
+            ResponseEntity<QueryResponse> response1 = queryController.searchContexts(validRequest, null);
             assertNotNull(response1);
             assertEquals(HttpStatus.OK, response1.getStatusCode());
 
             // Second request
-            ResponseEntity<QueryResponse> response2 = queryController.searchContexts(validRequest);
+            ResponseEntity<QueryResponse> response2 = queryController.searchContexts(validRequest, null);
             assertNotNull(response2);
             assertEquals(HttpStatus.OK, response2.getStatusCode());
 
-            verify(queryService, times(2)).searchContexts(any(QueryRequest.class));
+            verify(queryService, times(2)).searchContexts(any(QueryRequest.class), any());
         }
 
         @Test
@@ -642,10 +642,10 @@ class QueryControllerTest {
                     .processingTimeMs(50L)
                     .build();
 
-            when(queryService.searchContexts(any(QueryRequest.class)))
+            when(queryService.searchContexts(any(QueryRequest.class), any()))
                     .thenReturn(emptyResponse);
 
-            ResponseEntity<QueryResponse> response = queryController.searchContexts(validRequest);
+            ResponseEntity<QueryResponse> response = queryController.searchContexts(validRequest, null);
 
             assertNotNull(response);
             assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -656,12 +656,12 @@ class QueryControllerTest {
         @Test
         @DisplayName("Should verify no unwanted service interactions")
         void shouldVerifyNoUnwantedServiceInteractions() {
-            when(queryService.searchContexts(any(QueryRequest.class)))
+            when(queryService.searchContexts(any(QueryRequest.class), any()))
                     .thenReturn(mockResponse);
 
-            queryController.searchContexts(validRequest);
+            queryController.searchContexts(validRequest, null);
 
-            verify(queryService, times(1)).searchContexts(any(QueryRequest.class));
+            verify(queryService, times(1)).searchContexts(any(QueryRequest.class), any());
             verify(queryService, never()).searchEntities(any(QueryRequest.class));
             verify(queryService, never()).searchHistory(any(QueryRequest.class));
         }
