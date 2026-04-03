@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
 from cortexdb.exceptions import NotFoundError
-from cortexdb.models import Entity, QueryRequest, QueryResponse, Relation
+from cortexdb.models import Entity, IntentStats, QueryRequest, QueryResponse, Relation
 
 if TYPE_CHECKING:
     import httpx
@@ -242,6 +242,61 @@ class QueryAPI:
         resp = self._http.post("/api/v1/memory/query/route", json={"query": query, "limit": 5, "minRelevance": 0.7})
         resp.raise_for_status()
         return QueryResponse.model_validate(resp.json())
+
+    # ── Intent Memory endpoints ────────────────────────────────────────
+
+    def get_intent_stats(self, context_id: UUID | str) -> dict[str, Any]:
+        """Get query intent statistics for a context.
+
+        Returns intent memory statistics including total retrieves, weighted
+        successes, and estimated boost values used for adaptive retrieval.
+
+        Args:
+            context_id: Context UUID to get statistics for.
+
+        Returns:
+            Dictionary containing intent statistics.
+        """
+        resp = self._http.get(f"/api/v1/memory/query/intent-stats/{context_id}")
+        resp.raise_for_status()
+        return resp.json()
+
+    # ── Contradiction Detection endpoints ──────────────────────────────
+
+    def get_all_contradictions(self) -> QueryResponse:
+        """Get all detected contradictions across contexts.
+
+        Returns contradictions found by the contradiction detector, showing
+        conflicting facts between different contexts.
+
+        Returns:
+            QueryResponse containing contradiction results.
+        """
+        resp = self._http.get("/api/v1/memory/query/contradictions")
+        resp.raise_for_status()
+        return QueryResponse.model_validate(resp.json())
+
+    def get_contradictions_for_context(self, context_id: UUID | str) -> QueryResponse:
+        """Get contradictions involving a specific context.
+
+        Args:
+            context_id: Context UUID to check for contradictions.
+
+        Returns:
+            QueryResponse containing contradictions involving this context.
+        """
+        resp = self._http.get(f"/api/v1/memory/query/contradictions/context/{context_id}")
+        resp.raise_for_status()
+        return QueryResponse.model_validate(resp.json())
+
+    def resolve_contradiction(self, contradiction_id: UUID | str) -> None:
+        """Mark a contradiction as resolved.
+
+        Args:
+            contradiction_id: Contradiction UUID to resolve.
+        """
+        resp = self._http.post(f"/api/v1/memory/query/contradictions/{contradiction_id}/resolve")
+        resp.raise_for_status()
 
     # ── Internal helpers ─────────────────────────────────────────────
 

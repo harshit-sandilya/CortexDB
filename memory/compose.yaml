@@ -16,26 +16,11 @@ services:
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: spring-ai-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build: .
     container_name: spring-ai-backend
     depends_on:
       postgres:
-        condition: service_healthy
-      ollama:
         condition: service_healthy
     ports:
       - "8080:8080"
@@ -46,11 +31,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mydatabase
       SPRING_DATASOURCE_USERNAME: myuser
       SPRING_DATASOURCE_PASSWORD: secret
-
-      # ---- Spring AI / Ollama ----
-      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
-      SPRING_AI_OLLAMA_CHAT_MODEL: llama3
-      SPRING_AI_OLLAMA_EMBEDDING_MODEL: nomic-embed-text
 
       # ---- Security / Misc ----
       JWT_SECRET: asdfghjklqwertyuiopzxcvbnmqwertyuiopasdfghjklqwertyuiopzxcvbnmqwertyuiop
@@ -86,5 +66,4 @@ services:
 
 volumes:
   postgres_dev_data:
-  ollama_data:
   maven_repo:

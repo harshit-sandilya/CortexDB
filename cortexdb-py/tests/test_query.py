@@ -300,3 +300,152 @@ class TestPreRoutingEndpoints:
             resp = db.query.route_query("routing test")
 
         assert len(resp.results) == 1
+
+
+class TestIntentMemoryEndpoints:
+    @respx.mock
+    def test_get_intent_stats(self):
+        context_id = "550e8400-e29b-41d4-a716-446655440000"
+        mock_stats = {
+            "contextId": context_id,
+            "totalRetrievals": 15,
+            "weightedSuccesses": 8.5,
+            "estimatedBoost": "0.2500"
+        }
+
+        respx.get(f"http://testserver/api/v1/memory/query/intent-stats/{context_id}").mock(
+            return_value=httpx.Response(200, json=mock_stats)
+        )
+
+        with CortexDB("http://testserver") as db:
+            stats = db.query.get_intent_stats(context_id)
+
+        assert stats["contextId"] == context_id
+        assert stats["totalRetrievals"] == 15
+        assert stats["weightedSuccesses"] == 8.5
+        assert stats["estimatedBoost"] == "0.2500"
+
+    @respx.mock
+    def test_get_intent_stats_zero_values(self):
+        context_id = "660e8400-e29b-41d4-a716-446655440000"
+        zero_stats = {
+            "contextId": context_id,
+            "totalRetrievals": 0,
+            "weightedSuccesses": 0.0,
+            "estimatedBoost": "0.0000"
+        }
+
+        respx.get(f"http://testserver/api/v1/memory/query/intent-stats/{context_id}").mock(
+            return_value=httpx.Response(200, json=zero_stats)
+        )
+
+        with CortexDB("http://testserver") as db:
+            stats = db.query.get_intent_stats(context_id)
+
+        assert stats["totalRetrievals"] == 0
+        assert stats["weightedSuccesses"] == 0.0
+        assert stats["estimatedBoost"] == "0.0000"
+
+
+CONTRADICTION_SAMPLE_RESPONSE = {
+    "query": "contradictions:all",
+    "results": [
+        {
+            "id": "770e8400-e29b-41d4-a716-446655440000",
+            "content": "Fact A ⚡ Fact B",
+            "score": 0.0,
+            "type": "CONTRADICTION",
+            "metadata": {
+                "contextIdA": "550e8400-e29b-41d4-a716-446655440000",
+                "contextIdB": "660e8400-e29b-41d4-a716-446655440000",
+                "summary": "Direct factual conflict",
+                "severity": "HIGH"
+            }
+        }
+    ],
+    "processingTimeMs": 50
+}
+
+
+class TestContradictionDetectionEndpoints:
+    @respx.mock
+    def test_get_all_contradictions(self):
+        respx.get("http://testserver/api/v1/memory/query/contradictions").mock(
+            return_value=httpx.Response(200, json=CONTRADICTION_SAMPLE_RESPONSE)
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.query.get_all_contradictions()
+
+        assert len(resp.results) == 1
+        assert resp.results[0].type == "CONTRADICTION"
+        assert resp.results[0].metadata["severity"] == "HIGH"
+        assert resp.results[0].metadata["summary"] == "Direct factual conflict"
+
+    @respx.mock
+    def test_get_all_contradictions_empty(self):
+        respx.get("http://testserver/api/v1/memory/query/contradictions").mock(
+            return_value=httpx.Response(200, json={
+                "query": "contradictions:all",
+                "results": [],
+                "processingTimeMs": 10
+            })
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.query.get_all_contradictions()
+
+        assert resp.results == []
+
+    @respx.mock
+    def test_get_contradictions_for_context(self):
+        context_id = "550e8400-e29b-41d4-a716-446655440000"
+        respx.get(f"http://testserver/api/v1/memory/query/contradictions/context/{context_id}").mock(
+            return_value=httpx.Response(200, json=CONTRADICTION_SAMPLE_RESPONSE)
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.query.get_contradictions_for_context(context_id)
+
+        assert len(resp.results) == 1
+        assert resp.results[0].type == "CONTRADICTION"
+
+    @respx.mock
+    def test_get_contradictions_for_context_empty(self):
+        context_id = "880e8400-e29b-41d4-a716-446655440000"
+        respx.get(f"http://testserver/api/v1/memory/query/contradictions/context/{context_id}").mock(
+            return_value=httpx.Response(200, json={
+                "query": f"contradictions:{context_id}",
+                "results": [],
+                "processingTimeMs": 30
+            })
+        )
+
+        with CortexDB("http://testserver") as db:
+            resp = db.query.get_contradictions_for_context(context_id)
+
+        assert resp.results == []
+
+    @respx.mock
+    def test_resolve_contradiction(self):
+        contradiction_id = "770e8400-e29b-41d4-a716-446655440000"
+        route = respx.post(f"http://testserver/api/v1/memory/query/contradictions/{contradiction_id}/resolve").mock(
+            return_value=httpx.Response(200)
+        )
+
+        with CortexDB("http://testserver") as db:
+            db.query.resolve_contradiction(contradiction_id)
+
+        assert route.called
+
+    @respx.mock
+    def test_resolve_nonexistent_contradiction(self):
+        """Resolving non-existent contradiction should not throw."""
+        contradiction_id = "990e8400-e29b-41d4-a716-446655440000"
+        respx.post(f"http://testserver/api/v1/memory/query/contradictions/{contradiction_id}/resolve").mock(
+            return_value=httpx.Response(200)  # Backend handles gracefully
+        )
+
+        with CortexDB("http://testserver") as db:
+            # Should not raise an exception
+            db.query.resolve_contradiction(contradiction_id)

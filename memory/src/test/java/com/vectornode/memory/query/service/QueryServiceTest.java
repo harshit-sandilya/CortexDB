@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,8 @@ class QueryServiceTest {
     private KnowledgeBaseRepository knowledgeBaseRepository;
     @Mock
     private RelationRepository relationRepository;
+    @Mock
+    private QueryMemoryService queryMemoryService;
 
     @InjectMocks
     private QueryService queryService;
@@ -57,6 +60,15 @@ class QueryServiceTest {
     @BeforeEach
     void setUp() {
         llmProviderMock = Mockito.mockStatic(LLMProvider.class);
+
+        // Default stubs for intent-memory and contradiction features (lenient
+        // because only searchContexts tests use them, other tests don't)
+        lenient().when(queryMemoryService.computeBoosts(any(float[].class)))
+                .thenReturn(Collections.emptyMap());
+        lenient().when(queryMemoryService.applyBoosts(any(), any()))
+                .thenAnswer(invocation -> invocation.getArgument(0)); // passthrough
+        lenient().when(contextRepository.findContradictionsForContext(any(UUID.class)))
+                .thenReturn(Collections.emptyList());
     }
 
     @AfterEach
@@ -384,21 +396,22 @@ class QueryServiceTest {
     @Test
     void routeQuery_ShouldRouteToPromptSearch_WhenClassifiedAsPrompt() {
         String query = "What did I say yesterday?";
-        
+
         // 1. Classification Mock
         llmProviderMock.when(() -> LLMProvider.callLLM(anyString()))
                 .thenReturn("PROMPT");
-                
-        // 2. Execution Mock (executePromptSearch uses contextRepository.findSimilarWithScore)
+
+        // 2. Execution Mock (executePromptSearch uses
+        // contextRepository.findSimilarWithScore)
         float[] dummyEmbedding = new float[] { 0.1f };
         llmProviderMock.when(() -> LLMProvider.getEmbedding(eq(query)))
                 .thenReturn(dummyEmbedding);
-                
+
         UUID contextId = UUID.randomUUID();
         Object[] contextRow = new Object[] { contextId, "Yesterday I said hello.", 0, 0.95 };
         when(contextRepository.findSimilarWithScore(anyString(), anyInt()))
                 .thenReturn(Collections.singletonList(contextRow));
-                
+
         QueryRequest request = new QueryRequest();
         request.setQuery(query);
         request.setLimit(5);
@@ -410,34 +423,38 @@ class QueryServiceTest {
         llmProviderMock.verify(() -> LLMProvider.callLLM(anyString()), Mockito.times(2));
         // Verify we hit the prompt branch
         verify(contextRepository).findSimilarWithScore(anyString(), anyInt());
-        // Answer logic is mocked to return PROMPT for both calls in this simplified test structure,
-        // Since the second callLLM is the final generation, we don't strictly care about its content here
+        // Answer logic is mocked to return PROMPT for both calls in this simplified
+        // test structure,
+        // Since the second callLLM is the final generation, we don't strictly care
+        // about its content here
     }
 
     @Test
     void routeQuery_ShouldRouteToDocumentSearch_WhenClassifiedAsDocument() {
         String query = "What is the installation process?";
-        
-        // 1. Classification Mock (First call returns DOCUMENT, second returns final answer)
+
+        // 1. Classification Mock (First call returns DOCUMENT, second returns final
+        // answer)
         llmProviderMock.when(() -> LLMProvider.callLLM(anyString()))
                 .thenReturn("DOCUMENT")
                 .thenReturn("The installation process is easy.");
-                
-        // 2. Execution Mock (executeDocumentSearch uses entityRepository.findSimilarEntitiesWithScore)
+
+        // 2. Execution Mock (executeDocumentSearch uses
+        // entityRepository.findSimilarEntitiesWithScore)
         float[] dummyEmbedding = new float[] { 0.1f };
         llmProviderMock.when(() -> LLMProvider.getEmbedding(eq(query)))
                 .thenReturn(dummyEmbedding);
-                
+
         UUID rootEntityId = UUID.randomUUID();
         Object[] entityRow = new Object[] { rootEntityId, "Installation Guide", "DOCUMENT_SECTION", "", 0.9 };
         when(entityRepository.findSimilarEntitiesWithScore(anyString(), anyInt()))
                 .thenReturn(Collections.singletonList(entityRow));
-                
+
         // Mock traversal dependencies for root node
         Object[] contextRow = new Object[] { UUID.randomUUID(), "Install by running setup.exe" };
         when(entityRepository.findContextsForEntity(rootEntityId))
                 .thenReturn(Collections.singletonList(contextRow));
-                
+
         when(relationRepository.findOutgoingRelations(rootEntityId))
                 .thenReturn(Collections.emptyList()); // Leaf node to stop traversal
 
