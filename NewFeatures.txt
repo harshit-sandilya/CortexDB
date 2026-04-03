@@ -1,0 +1,495 @@
+# CortexDB Enhancement Plan: Two Differentiating Features
+
+---
+
+## Feature 1: Query Intent Memory (Meta-Learning Layer)
+
+### The Core Idea
+
+Every query CortexDB receives is a learning signal. Right now that signal is thrown away. This feature captures it: store what was queried, what was retrieved, and whether the retrieval was useful — then use that history to silently boost scores for contexts that have proven useful before.
+
+The key insight is that "useful" doesn't require explicit user feedback. A follow-up query from the same user within 30 minutes is a reliable proxy — it means the first retrieval gave them enough to keep going.
+
+---
+
+### What Makes This Different from Vanilla RAG
+
+Standard RAG frameworks (LangChain, LlamaIndex) are **stateless by design**. Every query is independent. This feature makes CortexDB **stateful and improving** — the more it's used, the better it gets at surfacing the right contexts for recurring query patterns. No RAG framework offers this out of the box because they have no persistence layer to build it on. CortexDB does.
+
+---
+
+### Database Schema
+
+```sql
+CREATE TABLE query_logs (
+    id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uid                  VARCHAR,                    -- which user queried (nullable)
+    query_text           TEXT NOT NULL,
+    query_embedding      vector(768) NOT NULL,
+    retrieved_context_ids TEXT,                      -- JSON array of UUID strings
+    session_continued    BOOLEAN NOT NULL DEFAULT FALSE,
+    follow_up_count      INT NOT NULL DEFAULT 0,     -- how many follow-ups arrived
+    last_follow_up_at    TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Vector similarity index for fast "find past queries like this one"
+CREATE INDEX idx_query_logs_vector
+    ON query_logs USING hnsw (query_embedding vector_cosine_ops);
+
+-- For follow-up detection (find recent queries by the same user)
+CREATE INDEX idx_query_logs_uid_time
+    ON query_logs (uid, created_at DESC);
+```
+
+**Why `retrieved_context_ids` as JSON text, not a PostgreSQL UUID array?**
+PostgreSQL UUID arrays require custom JPA type mappings. A JSON string (`["uuid1","uuid2"]`) works with standard Jackson and supports the `@> CAST` containment operator you need for the "which logs included this context?" query. It's a pragmatic tradeoff.
+
+---
+
+### The Follow-Up Signal: Exact Definition
+
+A query is marked `session_continued = TRUE` when:
+
+- The same `uid` makes another query
+- Within **30 minutes** of the previous one
+- Regardless of whether the follow-up is on the same topic
+
+The 30-minute window is configurable. The logic runs **on the new query's arrival**, retroactively marking the previous query. This means no polling, no background job — it piggybacks on normal traffic.
+
+**Edge case: anonymous queries (uid = null).** Skip follow-up detection entirely. You can't reliably link anonymous queries without session cookies, which is outside the scope of this feature.
+
+---
+
+### The Boost Formula
+
+When a new query arrives:
+
+1. Find past queries with cosine similarity ≥ **0.82** to the current query embedding
+2. For each similar past query, collect its `retrieved_context_ids`
+3. For each retrieved context, accumulate:
+   - `totalAppearances` — how many times it was retrieved in similar queries
+   - `weightedSuccesses` — `sum(1 + follow_up_count)` for each appearance in a `session_continued = TRUE` query
+4. Compute:
+
+```
+successRate = weightedSuccesses / totalAppearances
+rawBoost    = BASE_BOOST × successRate × log(1 + weightedSuccesses)
+boost       = min(rawBoost, MAX_BOOST)
+```
+
+Recommended constants: `BASE_BOOST = 0.15`, `MAX_BOOST = 0.20`
+
+**Why logarithmic scaling?** Without it, a context that appeared in 1000 successful queries would dominate everything. The log dampens runaway accumulation while still rewarding consistently useful contexts.
+
+**Why cap at 0.20?** A freshly ingested context with a perfect similarity score of 1.0 should still be able to beat a stale but historically popular one. The cap ensures the boost never overwhelms semantic relevance.
+
+---
+
+### Implementation Breakdown
+
+**New files to create:**
+
+| File | Purpose |
+|------|---------|
+| `entity/QueryLog.java` | JPA entity for `query_logs` |
+| `query/repository/QueryLogRepository.java` | Queries: find similar past, find recent by user, mark continued |
+| `query/service/QueryMemoryService.java` | Core logic: compute boosts, apply boosts, log query, detect follow-ups |
+| `db/migration/V2__query_memory.sql` | Schema migration |
+
+**Files to modify:**
+
+| File | What to add |
+|------|------------|
+| `QueryService.java` | Call `queryMemoryService.computeBoosts()` before returning results, call `queryMemoryService.logQuery()` async after |
+| `QueryResponse.SearchResult` | Add optional `intentMemoryBoost` field in metadata so callers can see it |
+| `QueryController.java` | Pass `uid` from request header (add optional `X-User-ID` header) into query calls |
+
+---
+
+### Flow Walkthrough
+
+```
+Incoming query: "What medications is patient 101 allergic to?"
+         │
+         ▼
+1. Generate embedding (existing)
+         │
+         ▼
+2. QueryMemoryService.computeBoosts(embedding)
+   │  → findSimilarPastQueries(vector, threshold=0.82, limit=10)
+   │  → Found 3 past queries with similarity 0.89, 0.85, 0.83
+   │  → Past query A: retrieved [ctx-1, ctx-2], session_continued=TRUE, follow_up_count=2
+   │  → Past query B: retrieved [ctx-1, ctx-3], session_continued=FALSE
+   │  → Past query C: retrieved [ctx-1], session_continued=TRUE, follow_up_count=1
+   │
+   │  Context scores:
+   │  ctx-1: totalAppearances=3, weightedSuccesses=(3+1)+(0)+(2) = 6
+   │         successRate = 6/3 = 2.0  → boost = min(0.15×2.0×log(7), 0.20) = 0.20
+   │  ctx-2: totalAppearances=1, weightedSuccesses=3
+   │         successRate = 3/1 = 3.0  → boost = min(0.15×3.0×log(4), 0.20) = 0.20
+   │  ctx-3: totalAppearances=1, weightedSuccesses=0
+   │         boost = 0.0
+         │
+         ▼
+3. Run standard vector search (existing) → returns scored results
+         │
+         ▼
+4. QueryMemoryService.applyBoosts(results, boosts)
+   → ctx-1: 0.74 + 0.20 = 0.94  ← moves up
+   → ctx-2: 0.71 + 0.20 = 0.91  ← moves up
+   → ctx-3: 0.82 + 0.00 = 0.82  ← unchanged
+   → Re-sort by score
+         │
+         ▼
+5. Return boosted results to caller
+         │
+         ▼
+6. QueryMemoryService.logQuery(uid, queryText, embedding, retrievedIds)  ← ASYNC, no latency
+   → Saves new query_log row
+   → Checks: did uid make a query in the last 30 minutes?
+     → If yes: markSessionContinued(previousQueryId)
+```
+
+---
+
+### Key Repository Queries
+
+**Find similar past queries:**
+```sql
+SELECT ql.id, ql.query_text, ql.retrieved_context_ids,
+       ql.session_continued, ql.follow_up_count,
+       1 - (ql.query_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+FROM query_logs ql
+WHERE (1 - (ql.query_embedding <=> CAST(:queryVector AS vector))) >= :threshold
+ORDER BY similarity_score DESC
+LIMIT :limit
+```
+
+**Find recent query from same user (follow-up detection):**
+```sql
+SELECT * FROM query_logs
+WHERE uid = :uid
+  AND created_at < :now
+  AND created_at >= :windowStart
+ORDER BY created_at DESC
+LIMIT 1
+```
+
+**Mark as continued:**
+```sql
+UPDATE query_logs
+SET session_continued = TRUE,
+    follow_up_count   = follow_up_count + 1,
+    last_follow_up_at = :now
+WHERE id = :id
+```
+
+---
+
+### What Gets Exposed in the API Response
+
+Add a `metadata` field to each `SearchResult` showing whether a boost was applied:
+
+```json
+{
+  "id": "ctx-uuid-1",
+  "content": "Patient is allergic to penicillin.",
+  "score": 0.94,
+  "type": "CHUNK",
+  "metadata": {
+    "chunkIndex": 0,
+    "intentMemoryBoost": "0.2000"
+  }
+}
+```
+
+This lets API consumers know that this result was historically validated, not just semantically similar.
+
+---
+
+### New API Endpoint (Optional but Recommended)
+
+`GET /api/v1/memory/query/intent-stats?contextId={uuid}`
+
+Returns how many times a context has been retrieved and in how many successful sessions — useful for debugging and for building admin dashboards.
+
+---
+
+---
+
+## Feature 2: Contradiction Detection on Ingest
+
+### The Core Idea
+
+CortexDB's SimpleMem pipeline already merges chunks with similarity > 0.85 (treating them as the same memory). But in the band **0.75–0.85** there is a gray zone: chunks that are related enough to be about the same topic, but distinct enough that they might be saying opposite things. This feature interrogates that gray zone with an LLM and flags contradictions explicitly.
+
+The result is a **self-auditing knowledge base** — one that knows when it holds conflicting information and can surface that conflict at query time.
+
+---
+
+### Why This Matters
+
+Consider a medical records system. A patient's record might contain:
+- "Patient has no known drug allergies." (ingested Monday)
+- "Patient is allergic to penicillin." (ingested Friday)
+
+Both chunks have high similarity to each other (same topic, same patient). SimpleMem won't merge them (they differ too much in meaning). Without this feature, CortexDB silently holds both and returns whichever scores higher. With this feature, both are flagged with a `CONTRADICTS` relation in the graph, and queries about allergies can surface the warning.
+
+---
+
+### Trigger Zone: The Similarity Band
+
+```
+Similarity < 0.75    → Unrelated. Skip entirely.
+0.75 ≤ sim < 0.85   → "Related but distinct." CHECK FOR CONTRADICTION.
+Similarity ≥ 0.85   → SimpleMem merges. No contradiction possible.
+```
+
+This is precise and cost-efficient. You're not calling the LLM on every pair of chunks — only pairs in the ambiguous middle band.
+
+---
+
+### Database Changes
+
+No new tables needed. You extend what you already have:
+
+```sql
+-- On the contexts table
+ALTER TABLE contexts
+    ADD COLUMN has_contradiction     BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN contradiction_checked BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX idx_contexts_contradiction
+    ON contexts (has_contradiction)
+    WHERE has_contradiction = TRUE;
+```
+
+Contradictions are stored as a `CONTRADICTS` relation in the existing `relations` table between the two context entities. The `edge_weight` on the relation represents LLM confidence (1 = low, 2 = medium, 3 = high — based on how clearly the LLM flagged the contradiction).
+
+A helper view makes them easy to query:
+
+```sql
+CREATE VIEW contradiction_pairs AS
+SELECT
+    r.id                AS relation_id,
+    r.created_at        AS detected_at,
+    src_ctx.id          AS context_a_id,
+    src_ctx.text_chunk  AS context_a_text,
+    tgt_ctx.id          AS context_b_id,
+    tgt_ctx.text_chunk  AS context_b_text,
+    r.edge_weight       AS confidence_level
+FROM relations r
+JOIN entities src_e ON r.source_entity_id = src_e.id
+JOIN entities tgt_e ON r.target_entity_id = tgt_e.id
+JOIN entity_context_junction src_j ON src_e.id = src_j.entity_id
+JOIN entity_context_junction tgt_j ON tgt_e.id = tgt_j.entity_id
+JOIN contexts src_ctx ON src_j.context_id = src_ctx.id
+JOIN contexts tgt_ctx ON tgt_j.context_id = tgt_ctx.id
+WHERE r.relation_type = 'CONTRADICTS';
+```
+
+---
+
+### Implementation Breakdown
+
+**New files to create:**
+
+| File | Purpose |
+|------|---------|
+| `ingest/service/ContradictionDetectionService.java` | Core async logic |
+| `db/migration/V2__contradictions.sql` | Schema changes |
+
+**Files to modify:**
+
+| File | What to add |
+|------|------------|
+| `IngestionWorker.java` | After `entityManager.persist(context)` in `processKnowledgeBase()`, call `contradictionDetectionService.checkForContradictions(...)` async |
+| `ContextRepository.java` | New query: find contexts in the similarity band (0.75–0.85) |
+| `QueryService.java` | Surface `has_contradiction` flag in search results metadata |
+| `QueryController.java` | New endpoint: `GET /api/v1/memory/contradictions` |
+
+---
+
+### The LLM Prompt
+
+The prompt matters a lot here. Too loose and you get false positives. Too strict and you miss real contradictions.
+
+```
+You are a fact-checking engine. Determine whether the following two statements 
+directly contradict each other.
+
+Statement A: "{chunk_a}"
+Statement B: "{chunk_b}"
+
+Rules:
+- A contradiction means one statement makes the other false.
+- A contradiction is NOT two statements covering different aspects of the same topic.
+- A contradiction is NOT one statement being more specific than another.
+- A contradiction IS "X is Y" vs "X is not Y".
+- A contradiction IS "X happened" vs "X did not happen".
+
+Respond with ONLY valid JSON, no explanation:
+{
+  "contradicts": true | false,
+  "confidence": "LOW" | "MEDIUM" | "HIGH",
+  "reason": "one sentence explanation"
+}
+```
+
+Map confidence to `edge_weight`: `LOW → 1`, `MEDIUM → 2`, `HIGH → 3`.
+
+---
+
+### The Candidate Query
+
+You need a query in `ContextRepository` that finds existing contexts with similarity in the 0.75–0.85 band to a given new chunk:
+
+```sql
+SELECT c.id,
+       c.text_chunk,
+       1 - (c.vector_embedding <=> CAST(:queryVector AS vector)) AS similarity_score
+FROM contexts c
+WHERE (1 - (c.vector_embedding <=> CAST(:queryVector AS vector))) >= :lowerBound
+  AND (1 - (c.vector_embedding <=> CAST(:queryVector AS vector))) < :upperBound
+  AND c.id != :excludeId
+ORDER BY similarity_score DESC
+LIMIT :limit
+```
+
+Call it with `lowerBound=0.75`, `upperBound=0.85`, `limit=3`.
+
+---
+
+### Flow Walkthrough
+
+```
+New context chunk persisted: "Patient has no known drug allergies."
+(by IngestionWorker, after entityManager.flush())
+         │
+         ▼
+ContradictionDetectionService.checkForContradictions(contextId, text, embedding)
+← runs @Async, caller returns immediately
+         │
+         ▼
+1. Query: find contexts in band [0.75, 0.85) to this chunk
+   → Found: "Patient is allergic to penicillin."  (similarity=0.81)
+         │
+         ▼
+2. Already checked this pair? (look for existing CONTRADICTS relation)
+   → No. Proceed.
+         │
+         ▼
+3. LLM call with both chunks
+   → Response: { "contradicts": true, "confidence": "HIGH", "reason": "..." }
+         │
+         ▼
+4. contradicts = TRUE → record it:
+   a. Set has_contradiction = TRUE on both context rows
+   b. Get or create RagEntity for each context (reuse existing section-entity logic)
+   c. Persist Relation(source=entityA, target=entityB, type="CONTRADICTS", edgeWeight=3)
+   d. Log: CONTRADICTION_DETECTED | ctx_a=... | ctx_b=... | confidence=HIGH
+         │
+         ▼
+5. Done. Both contexts now carry the flag.
+```
+
+---
+
+### Preventing Duplicate Checks
+
+Before making the LLM call, check whether a `CONTRADICTS` relation already exists between the two context entities:
+
+```java
+// In ContradictionDetectionService, before the LLM call:
+boolean alreadyChecked = relationRepository.existsBySourceAndTargetAndType(
+    entityAId, entityBId, "CONTRADICTS");
+if (alreadyChecked) return; // skip
+```
+
+Add this JPQL method to `RelationRepository`:
+```java
+boolean existsBySourceEntityIdAndTargetEntityIdAndRelationType(
+    UUID sourceEntityId, UUID targetEntityId, String relationType);
+```
+
+This ensures re-ingesting the same document doesn't trigger duplicate LLM calls.
+
+---
+
+### Surfacing Contradictions at Query Time
+
+When `searchContexts` returns a result, add the `has_contradiction` flag to its metadata:
+
+```java
+// In QueryService.searchContexts(), after mapping results:
+.metadata(Map.of(
+    "chunkIndex", row[2],
+    "hasContradiction", getHasContradiction(contextId) // fetch from context row
+))
+```
+
+This lets the client code (like your medical chatbot) warn users:
+
+```
+[Context] Patient has no known drug allergies. (Score: 0.91) ⚠️ CONTRADICTION FLAGGED
+[Context] Patient is allergic to penicillin. (Score: 0.88) ⚠️ CONTRADICTION FLAGGED
+```
+
+---
+
+### New API Endpoints
+
+**List all contradictions:**
+```
+GET /api/v1/memory/contradictions
+```
+Returns all rows from the `contradiction_pairs` view, paginated. Useful for an admin review screen.
+
+**Get contradictions for a specific context:**
+```
+GET /api/v1/memory/contradictions/context/{contextId}
+```
+Returns all contexts that contradict the given one.
+
+**Mark a contradiction as reviewed (resolved):**
+```
+POST /api/v1/memory/contradictions/{relationId}/resolve
+```
+Sets `contradiction_reviewed = TRUE` on both contexts, and sets `edge_weight = 0` on the relation (soft-delete — preserves audit trail).
+
+---
+
+---
+
+## Combined Migration File
+
+Since both features share a single migration version, put them in one file:
+
+```
+memory/src/main/resources/db/migration/V2__query_memory_and_contradictions.sql
+```
+
+Contents: `query_logs` table + both indexes + `ALTER TABLE contexts` + `contradiction_pairs` view.
+
+---
+
+## Summary of All New Files
+
+| File | Feature |
+|------|---------|
+| `entity/QueryLog.java` | Feature 1 |
+| `query/repository/QueryLogRepository.java` | Feature 1 |
+| `query/service/QueryMemoryService.java` | Feature 1 |
+| `ingest/service/ContradictionDetectionService.java` | Feature 2 |
+| `db/migration/V2__query_memory_and_contradictions.sql` | Both |
+
+## Summary of Modified Files
+
+| File | Change |
+|------|--------|
+| `IngestionWorker.java` | Call `contradictionDetectionService.checkForContradictions()` async after context persist |
+| `QueryService.java` | Integrate `computeBoosts()` + `applyBoosts()` + `logQuery()` into all search methods; surface `has_contradiction` in metadata |
+| `QueryController.java` | Add `X-User-ID` header extraction; add `/contradictions` endpoints |
+| `ContextRepository.java` | Add the similarity-band candidate query |
+| `RelationRepository.java` | Add `existsBySourceAndTargetAndType` |

@@ -24,10 +24,13 @@ public class QueryController {
 
     // ==================== CONTEXT ENDPOINTS ====================
 
-    // Semantic search on contexts
+    // Semantic search on contexts (with optional intent-memory tracking via
+    // X-User-ID)
     @PostMapping("/contexts")
-    public ResponseEntity<QueryResponse> searchContexts(@Valid @RequestBody QueryRequest request) {
-        return ResponseEntity.ok(queryService.searchContexts(request));
+    public ResponseEntity<QueryResponse> searchContexts(
+            @Valid @RequestBody QueryRequest request,
+            @RequestHeader(value = "X-User-ID", required = false) String userId) {
+        return ResponseEntity.ok(queryService.searchContexts(request, userId));
     }
 
     // Get all contexts for a knowledge base
@@ -217,5 +220,34 @@ public class QueryController {
     @PostMapping("/route")
     public ResponseEntity<QueryResponse> routeQuery(@Valid @RequestBody QueryRequest request) {
         return ResponseEntity.ok(queryService.routeQuery(request));
+    }
+
+    // ==================== CONTRADICTION ENDPOINTS ====================
+
+    // List all unresolved contradictions
+    @GetMapping("/contradictions")
+    public ResponseEntity<QueryResponse> getAllContradictions() {
+        return ResponseEntity.ok(queryService.getAllContradictions());
+    }
+
+    // Get contradictions for a specific context
+    @GetMapping("/contradictions/context/{contextId}")
+    public ResponseEntity<QueryResponse> getContradictionsForContext(@PathVariable UUID contextId) {
+        return ResponseEntity.ok(queryService.getContradictionsForContext(contextId));
+    }
+
+    // Resolve a contradiction (mark as reviewed)
+    @PostMapping("/contradictions/{contradictionId}/resolve")
+    public ResponseEntity<Void> resolveContradiction(@PathVariable UUID contradictionId) {
+        queryService.resolveContradiction(contradictionId);
+        return ResponseEntity.ok().build();
+    }
+
+    // ==================== INTENT MEMORY ENDPOINTS ====================
+
+    // Get intent stats for a specific context
+    @GetMapping("/intent-stats")
+    public ResponseEntity<Map<String, Object>> getIntentStats(@RequestParam UUID contextId) {
+        return ResponseEntity.ok(queryService.getIntentStats(contextId));
     }
 }

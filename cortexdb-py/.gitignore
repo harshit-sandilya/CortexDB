@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+changes.txt
+.claude/
+
 # Distribution / packaging
 dist/
 build/

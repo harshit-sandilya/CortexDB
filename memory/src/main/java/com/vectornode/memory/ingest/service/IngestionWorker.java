@@ -32,6 +32,7 @@ public class IngestionWorker {
         private final ChunkingService chunkingService;
         private final ExtractionService extractionService;
         private final PageIndexService pageIndexService;
+        private final ContradictionDetector contradictionDetector;
         private final com.vectornode.memory.query.repository.ContextRepository contextRepository;
         private final ObjectMapper objectMapper;
 
@@ -121,10 +122,20 @@ public class IngestionWorker {
 
                         existingContext.setMetadata(meta);
                         entityManager.merge(existingContext);
+                        entityManager.flush();
 
                         log.info("CONTEXT_MERGED | id={} | new_text_length={} | synthesis_count={}",
                                         existingContext.getId(), mergedText.length(),
                                         meta.get("synthesisCount").asInt());
+
+                        // Contradiction detection: merged text might contradict something the original
+                        // didn't
+                        contradictionDetector.checkAndPersistAsync(
+                                        mergedText, mergedEmbedding, existingContext.getId());
+
+                        // Mark old contradictions on this context as resolved (merge is the resolution)
+                        contradictionDetector.markResolvedAsync(
+                                        existingContext.getId(), existingContext.getId());
 
                         // Dispatch for re-extraction of entities on the merged text
                         processContext(existingId, kbId, mergedText);
@@ -153,6 +164,10 @@ public class IngestionWorker {
                                         context.getKnowledgeBase().getId(),
                                         compressed.topic(),
                                         compressed.keywords());
+
+                        // Contradiction detection: fire-and-forget with real ID
+                        contradictionDetector.checkAndPersistAsync(
+                                        compressed.restatement(), embedding, context.getId());
 
                         // Dispatch for entity extraction
                         processContext(context.getId(), kbId, compressed.restatement());

@@ -151,3 +151,34 @@ class Relation(BaseModel):
     weight: float | None = None
 
     model_config = {"populate_by_name": True}
+
+
+# ─── Intent & Contradiction Models ─────────────────────────────────────
+
+
+class IntentStats(BaseModel):
+    """Query intent statistics for a context."""
+
+    context_id: UUID | None = Field(default=None, alias="contextId")
+    total_retrievals: int | None = Field(default=None, alias="totalRetrievals")
+    weighted_successes: float | None = Field(default=None, alias="weightedSuccesses")
+    estimated_boost: str | None = Field(default=None, alias="estimatedBoost")
+
+    model_config = {"populate_by_name": True}
+
+
+class ContradictionResult(BaseModel):
+    """Contradiction detection result."""
+
+    id: UUID | None = None
+    content: str | None = None
+    score: float | None = None
+    type: str | None = None
+    metadata: dict[str, Any] | None = None
+    context_id_a: UUID | None = Field(default=None, alias="contextIdA")
+    context_id_b: UUID | None = Field(default=None, alias="contextIdB")
+    summary: str | None = None
+    severity: str | None = None
+    resolved: bool | None = None
+
+    model_config = {"populate_by_name": True}

@@ -4,10 +4,12 @@ from uuid import UUID
 
 from cortexdb.models import (
     ConverserRole,
+    ContradictionResult,
     Entity,
     IngestPromptRequest,
     IngestDocumentRequest,
     IngestResponse,
+    IntentStats,
     LLMApiProvider,
     QueryRequest,
     QueryResponse,
@@ -143,3 +145,73 @@ class TestRelationModel:
         assert rel.relation_type == "WORKS_FOR"
         assert rel.weight == 0.95
         assert isinstance(rel.source_entity_id, UUID)
+
+
+class TestIntentStatsModel:
+    def test_intent_stats_from_json(self):
+        stats = IntentStats.model_validate({
+            "contextId": "550e8400-e29b-41d4-a716-446655440000",
+            "totalRetrievals": 15,
+            "weightedSuccesses": 8.5,
+            "estimatedBoost": "0.2500"
+        })
+        assert isinstance(stats.context_id, UUID)
+        assert stats.total_retrievals == 15
+        assert stats.weighted_successes == 8.5
+        assert stats.estimated_boost == "0.2500"
+
+    def test_intent_stats_zero_values(self):
+        stats = IntentStats.model_validate({
+            "contextId": "660e8400-e29b-41d4-a716-446655440000",
+            "totalRetrievals": 0,
+            "weightedSuccesses": 0.0,
+            "estimatedBoost": "0.0000"
+        })
+        assert stats.total_retrievals == 0
+        assert stats.weighted_successes == 0.0
+        assert stats.estimated_boost == "0.0000"
+
+
+class TestContradictionResultModel:
+    def test_contradiction_result_from_json(self):
+        contradiction = ContradictionResult.model_validate({
+            "id": "770e8400-e29b-41d4-a716-446655440000",
+            "content": "Fact A ⚡ Fact B",
+            "score": 0.0,
+            "type": "CONTRADICTION",
+            "metadata": {
+                "contextIdA": "550e8400-e29b-41d4-a716-446655440000",
+                "contextIdB": "660e8400-e29b-41d4-a716-446655440000",
+                "summary": "Direct factual conflict",
+                "severity": "HIGH"
+            }
+        })
+        assert isinstance(contradiction.id, UUID)
+        assert contradiction.type == "CONTRADICTION"
+        assert contradiction.metadata["severity"] == "HIGH"
+        assert contradiction.metadata["summary"] == "Direct factual conflict"
+        # Metadata fields remain as strings (not automatically converted to UUID)
+        assert isinstance(contradiction.metadata["contextIdA"], str)
+        assert isinstance(contradiction.metadata["contextIdB"], str)
+
+    def test_contradiction_result_with_full_fields(self):
+        contradiction = ContradictionResult.model_validate({
+            "id": "880e8400-e29b-41d4-a716-446655440000",
+            "content": "Contradiction content",
+            "score": 0.0,
+            "type": "CONTRADICTION",
+            "metadata": {
+                "contextIdA": "550e8400-e29b-41d4-a716-446655440000",
+                "contextIdB": "660e8400-e29b-41d4-a716-446655440000",
+                "summary": "Partial conflict",
+                "severity": "MODERATE"
+            },
+            "contextIdA": "550e8400-e29b-41d4-a716-446655440000",
+            "contextIdB": "660e8400-e29b-41d4-a716-446655440000",
+            "summary": "Partial conflict",
+            "severity": "MODERATE",
+            "resolved": False
+        })
+        assert contradiction.severity == "MODERATE"
+        assert contradiction.summary == "Partial conflict"
+        assert contradiction.resolved is False

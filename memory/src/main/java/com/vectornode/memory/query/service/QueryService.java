@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,35 +34,75 @@ public class QueryService {
         private final EntityRepository entityRepository;
         private final KnowledgeBaseRepository knowledgeBaseRepository;
         private final RelationRepository relationRepository;
+        private final QueryMemoryService queryMemoryService;
 
         // ==================== CONTEXT OPERATIONS ====================
 
-        // Semantic search on contexts with similarity scores
+        // Semantic search on contexts with similarity scores + intent-memory boosts +
+        // contradiction flags
         public QueryResponse searchContexts(QueryRequest request) {
+                return searchContexts(request, null);
+        }
+
+        /**
+         * Overload that accepts an optional uid for intent-memory tracking.
+         */
+        public QueryResponse searchContexts(QueryRequest request, String uid) {
                 long startTime = System.currentTimeMillis();
                 log.info("Searching contexts for query: {}", request.getQuery());
 
                 float[] embedding = LLMProvider.getEmbedding(request.getQuery());
                 String vectorString = toVectorString(embedding);
 
+                // 1. Compute intent-memory boosts from historical query patterns
+                Map<UUID, Double> boosts = queryMemoryService.computeBoosts(embedding);
+
+                // 2. Standard vector search
                 List<Object[]> rows = contextRepository.findSimilarWithScore(vectorString, request.getLimit());
 
-                List<QueryResponse.SearchResult> results = rows.stream()
-                                .map(row -> QueryResponse.SearchResult.builder()
-                                                .id((UUID) row[0])
-                                                .content((String) row[1])
-                                                .score(((Number) row[3]).doubleValue())
-                                                .type("CHUNK")
-                                                .metadata(Map.of("chunkIndex", Objects.requireNonNullElse(row[2], 0)))
-                                                .build())
-                                .toList();
+                List<QueryResponse.SearchResult> results = new ArrayList<>();
+                for (Object[] row : rows) {
+                        UUID contextId = (UUID) row[0];
+                        String content = (String) row[1];
+                        double score = ((Number) row[3]).doubleValue();
+
+                        Map<String, Object> metadata = new HashMap<>();
+                        metadata.put("chunkIndex", Objects.requireNonNullElse(row[2], 0));
+
+                        // 3. Check for contradictions and annotate
+                        List<Object[]> contradictions = contextRepository.findContradictionsForContext(contextId);
+                        if (!contradictions.isEmpty()) {
+                                metadata.put("hasContradiction", true);
+                                metadata.put("contradictionCount", contradictions.size());
+                                metadata.put("contradictionSummary", contradictions.get(0)[3]); // summary column
+                                score = score * 0.85; // penalize contradicted chunks
+                        }
+
+                        results.add(QueryResponse.SearchResult.builder()
+                                        .id(contextId)
+                                        .content(content)
+                                        .score(score)
+                                        .type("CHUNK")
+                                        .metadata(metadata)
+                                        .build());
+                }
+
+                // 4. Apply intent-memory boosts (re-sorts by boosted score)
+                results = queryMemoryService.applyBoosts(results, boosts);
 
                 long totalTime = System.currentTimeMillis() - startTime;
                 log.info("Context search completed in {}ms, found {} results", totalTime, results.size());
 
+                // 5. Log query async for future learning (fire-and-forget)
+                List<UUID> retrievedIds = results.stream()
+                                .map(QueryResponse.SearchResult::getId)
+                                .toList();
+                queryMemoryService.logQueryAsync(uid, request.getQuery(), embedding, retrievedIds);
+
                 return QueryResponse.builder()
                                 .query(request.getQuery())
                                 .results(results)
+
                                 .processingTimeMs(totalTime)
                                 .build();
         }
@@ -842,5 +883,106 @@ public class QueryService {
                 } catch (NumberFormatException e) {
                         log.warn("LLM failed to output a valid branch index during traversal: {}", e.getMessage());
                 }
+        }
+
+        // ==================== CONTRADICTION OPERATIONS ====================
+
+        /**
+         * Get all unresolved contradictions.
+         */
+        public QueryResponse getAllContradictions() {
+                long startTime = System.currentTimeMillis();
+                log.info("Fetching all unresolved contradictions");
+
+                List<Object[]> rows = contextRepository.findAllUnresolvedContradictions();
+
+                List<QueryResponse.SearchResult> results = rows.stream()
+                                .map(row -> {
+                                        UUID contradictionId = (UUID) row[0];
+                                        String textA = (String) row[6];
+                                        String textB = (String) row[7];
+
+                                        return QueryResponse.SearchResult.builder()
+                                                        .id(contradictionId)
+                                                        .content(textA + " ⚡ " + textB)
+                                                        .score(0.0)
+                                                        .type("CONTRADICTION")
+                                                        .metadata(Map.of(
+                                                                        "contextIdA", row[1],
+                                                                        "contextIdB", row[2],
+                                                                        "summary",
+                                                                        Objects.requireNonNullElse(row[3], ""),
+                                                                        "severity",
+                                                                        Objects.requireNonNullElse(row[4], "MODERATE")))
+                                                        .build();
+                                })
+                                .toList();
+
+                long totalTime = System.currentTimeMillis() - startTime;
+                log.info("Found {} contradictions in {}ms", results.size(), totalTime);
+
+                return QueryResponse.builder()
+                                .query("contradictions:all")
+                                .results(results)
+                                .processingTimeMs(totalTime)
+                                .build();
+        }
+
+        /**
+         * Get contradictions for a specific context.
+         */
+        public QueryResponse getContradictionsForContext(UUID contextId) {
+                long startTime = System.currentTimeMillis();
+                log.info("Fetching contradictions for context: {}", contextId);
+
+                List<Object[]> rows = contextRepository.findContradictionsForContext(contextId);
+
+                List<QueryResponse.SearchResult> results = rows.stream()
+                                .map(row -> {
+                                        UUID contradictionId = (UUID) row[0];
+                                        String textA = (String) row[6];
+                                        String textB = (String) row[7];
+
+                                        return QueryResponse.SearchResult.builder()
+                                                        .id(contradictionId)
+                                                        .content(textA + " ⚡ " + textB)
+                                                        .score(0.0)
+                                                        .type("CONTRADICTION")
+                                                        .metadata(Map.of(
+                                                                        "contextIdA", row[1],
+                                                                        "contextIdB", row[2],
+                                                                        "summary",
+                                                                        Objects.requireNonNullElse(row[3], ""),
+                                                                        "severity",
+                                                                        Objects.requireNonNullElse(row[4], "MODERATE")))
+                                                        .build();
+                                })
+                                .toList();
+
+                long totalTime = System.currentTimeMillis() - startTime;
+                log.info("Found {} contradictions for context {} in {}ms", results.size(), contextId, totalTime);
+
+                return QueryResponse.builder()
+                                .query("contradictions:" + contextId)
+                                .results(results)
+                                .processingTimeMs(totalTime)
+                                .build();
+        }
+
+        /**
+         * Resolve a contradiction (mark as reviewed).
+         */
+        @Transactional
+        public void resolveContradiction(UUID contradictionId) {
+                log.info("Resolving contradiction: {}", contradictionId);
+                contextRepository.resolveContradictionById(contradictionId);
+                log.info("Contradiction resolved: {}", contradictionId);
+        }
+
+        /**
+         * Get intent stats for a specific context.
+         */
+        public Map<String, Object> getIntentStats(UUID contextId) {
+                return queryMemoryService.getIntentStats(contextId);
         }
 }
