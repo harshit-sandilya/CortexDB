@@ -1,7 +1,7 @@
 .vscode/
 .idea/
 .DS_Store
-benchmark-suite/
+.benchmark-suite/
 .config.txt
 .metrics.txt
 metrics.txt

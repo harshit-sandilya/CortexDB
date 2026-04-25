@@ -1,0 +1,14 @@
+llama-index-core>=0.12.0
+llama-index-embeddings-gemini
+llama-index-llms-gemini
+llama-index-vector-stores-postgres
+llama-index-postprocessor-cohere-rerank
+asyncpg
+psycopg2-binary
+sqlalchemy[asyncio]
+pgvector
+python-dotenv
+pandas
+google-genai
+google-generativeai
+tabulate
