@@ -14,6 +14,7 @@ public class QueryResponse {
 
     private String query;
     private List<SearchResult> results;
+    private String finalAnswer;
     private long processingTimeMs;
 
     @Data

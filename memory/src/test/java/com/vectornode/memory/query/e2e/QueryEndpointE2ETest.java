@@ -64,6 +64,11 @@ class QueryEndpointE2ETest {
 
     @BeforeEach
     void setUp() {
+        // Clean up any existing test entities to prevent duplicate issues
+        entityRepository.findByName("Neural Network").ifPresent(entity -> {
+            entityRepository.delete(entity);
+        });
+
         // Create test data with 768-dimensional vectors
         savedKb = new KnowledgeBase();
         savedKb.setUid("test-user-e2e");

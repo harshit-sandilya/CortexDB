@@ -22,7 +22,7 @@ public interface RelationRepository extends JpaRepository<Relation, UUID> {
 
         // FROM (Outgoing): Finds what an entity connects to.
         @Query(value = """
-                        SELECT r.relation_type, t.entity_name, r.edge_weight
+                        SELECT r.relation_type, t.entity_name, r.edge_weight, r.metadata
                         FROM relations r
                         JOIN entities t ON r.target_entity_id = t.id
                         WHERE r.source_entity_id = :sourceId
@@ -32,7 +32,7 @@ public interface RelationRepository extends JpaRepository<Relation, UUID> {
 
         // TO (Incoming): Finds what connects to an entity.
         @Query(value = """
-                        SELECT s.entity_name, r.relation_type, r.edge_weight
+                        SELECT s.entity_name, r.relation_type, r.edge_weight, r.metadata
                         FROM relations r
                         JOIN entities s ON r.source_entity_id = s.id
                         WHERE r.target_entity_id = :targetId

@@ -37,11 +37,14 @@ class IngestServiceTest {
     @Spy
     private ObjectMapper objectMapper;
 
+    @Mock
+    private IngestionWorker ingestionWorker;
+
     private IngestService ingestService;
 
     @BeforeEach
     void setUp() {
-        ingestService = new IngestService(objectMapper);
+        ingestService = new IngestService(objectMapper, ingestionWorker);
         ReflectionTestUtils.setField(ingestService, "entityManager", entityManager);
     }
 

@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.postgresql.PGNotification;
 
 import java.lang.reflect.Method;
@@ -19,6 +21,7 @@ import static org.mockito.Mockito.*;
  * method.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PostgresNotificationListenerTest {
 
     @Mock
@@ -109,6 +112,18 @@ class PostgresNotificationListenerTest {
         constructor.setAccessible(true);
 
         javax.sql.DataSource mockDataSource = mock(javax.sql.DataSource.class);
-        return (PostgresNotificationListener) constructor.newInstance(mockDataSource, ingestionWorker);
+        com.vectornode.memory.query.repository.KnowledgeBaseRepository mockKbRepo = mock(com.vectornode.memory.query.repository.KnowledgeBaseRepository.class);
+        com.vectornode.memory.query.repository.ContextRepository mockContextRepo = mock(com.vectornode.memory.query.repository.ContextRepository.class);
+
+        // Mock the repositories to return knowledge base and context for the test
+        com.vectornode.memory.entity.KnowledgeBase mockKb = new com.vectornode.memory.entity.KnowledgeBase();
+        mockKb.setContent("Test content");
+        when(mockKbRepo.findById(TEST_KB_ID)).thenReturn(java.util.Optional.of(mockKb));
+
+        com.vectornode.memory.entity.Context mockContext = new com.vectornode.memory.entity.Context();
+        mockContext.setTextChunk("Test chunk");
+        when(mockContextRepo.findById(TEST_CONTEXT_ID)).thenReturn(java.util.Optional.of(mockContext));
+
+        return (PostgresNotificationListener) constructor.newInstance(mockDataSource, ingestionWorker, mockKbRepo, mockContextRepo);
     }
 }
