@@ -18,12 +18,12 @@ import { CortexDB } from "./src/index.js";
 
 const API_URL = process.env["CORTEXDB_URL"] ?? "http://localhost:8080";
 const PROVIDER = process.env["LLM_PROVIDER"] ?? "GEMINI";
-const API_KEY = process.env["LLM_API_KEY"] ?? process.env["GEMINI_API_KEY"];
-const CHAT_MODEL = process.env["LLM_CHAT_MODEL"] ?? process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
-const EMBED_MODEL = process.env["LLM_EMBED_MODEL"] ?? process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
+const API_KEY = process.env["LLM_API_KEY"];
+const CHAT_MODEL = process.env["LLM_CHAT_MODEL"] ?? "gemini-2.0-flash";
+const EMBED_MODEL = process.env["LLM_EMBED_MODEL"] ?? "gemini-embedding-001";
 
 if (!API_KEY) {
-    console.error("❌ LLM_API_KEY (or GEMINI_API_KEY) environment variable not set. Check your .env file.");
+    console.error("❌ LLM_API_KEY environment variable not set. Check your .env file.");
     process.exit(1);
 }
 

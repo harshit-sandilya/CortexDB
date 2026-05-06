@@ -4,3 +4,9 @@ dist/
 .DS_Store
 *.log
 .npmrc
+
+# Scratch test files
+test.js
+
+# AI assistant config
+.claude/

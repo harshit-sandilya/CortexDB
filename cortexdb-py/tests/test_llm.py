@@ -183,22 +183,22 @@ class TestCallLLM:
 
 
 @pytest.mark.skipif(
-    not os.environ.get("GEMINI_API_KEY"),
-    reason="GEMINI_API_KEY not set — skipping real LLM tests",
+    not os.environ.get("LLM_API_KEY"),
+    reason="LLM_API_KEY not set — skipping real LLM tests",
 )
-class TestRealGeminiLLM:
-    """Integration tests that hit the real Gemini API.
+class TestRealLLM:
+    """Integration tests that hit the real LLM API.
 
-    Run with: GEMINI_API_KEY=your-key pytest tests/test_llm.py -k TestRealGeminiLLM -v
+    Run with: LLM_API_KEY=your-key LLM_PROVIDER=OPENAI pytest tests/test_llm.py -k TestRealLLM -v
     """
 
     @pytest.fixture(autouse=True)
     def llm(self):
         self.llm = LLMProvider(
-            provider="GEMINI",
-            api_key=os.environ["GEMINI_API_KEY"],
-            chat_model="gemini-2.0-flash",
-            embed_model="gemini-embedding-001",
+            provider=os.environ.get("LLM_PROVIDER", "OPENAI"),
+            api_key=os.environ["LLM_API_KEY"],
+            chat_model=os.environ.get("LLM_CHAT_MODEL"),
+            embed_model=os.environ.get("LLM_EMBED_MODEL"),
         )
 
     def test_get_embedding_returns_vector(self):
@@ -214,3 +214,4 @@ class TestRealGeminiLLM:
         assert len(response) > 0
         assert "4" in response
         print(f"LLM response: {response}")
+

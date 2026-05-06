@@ -24,9 +24,9 @@ from cortexdb.llm import LLMProvider
 # Configuration
 API_URL = "http://localhost:8080"
 PROVIDER = os.getenv("LLM_PROVIDER", "GEMINI")
-API_KEY = os.getenv("LLM_API_KEY") or os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("LLM_API_KEY")
 if not API_KEY:
-    raise ValueError("LLM_API_KEY (or GEMINI_API_KEY) environment variable not set. Check .env file.")
+    raise ValueError("LLM_API_KEY environment variable not set. Check .env file.")
 CHAT_MODEL = os.getenv("LLM_CHAT_MODEL", "gemini-2.0-flash")
 EMBED_MODEL = os.getenv("LLM_EMBED_MODEL", "gemini-embedding-001")
 

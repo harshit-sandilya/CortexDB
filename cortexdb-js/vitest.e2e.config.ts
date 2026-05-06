@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 /**
  * E2E test configuration.
  * - Runs tests in tests/e2e/**
- * - Automatically loads .env (GEMINI_API_KEY, GEMINI_CHAT_MODEL, GEMINI_EMBED_MODEL)
+ * - Automatically loads .env (LLM_API_KEY, LLM_PROVIDER, LLM_CHAT_MODEL, LLM_EMBED_MODEL)
  * - Requires a real CortexDB server (set CORTEXDB_URL env var, defaults to http://localhost:8080)
  * - Tests automatically skip themselves if the server is unreachable
  */
