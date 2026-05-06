@@ -63,19 +63,19 @@ class QueryServiceIntegrationTest {
     private RagEntity entityB;
 
     /**
-     * Creates a 768-dimensional vector filled with the given value
+     * Creates a 1024-dimensional vector filled with the given value
      */
-    private float[] create768Vector(float value) {
-        float[] vector = new float[768];
+    private float[] create1024Vector(float value) {
+        float[] vector = new float[1024];
         Arrays.fill(vector, value);
         return vector;
     }
 
     /**
-     * Creates a 768-dimensional vector with a pattern for similarity testing
+     * Creates a 1024-dimensional vector with a pattern for similarity testing
      */
-    private float[] create768VectorWithPattern(float baseValue, int patternIndex) {
-        float[] vector = new float[768];
+    private float[] create1024VectorWithPattern(float baseValue, int patternIndex) {
+        float[] vector = new float[1024];
         for (int i = 0; i < vector.length; i++) {
             // Create a simple pattern based on index
             vector[i] = baseValue + (float) Math.sin((i + patternIndex) * 0.01);
@@ -85,12 +85,12 @@ class QueryServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Setup initial data with 768-dimensional vectors to match schema
+        // Setup initial data with 1024-dimensional vectors to match schema
         kb = new KnowledgeBase();
         kb.setUid("user-1");
         kb.setConverser(ConverserRole.USER);
         kb.setContent("Test content about graph databases");
-        kb.setVectorEmbedding(create768Vector(0.1f));
+        kb.setVectorEmbedding(create1024Vector(0.1f));
         // Note: createdAt is set automatically by @PrePersist
         knowledgeBaseRepository.save(kb);
 
@@ -98,7 +98,7 @@ class QueryServiceIntegrationTest {
         context1.setKnowledgeBase(kb);
         context1.setTextChunk("Graph databases use nodes and edges.");
         // Create a vector similar to what we'll use for queries
-        context1.setVectorEmbedding(create768VectorWithPattern(0.9f, 0));
+        context1.setVectorEmbedding(create1024VectorWithPattern(0.9f, 0));
         context1.setChunkIndex(0);
         contextRepository.save(context1);
 
@@ -106,7 +106,7 @@ class QueryServiceIntegrationTest {
         context2.setKnowledgeBase(kb);
         context2.setTextChunk("Relational databases use tables.");
         // Create a dissimilar vector
-        context2.setVectorEmbedding(create768VectorWithPattern(-0.5f, 100));
+        context2.setVectorEmbedding(create1024VectorWithPattern(-0.5f, 100));
         context2.setChunkIndex(1);
         contextRepository.save(context2);
 
@@ -114,14 +114,14 @@ class QueryServiceIntegrationTest {
         entityA.setName("GraphDB");
         entityA.setType("TECHNOLOGY");
         entityA.setDescription("A type of NoSQL database");
-        entityA.setVectorEmbedding(create768Vector(0.5f));
+        entityA.setVectorEmbedding(create1024Vector(0.5f));
         entityRepository.save(entityA);
 
         entityB = new RagEntity();
         entityB.setName("Nodes");
         entityB.setType("CONCEPT");
         entityB.setDescription("Entities in a graph");
-        entityB.setVectorEmbedding(create768VectorWithPattern(0.5f, 50));
+        entityB.setVectorEmbedding(create1024VectorWithPattern(0.5f, 50));
         entityRepository.save(entityB);
 
         // Relation: GraphDB -> USES -> Nodes
@@ -138,8 +138,8 @@ class QueryServiceIntegrationTest {
     void shouldFindSimilarContexts() {
         // Mock LLMProvider to return a query vector similar to context1
         try (MockedStatic<LLMProvider> mockedLLM = mockStatic(LLMProvider.class)) {
-            // Use a 768-dimensional vector with similar pattern to context1
-            float[] queryVector = create768VectorWithPattern(0.9f, 0);
+            // Use a 1024-dimensional vector with similar pattern to context1
+            float[] queryVector = create1024VectorWithPattern(0.9f, 0);
             mockedLLM.when(() -> LLMProvider.getEmbedding(anyString())).thenReturn(queryVector);
 
             QueryRequest request = QueryRequest.builder()
@@ -161,7 +161,7 @@ class QueryServiceIntegrationTest {
     @DisplayName("Should find entities by name")
     void shouldFindEntitiesByName() {
         try (MockedStatic<LLMProvider> mockedLLM = mockStatic(LLMProvider.class)) {
-            mockedLLM.when(() -> LLMProvider.getEmbedding(anyString())).thenReturn(create768Vector(0.5f));
+            mockedLLM.when(() -> LLMProvider.getEmbedding(anyString())).thenReturn(create1024Vector(0.5f));
 
             QueryRequest request = QueryRequest.builder()
                     .query("GraphDB")

@@ -740,19 +740,19 @@ public class QueryService {
 
                         for (QueryResponse.SearchResult result : retrievedContext) {
                             switch (result.getType()) {
-                                case "CONTEXT" -> contextChunks
+                                case "CONTEXT", "CHUNK" -> contextChunks
                                         .append("- ").append(result.getContent()).append("\n");
 
-                                case "ENTITY_METADATA" -> {
-                                    Map<String, Object> meta = result.getMetadata();
+                                case "ENTITY_METADATA", "LINKED_ENTITY", "SIMILAR_ENTITY" -> {
+                                    Map<String, Object> meta = result.getMetadata() != null ? result.getMetadata() : Map.of();
                                     entityKnowledge
                                         .append("- Entity: ").append(result.getContent())
                                         .append(" | Metadata: ").append(meta.getOrDefault("dbMetadata", "{}"))
                                         .append("\n");
                                 }
 
-                                case "RELATION_METADATA" -> {
-                                    Map<String, Object> meta = result.getMetadata();
+                                case "RELATION_METADATA", "RELATION_2HOP" -> {
+                                    Map<String, Object> meta = result.getMetadata() != null ? result.getMetadata() : Map.of();
                                     relationKnowledge
                                         .append("- ").append(result.getContent())
                                         .append(" | Metadata: ").append(meta.getOrDefault("dbMetadata", "{}"))
@@ -830,23 +830,16 @@ public class QueryService {
                 List<QueryResponse.SearchResult> results = new ArrayList<>();
 
                 try {
-                    // ── Step 1: Vector search on contexts ──────────────────────────────
-                    float[] embedding = LLMProvider.getEmbedding(request.getQuery());
-                    String vectorString = toVectorString(embedding);
+                    // ── Step 1: Hybrid Vector Search (Chunks + Vector Entities) ────────
+                    // We increase the limit inside the hybrid request to gather deeper graph context
+                    QueryRequest hybridReq = new QueryRequest();
+                    hybridReq.setQuery(request.getQuery());
+                    hybridReq.setLimit(request.getLimit() * 2);
+                    
+                    QueryResponse hybridResponse = hybridSearch(hybridReq);
+                    results.addAll(hybridResponse.getResults());
 
-                    List<Object[]> contextRows = contextRepository.findSimilarWithScore(vectorString, request.getLimit());
-
-                    for (Object[] row : contextRows) {
-                        results.add(QueryResponse.SearchResult.builder()
-                                        .id((UUID) row[0])
-                                        .content((String) row[1])
-                                        .score(((Number) row[3]).doubleValue())
-                                        .type("CONTEXT")
-                                        .metadata(Map.of("chunkIndex", Objects.requireNonNullElse(row[2], 0)))
-                                        .build());
-                    }
-
-                    log.info("Vector search returned {} context chunks", contextRows.size());
+                    log.info("Hybrid search injected {} base context elements", hybridResponse.getResults().size());
 
                     // ── Step 2: Extract entities from the query via LLM ───────────────
                     String entityExtractionPrompt = """
@@ -921,12 +914,22 @@ public class QueryService {
                                     .build());
                         }
 
-                        log.info("Graph traversal for '{}': {} outgoing, {} incoming relations",
-                                entity.getName(), outgoingRelations.size(), incomingRelations.size());
+                        // ── Step 5.5: 2-hop graph traversal ─────────────────────────────
+                        List<String> twoHopConnections = relationRepository.findTwoHopConnections(entity.getId());
+                        for (String targetEntityName : twoHopConnections) {
+                            results.add(QueryResponse.SearchResult.builder()
+                                    .content(entity.getName() + " -> [Intermediate] -> " + targetEntityName)
+                                    .score(0.5) // Lower weight for 2-hop
+                                    .type("RELATION_2HOP")
+                                    .metadata(Map.of("hopCount", 2))
+                                    .build());
+                        }
+
+                        log.info("Graph traversal for '{}': {} outgoing, {} incoming, {} 2-hop relations",
+                                entity.getName(), outgoingRelations.size(), incomingRelations.size(), twoHopConnections.size());
                     }
 
-                    log.info("SimpleMEM Hybrid Search complete — {} contexts, {} total results",
-                            contextRows.size(), results.size());
+                    log.info("GraphRAG Hybrid Search complete — {} total results", results.size());
 
                 } catch (Exception e) {
                     log.warn("Error during prompt search, falling back to partial results: {}", e.getMessage());

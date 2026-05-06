@@ -8,6 +8,7 @@ services:
       POSTGRES_DB: mydatabase
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: secret
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
@@ -47,6 +48,7 @@ services:
     image: maven:3.9-eclipse-temurin-21
     container_name: spring-ai-tests
     profiles: ["test"]
+    mem_limit: 4g
     working_dir: /app
     depends_on:
       postgres:

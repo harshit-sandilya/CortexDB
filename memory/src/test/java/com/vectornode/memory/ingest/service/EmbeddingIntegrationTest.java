@@ -53,8 +53,10 @@ class EmbeddingIntegrationTest {
                 embedModel = resolveVar(envVars, "GEMINI_EMBED_MODEL", "gemini-embedding-001");
             }
 
+            String baseUrl = resolveVar(envVars, "LLM_BASE_URL", null);
+
             try {
-                new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+                new LLMProvider(provider, apiKey, baseUrl, chatModel, embedModel);
                 initialized = true;
                 System.out.println("LLMProvider initialized for embedding tests (provider=" + provider + ")");
             } catch (Exception e) {

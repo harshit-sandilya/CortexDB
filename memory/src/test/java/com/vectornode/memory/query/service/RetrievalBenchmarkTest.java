@@ -337,17 +337,17 @@ class RetrievalBenchmarkTest {
     /**
      * Pure deterministic Bag-of-Words embedding generator (Tier 1 only).
      *
-     * Each word is hashed to positions in a 768-dim vector. L2-normalized.
+     * Each word is hashed to positions in a 1024-dim vector. L2-normalized.
      * NO synonym boosts. This is intentionally a weak baseline.
      */
     private float[] generateDeterministicVector(String text) {
-        float[] vector = new float[768];
+        float[] vector = new float[1024];
         String[] words = text.toLowerCase().replaceAll("[^a-z0-9 ]", "").split("\\s+");
 
         for (String word : words) {
             if (!word.isBlank()) {
-                int h1 = Math.abs(word.hashCode()) % 768;
-                int h2 = Math.abs((word.hashCode() * 31 + 7) % 768);
+                int h1 = Math.abs(word.hashCode()) % 1024;
+                int h2 = Math.abs((word.hashCode() * 31 + 7) % 1024);
                 vector[h1] += 1.0f;
                 vector[h2] += 0.5f;
             }
@@ -359,7 +359,7 @@ class RetrievalBenchmarkTest {
             sumSq += v * v;
         if (sumSq > 0) {
             float mag = (float) Math.sqrt(sumSq);
-            for (int i = 0; i < 768; i++)
+            for (int i = 0; i < 1024; i++)
                 vector[i] /= mag;
         }
         return vector;

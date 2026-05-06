@@ -111,7 +111,7 @@ public class IngestService {
                                         .converser(com.vectornode.memory.entity.enums.ConverserRole.DOCUMENT)
                                         .content(request.getDocumentText())
                                         // Documents might be too large to embed whole natively - we will leave it null
-                                        .vectorEmbedding(new float[768])
+                                        .vectorEmbedding(new float[1024])
                                         .build();
 
                         // Add metadata

@@ -38,6 +38,10 @@ public class SetupService {
                 case OPENROUTER:
                     effectiveBaseUrl = "https://openrouter.ai/api";
                     break;
+                case CUSTOM:
+                    // CUSTOM provider requires a user-supplied baseUrl; no default
+                    effectiveBaseUrl = "http://dummy-llm-endpoint.local";
+                    break;
                 default:
                     effectiveBaseUrl = "N/A";
             }

@@ -210,7 +210,7 @@ class VectorSearchTest {
 
     // Helper method to create mock vector embeddings
     private float[] createMockVector(int seed) {
-        float[] vector = new float[768];
+        float[] vector = new float[1024];
         for (int i = 0; i < vector.length; i++) {
             // Create a simple pattern that varies by seed to ensure different vectors
             vector[i] = 0.1f + (float) Math.sin(i * 0.1 + seed) * 0.2f;

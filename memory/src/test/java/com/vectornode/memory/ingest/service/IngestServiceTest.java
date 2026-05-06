@@ -148,7 +148,7 @@ class IngestServiceTest {
             assertThat(kb.getUid()).isEqualTo("user-456");
             assertThat(kb.getConverser()).isEqualTo(ConverserRole.DOCUMENT);
             assertThat(kb.getContent()).isEqualTo("This is the full text of the document.");
-            assertThat(kb.getVectorEmbedding()).hasSize(768); // Assuming 768 is default empty array size created in processDocument
+            assertThat(kb.getVectorEmbedding()).hasSize(1024); // 1024 is default empty array size created in processDocument
         }
     }
 }

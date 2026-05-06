@@ -54,8 +54,10 @@ class ExtractionServiceIntegrationTest {
                 embedModel = resolveVar(envVars, "GEMINI_EMBED_MODEL", "gemini-embedding-001");
             }
 
+            String baseUrl = resolveVar(envVars, "LLM_BASE_URL", null);
+
             try {
-                new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+                new LLMProvider(provider, apiKey, baseUrl, chatModel, embedModel);
                 extractionService = new ExtractionService();
                 initialized = true;
                 System.out.println("✅ LLMProvider initialized for integration tests (provider=" + provider + ")");

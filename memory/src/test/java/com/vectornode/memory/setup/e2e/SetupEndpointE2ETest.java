@@ -42,6 +42,7 @@ class SetupEndpointE2ETest {
     private static String apiKey;
     private static String chatModel;
     private static String embedModel;
+    private static String baseUrl;
     private static boolean envLoaded = false;
 
     @BeforeAll
@@ -79,6 +80,7 @@ class SetupEndpointE2ETest {
         apiKey = resolveVar("LLM_API_KEY", null);
         chatModel = resolveVar("LLM_CHAT_MODEL", null);
         embedModel = resolveVar("LLM_EMBED_MODEL", null);
+        baseUrl = resolveVar("LLM_BASE_URL", null);
 
         // Legacy fallback: if LLM_API_KEY not found, try GEMINI_API_KEY
         if (apiKey == null || apiKey.isEmpty()) {
@@ -139,6 +141,7 @@ class SetupEndpointE2ETest {
         request.setApiKey(apiKey);
         request.setChatModelName(chatModel);
         request.setEmbedModelName(embedModel);
+        request.setBaseUrl(baseUrl);
         return request;
     }
 
@@ -231,6 +234,8 @@ class SetupEndpointE2ETest {
             customUrl = "https://cortexdb.openai.azure.com/";
         } else if (provider.equalsIgnoreCase("GEMINI")) {
             customUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
+        } else if (provider.equalsIgnoreCase("CUSTOM")) {
+            customUrl = baseUrl; // Use the base URL from .env
         } else { // Default for other providers, e.g., OPENAI
             customUrl = "https://api.openai.com/";
         }

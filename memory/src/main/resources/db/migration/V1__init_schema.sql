@@ -21,7 +21,7 @@ CREATE TABLE knowledge_bases (
     uid VARCHAR NOT NULL,
     converser VARCHAR NOT NULL,
     content TEXT NOT NULL,
-    vector_embedding vector(768),
+    vector_embedding vector(1024),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -31,7 +31,7 @@ CREATE TABLE contexts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     kb_id UUID REFERENCES knowledge_bases(id) ON DELETE CASCADE,
     text_chunk TEXT NOT NULL,
-    vector_embedding vector(768) NOT NULL,
+    vector_embedding vector(1024) NOT NULL,
     chunk_index INT,
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -43,7 +43,7 @@ CREATE TABLE entities (
     entity_name TEXT NOT NULL,
     entity_type TEXT,
     description TEXT,
-    vector_embedding vector(768),
+    vector_embedding vector(1024),
     metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
