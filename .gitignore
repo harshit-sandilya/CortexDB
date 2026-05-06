@@ -7,3 +7,4 @@
 metrics.txt
 *.pdf
 *.png
+.claude/

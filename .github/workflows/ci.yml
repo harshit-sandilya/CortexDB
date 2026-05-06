@@ -57,9 +57,11 @@ jobs:
           echo "test_exit_code=${TEST_EXIT_CODE}" >> $GITHUB_OUTPUT
           exit ${TEST_EXIT_CODE}
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_CHAT_MODEL: ${{ secrets.GEMINI_CHAT_MODEL}}
-          GEMINI_EMBED_MODEL: gemini-embedding-001
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_CHAT_MODEL: ${{ secrets.LLM_CHAT_MODEL }}
+          LLM_EMBED_MODEL: ${{ secrets.LLM_EMBED_MODEL }}
           # Database connection for integration tests
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/cortexdb_test
           SPRING_DATASOURCE_USERNAME: postgres
@@ -195,7 +197,11 @@ jobs:
         run: |
           poetry run pytest tests/ -v --junitxml=junit.xml
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_CHAT_MODEL: ${{ secrets.LLM_CHAT_MODEL }}
+          LLM_EMBED_MODEL: ${{ secrets.LLM_EMBED_MODEL }}
 
       - name: Publish Test Report
         if: always()
@@ -238,7 +244,11 @@ jobs:
         id: vitest
         run: npx vitest run --config vitest.unit.config.ts --reporter=junit --outputFile=junit.xml
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_CHAT_MODEL: ${{ secrets.LLM_CHAT_MODEL }}
+          LLM_EMBED_MODEL: ${{ secrets.LLM_EMBED_MODEL }}
 
       - name: Publish Test Report
         if: always()
@@ -281,7 +291,11 @@ jobs:
         id: test
         run: ./mvnw -B test
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          LLM_CHAT_MODEL: ${{ secrets.LLM_CHAT_MODEL }}
+          LLM_EMBED_MODEL: ${{ secrets.LLM_EMBED_MODEL }}
 
       - name: Publish Test Report
         if: always()
