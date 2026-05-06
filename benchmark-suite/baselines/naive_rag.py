@@ -8,13 +8,11 @@ import os
 import sqlalchemy
 from baselines.base import BaseRAGRunner
 from dotenv import load_dotenv
-import os
 
 from llama_index.core import VectorStoreIndex, StorageContext, Document
 from llama_index.core.settings import Settings
 from llama_index.vector_stores.postgres import PGVectorStore
-from baselines.embedding_utils import FixedDimensionGeminiEmbedding
-import sqlalchemy
+from baselines.embedding_utils import get_embedding_model
 from typing import Any, List
 
 
@@ -23,26 +21,23 @@ TABLE_NAME = "benchmark_naive_rag"
 
 class NaiveRAGRunner(BaseRAGRunner):
 
-    def __init__(self, db_url: str, embed_model: str = "models/gemini-embedding-001"):
+    def __init__(self, db_url: str, embed_model: str = None):
         super().__init__("Naive RAG")
 
         # Load environment variables
         load_dotenv()
 
         self.db_url = db_url
-        self.embed_model_name = embed_model
+        # Use explicit param, then env var, then let the factory decide
+        self.embed_model_name = embed_model or os.getenv("LLM_EMBED_MODEL")
 
         # Configure LlamaIndex global settings
         api_key = os.getenv("LLM_API_KEY")
         if not api_key:
             raise ValueError("LLM_API_KEY environment variable is required")
 
-        # Use our custom embedding wrapper that forces 768 dimensions
-        fixed_embedding = FixedDimensionGeminiEmbedding(
-            api_key=api_key,
-            model_name=embed_model,
-        )
-        Settings.embed_model = fixed_embedding
+        # Use the factory to pick the right embedding model
+        Settings.embed_model = get_embedding_model(api_key=api_key, embed_model_name=self.embed_model_name)
 
         # Parse DB URL components for PGVectorStore
         url = sqlalchemy.engine.url.make_url(db_url)
@@ -53,7 +48,7 @@ class NaiveRAGRunner(BaseRAGRunner):
             user=url.username,
             password=url.password,
             table_name=TABLE_NAME,
-            embed_dim=768,
+            embed_dim=1024,
         )
         self.index = None
 
@@ -81,7 +76,7 @@ class NaiveRAGRunner(BaseRAGRunner):
                     user=url.username,
                     password=url.password,
                     table_name=TABLE_NAME,
-                    embed_dim=768,
+                    embed_dim=1024,
                 )
                 print(f"    Vector store recreated")
         except Exception as e:

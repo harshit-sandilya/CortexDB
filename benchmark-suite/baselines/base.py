@@ -3,7 +3,6 @@
 from abc import ABC, abstractmethod
 import time
 import os
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 
@@ -42,7 +41,7 @@ class BaseRAGRunner(ABC):
         """Clean up resources (drop pgvector tables, close connections, etc.)."""
 
     def generate_answer(self, query: str, retrieved_chunks: list[str]) -> str:
-        """Generate an answer from retrieved chunks using Gemini.
+        """Generate an answer from retrieved chunks using the configured LLM.
 
         Baselines use a simple RAG prompt: stuff all retrieved chunks into
         context and ask the LLM to answer. CortexDB overrides this to use
@@ -56,17 +55,13 @@ class BaseRAGRunner(ABC):
             Generated answer string.
         """
         load_dotenv()
+        provider = os.getenv("LLM_PROVIDER", "GEMINI").upper()
         api_key = os.getenv("LLM_API_KEY")
         if not api_key:
             return "[ERROR: No API key for answer generation]"
 
-        try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel("gemini-2.0-flash")
-
-            context = "\n".join(f"- {chunk}" for chunk in retrieved_chunks)
-
-            prompt = f"""Answer the user's question using ONLY the provided context.
+        context = "\n".join(f"- {chunk}" for chunk in retrieved_chunks)
+        prompt = f"""Answer the user's question using ONLY the provided context.
 If the context does not contain enough information, say "I don't know based on the available context."
 
 Context:
@@ -74,10 +69,42 @@ Context:
 
 Question: "{query}"
 """
-            response = model.generate_content(prompt)
-            return response.text.strip()
+
+        try:
+            if provider == "CUSTOM":
+                return self._generate_with_openai_proxy(prompt, api_key)
+            else:
+                return self._generate_with_gemini(prompt, api_key)
         except Exception as e:
             return f"[Answer generation failed: {e}]"
+
+    def _generate_with_openai_proxy(self, prompt: str, api_key: str) -> str:
+        """Generate answer using OpenAI-compatible proxy (/v1/chat/completions)."""
+        import openai
+
+        base_url = os.getenv("LLM_BASE_URL", "http://dummy-llm-endpoint.local")
+        chat_model = os.getenv("LLM_CHAT_MODEL", "devstral-2-123b")
+
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url=f"{base_url}/v1",
+            timeout=30.0,
+        )
+        response = client.chat.completions.create(
+            model=chat_model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()
+
+    def _generate_with_gemini(self, prompt: str, api_key: str) -> str:
+        """Generate answer using Gemini (default fallback)."""
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content(prompt)
+        return response.text.strip()
 
     def timed_retrieve(self, query: str, k: int = 5) -> tuple[list[str], float]:
         """Retrieve with latency measurement.

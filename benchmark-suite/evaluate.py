@@ -9,7 +9,6 @@ import traceback
 from dotenv import load_dotenv
 import pandas as pd
 from tabulate import tabulate
-import google.generativeai as genai
 
 from baselines.naive_rag import NaiveRAGRunner
 from baselines.advanced_rag import AdvancedRAGRunner
@@ -79,14 +78,14 @@ def calculate_metrics(retrieved: list, ground_truth: list) -> tuple:
 def score_answer_quality(query: str, answer: str, ground_truth_snippets: list, api_key: str) -> float:
     """Score answer quality using LLM-as-judge.
     
-    Sends the generated answer to Gemini and asks it to score how well the answer
+    Sends the generated answer to the configured LLM and asks it to score how well the answer
     covers the expected facts (ground truth snippets) on a scale of 0.0 to 1.0.
     
     Args:
         query: The original user question.
         answer: The generated answer to score.
         ground_truth_snippets: List of expected facts/entities the answer should cover.
-        api_key: Gemini API key.
+        api_key: LLM API key.
         
     Returns:
         Float score between 0.0 and 1.0.
@@ -94,13 +93,9 @@ def score_answer_quality(query: str, answer: str, ground_truth_snippets: list, a
     if not answer or answer.startswith("[ERROR") or answer.startswith("[Answer generation failed"):
         return 0.0
 
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+    facts_list = "\n".join(f"  - {fact}" for fact in ground_truth_snippets)
 
-        facts_list = "\n".join(f"  - {fact}" for fact in ground_truth_snippets)
-
-        scoring_prompt = f"""You are an expert evaluator for a question-answering system.
+    scoring_prompt = f"""You are an expert evaluator for a question-answering system.
 
 Score the following answer based on how well it covers the expected facts.
 
@@ -121,8 +116,33 @@ Score the following answer based on how well it covers the expected facts.
 
 Respond with ONLY a single decimal number between 0.0 and 1.0. Nothing else."""
 
-        response = model.generate_content(scoring_prompt)
-        score_text = response.text.strip()
+    try:
+        provider = os.getenv("LLM_PROVIDER", "GEMINI").upper()
+
+        if provider == "CUSTOM":
+            import openai
+
+            base_url = os.getenv("LLM_BASE_URL", "http://dummy-llm-endpoint.local")
+            chat_model = os.getenv("LLM_CHAT_MODEL", "devstral-2-123b")
+
+            client = openai.OpenAI(
+                api_key=api_key,
+                base_url=f"{base_url}/v1",
+                timeout=30.0,
+            )
+            response = client.chat.completions.create(
+                model=chat_model,
+                max_tokens=16,
+                messages=[{"role": "user", "content": scoring_prompt}],
+            )
+            score_text = response.choices[0].message.content.strip()
+        else:
+            import google.generativeai as genai
+
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            response = model.generate_content(scoring_prompt)
+            score_text = response.text.strip()
         
         # Parse the score — handle edge cases
         score = float(score_text)
@@ -158,8 +178,8 @@ def main():
     parser.add_argument("--skip-cortexdb", action="store_true", help="Skip the CortexDB runner (useful if backend is not running)")
     parser.add_argument("--num-queries", type=int, default=40, help="Limit the number of queries to test")
     parser.add_argument("--k", type=int, default=5, help="Top-K context chunks to retrieve")
-    parser.add_argument("--dataset-type", type=str, choices=["hotpot", "cortexdb"], default="hotpot",
-                      help="Type of dataset to use: 'hotpot' (general) or 'cortexdb' (optimized for CortexDB)")
+    parser.add_argument("--dataset-type", type=str, choices=["hotpot", "cortexdb", "heavy"], default="hotpot",
+                      help="Type of dataset to use: 'hotpot' (general), 'cortexdb' (optimized), or 'heavy' (combined)")
     parser.add_argument("--skip-answer-quality", action="store_true",
                       help="Skip answer generation and quality scoring (faster, retrieval-only evaluation)")
     args = parser.parse_args()
@@ -169,7 +189,10 @@ def main():
     api_key = os.getenv("LLM_API_KEY", "")
 
     # Determine which dataset to use
-    if args.dataset_type == "cortexdb":
+    if args.dataset_type == "heavy":
+        dataset_path = "datasets/cortexdb_combined_heavy_dataset.json"
+        print(f"Using Heavy Combined dataset: {dataset_path}")
+    elif args.dataset_type == "cortexdb":
         dataset_path = "datasets/cortexdb_golden_dataset_complete.json"
         print(f"Using CortexDB-optimized dataset: {dataset_path}")
     elif args.dataset == "datasets/hotpot_benchmark.json":  # Default path
@@ -187,7 +210,6 @@ def main():
 
     # Database URL
     db_url = os.getenv("PG_URL", "postgresql://myuser:secret@localhost:5432/mydatabase")
-    cohere_api_key = os.getenv("COHERE_API_KEY")
 
     # ── Load Dataset ──────────────────────────────────────────────────
     print(f"Loading dataset from {dataset_path}...")
@@ -225,14 +247,11 @@ def main():
     except Exception as e:
         print(f"  [FAIL] Naive RAG failed: {e}")
     
-    if cohere_api_key:
-        try:
-            runners.append(AdvancedRAGRunner(db_url=db_url, cohere_api_key=cohere_api_key))
-            print(f"  [OK] Advanced RAG initialized")
-        except Exception as e:
-            print(f"  [FAIL] Advanced RAG failed: {e}")
-    else:
-        print("  [INFO] COHERE_API_KEY not set — skipping Advanced RAG")
+    try:
+        runners.append(AdvancedRAGRunner(db_url=db_url))
+        print(f"  [OK] Advanced RAG initialized")
+    except Exception as e:
+        print(f"  [FAIL] Advanced RAG failed: {e}")
         
     try:
         runners.append(HyDERAGRunner(db_url=db_url))

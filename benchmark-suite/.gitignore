@@ -15,3 +15,10 @@ env/
 # Results and logs
 results.csv
 *.log
+
+# Scratch / debug scripts
+_test_*.py
+
+# IDE
+.idea/
+.vscode/

@@ -39,12 +39,17 @@ class CortexDBRunner(BaseRAGRunner):
                 raise RuntimeError("LLM_API_KEY not found")
 
             setup_url = f"{self.api_url}/api/setup"
+            base_url = os.getenv("LLM_BASE_URL")
             setup_data = {
                 "provider": provider,
                 "apiKey": api_key,
                 "chatModelName": chat_model,
                 "embedModelName": embed_model
             }
+            # Only send baseUrl for CUSTOM provider to avoid leaking
+            # irrelevant URLs (e.g. ngrok) to other providers like GEMINI
+            if base_url and provider.upper() == "CUSTOM":
+                setup_data["baseUrl"] = base_url
 
             response = requests.post(setup_url, json=setup_data, timeout=30)
             response.raise_for_status()
@@ -73,7 +78,7 @@ class CortexDBRunner(BaseRAGRunner):
                 print(f"    Ingested {i + 1}/{len(documents)}")
 
         # Wait for async processing (Entities & Relations)
-        wait_secs = max(15, len(documents) // 20)
+        wait_secs = max(30, int(len(documents) * 1.5))
         print(f"  [{self.name}] Waiting {wait_secs}s for async backend extraction pipeline...")
         time.sleep(wait_secs)
         print(f"  [{self.name}] Ingestion complete.")
