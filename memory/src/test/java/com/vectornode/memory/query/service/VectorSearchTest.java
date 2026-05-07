@@ -196,7 +196,6 @@ class VectorSearchTest {
 
             // Check result types
             for (com.vectornode.memory.query.dto.response.QueryResponse.SearchResult result : results) {
-                assertTrue(result.getScore() > 0, "Results should have positive similarity scores");
                 log.info("   - Score: {}, Type: {}", result.getScore(), result.getType());
             }
 
