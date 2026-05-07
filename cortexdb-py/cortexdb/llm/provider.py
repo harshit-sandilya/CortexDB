@@ -71,7 +71,7 @@ class LLMProvider:
 
         if self.provider == "GEMINI":
             self._init_gemini()
-        elif self.provider in ("OPENAI", "AZURE", "ANTHROPIC", "OPENROUTER"):
+        elif self.provider in ("OPENAI", "AZURE", "ANTHROPIC", "OPENROUTER", "CUSTOM"):
             self._init_openai()
         else:
             raise ValueError(f"Unsupported provider: {self.provider}")

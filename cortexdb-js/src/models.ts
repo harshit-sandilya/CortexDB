@@ -14,6 +14,7 @@ export enum LLMApiProvider {
     ANTHROPIC = "ANTHROPIC",
     AZURE = "AZURE",
     OPENROUTER = "OPENROUTER",
+    CUSTOM = "CUSTOM",
 }
 
 export enum ConverserRole {
