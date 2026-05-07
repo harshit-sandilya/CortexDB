@@ -199,6 +199,7 @@ class TestRealLLM:
             api_key=os.environ["LLM_API_KEY"],
             chat_model=os.environ.get("LLM_CHAT_MODEL"),
             embed_model=os.environ.get("LLM_EMBED_MODEL"),
+            base_url=os.environ.get("LLM_BASE_URL"),
         )
 
     def test_get_embedding_returns_vector(self):
