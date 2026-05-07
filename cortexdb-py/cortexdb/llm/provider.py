@@ -114,6 +114,9 @@ class LLMProvider:
                 resolved_base_url = self.base_url or self._DEFAULT_BASE_URLS.get(
                     self.provider, "https://api.openai.com/v1"
                 )
+                # Ensure base URL ends with /v1 for OpenAI-compatible endpoints
+                if self.provider == "CUSTOM" and not resolved_base_url.rstrip("/").endswith("/v1"):
+                    resolved_base_url = resolved_base_url.rstrip("/") + "/v1"
                 self._openai_client = openai.OpenAI(
                     api_key=self.api_key,
                     base_url=resolved_base_url,
