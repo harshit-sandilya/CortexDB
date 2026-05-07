@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class IngestService {
 
         private final ObjectMapper objectMapper;
+        private final IngestionWorker ingestionWorker;
 
         @PersistenceContext
         private EntityManager entityManager;
@@ -72,8 +73,8 @@ public class IngestService {
                                         knowledgeBase.getMetadata(),
                                         knowledgeBase.getCreatedAt());
 
-                        // Return response with the full persisted entity
-                        return IngestResponse.builder()
+                        // Construct response
+                        IngestResponse response = IngestResponse.builder()
                                         .knowledgeBase(knowledgeBase)
                                         .status("SUCCESS")
                                         .message("Prompt ingested successfully")
@@ -81,8 +82,13 @@ public class IngestService {
                                         .embeddingTimeMs(embeddingTime)
                                         .build();
 
+                        // Trigger async processing phase
+                        ingestionWorker.processKnowledgeBase(knowledgeBase.getId(), request.getText());
+
+                        return response;
+
                 } catch (Exception e) {
-                        log.error("Failed to ingest prompt", e);
+                        log.warn("Failed to ingest prompt: {}", e.getMessage());
                         throw new RuntimeException("Ingestion failed: " + e.getMessage(), e);
                 }
         }
@@ -105,7 +111,7 @@ public class IngestService {
                                         .converser(com.vectornode.memory.entity.enums.ConverserRole.DOCUMENT)
                                         .content(request.getDocumentText())
                                         // Documents might be too large to embed whole natively - we will leave it null
-                                        .vectorEmbedding(new float[768])
+                                        .vectorEmbedding(new float[1024])
                                         .build();
 
                         // Add metadata
@@ -126,8 +132,8 @@ public class IngestService {
                                         knowledgeBase.getMetadata(),
                                         knowledgeBase.getCreatedAt());
 
-                        // Return response with the full persisted entity
-                        return IngestResponse.builder()
+                        // Construct response
+                        IngestResponse response = IngestResponse.builder()
                                         .knowledgeBase(knowledgeBase)
                                         .status("SUCCESS")
                                         .message("Document ingested successfully")
@@ -135,8 +141,13 @@ public class IngestService {
                                         .embeddingTimeMs(0L)
                                         .build();
 
+                        // Trigger async processing phase
+                        ingestionWorker.processDocumentTree(knowledgeBase.getId(), request.getDocumentText());
+
+                        return response;
+
                 } catch (Exception e) {
-                        log.error("Failed to ingest document", e);
+                        log.warn("Failed to ingest document: {}", e.getMessage());
                         throw new RuntimeException("Ingestion failed: " + e.getMessage(), e);
                 }
         }

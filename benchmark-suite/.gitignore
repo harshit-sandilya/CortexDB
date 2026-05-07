@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# Environment variables
+.env
+
+# Results and logs
+results.csv
+*.log
+
+# Scratch / debug scripts
+_test_*.py
+
+# IDE
+.idea/
+.vscode/

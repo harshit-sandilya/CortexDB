@@ -64,26 +64,31 @@ class QueryEndpointE2ETest {
 
     @BeforeEach
     void setUp() {
-        // Create test data with 768-dimensional vectors
+        // Clean up any existing test entities to prevent duplicate issues
+        entityRepository.findByName("Neural Network").ifPresent(entity -> {
+            entityRepository.delete(entity);
+        });
+
+        // Create test data with 1024-dimensional vectors
         savedKb = new KnowledgeBase();
         savedKb.setUid("test-user-e2e");
         savedKb.setConverser(ConverserRole.USER);
         savedKb.setContent("Machine learning models require training data.");
-        savedKb.setVectorEmbedding(create768Vector(0.5f));
+        savedKb.setVectorEmbedding(create1024Vector(0.5f));
         savedKb = knowledgeBaseRepository.save(savedKb);
 
         savedContext = new Context();
         savedContext.setKnowledgeBase(savedKb);
         savedContext.setTextChunk("Neural networks process data in layers.");
         savedContext.setChunkIndex(0);
-        savedContext.setVectorEmbedding(create768VectorWithPattern(0.5f, 1));
+        savedContext.setVectorEmbedding(create1024VectorWithPattern(0.5f, 1));
         savedContext = contextRepository.save(savedContext);
 
         savedEntity = new RagEntity();
         savedEntity.setName("Neural Network");
         savedEntity.setType("CONCEPT");
         savedEntity.setDescription("A machine learning model inspired by biological neural networks");
-        savedEntity.setVectorEmbedding(create768VectorWithPattern(0.5f, 2));
+        savedEntity.setVectorEmbedding(create1024VectorWithPattern(0.5f, 2));
         savedEntity = entityRepository.save(savedEntity);
     }
 
@@ -224,14 +229,14 @@ class QueryEndpointE2ETest {
 
     // ==================== HELPER METHODS ====================
 
-    private float[] create768Vector(float value) {
-        float[] vector = new float[768];
+    private float[] create1024Vector(float value) {
+        float[] vector = new float[1024];
         Arrays.fill(vector, value);
         return vector;
     }
 
-    private float[] create768VectorWithPattern(float baseValue, int patternIndex) {
-        float[] vector = new float[768];
+    private float[] create1024VectorWithPattern(float baseValue, int patternIndex) {
+        float[] vector = new float[1024];
         for (int i = 0; i < vector.length; i++) {
             vector[i] = baseValue + (float) Math.sin((i + patternIndex) * 0.01);
         }

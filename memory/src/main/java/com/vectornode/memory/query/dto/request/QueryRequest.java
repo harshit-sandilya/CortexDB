@@ -25,6 +25,9 @@ public class QueryRequest {
 
     private Map<String, Object> filters;
 
+    @Builder.Default
+    private boolean generateAnswer = true;
+
     // Optional: Choose strategy if we implement multiple (e.g., VECTOR, GRAPH,
     // HYBRID)
     // private SearchStrategy strategy;

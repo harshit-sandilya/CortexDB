@@ -233,10 +233,17 @@ public class IngestionWorker {
                         }
 
                         // Link entity to context (persists to entity_context_junction table)
-                        entity.getContexts().add(context);
-                        entityManager.merge(entity);
+                        // Check if junction already exists to avoid duplicate key violations
+                        boolean junctionExists = entity.getContexts().stream()
+                                .anyMatch(ctx -> ctx.getId().equals(context.getId()));
 
-                        log.info("JUNCTION_ROW | entity_id={} | context_id={}", entity.getId(), context.getId());
+                        if (!junctionExists) {
+                            entity.getContexts().add(context);
+                            entityManager.merge(entity);
+                            log.info("JUNCTION_ROW | entity_id={} | context_id={}", entity.getId(), context.getId());
+                        } else {
+                            log.info("JUNCTION_SKIP | entity_id={} | context_id={} | junction already exists", entity.getId(), context.getId());
+                        }
                         entityMap.put(entity.getName(), entity);
                 }
 

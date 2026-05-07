@@ -14,6 +14,10 @@ import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.OpenAiEmbeddingOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 
+import org.springframework.ai.anthropic.AnthropicChatModel;
+import org.springframework.ai.anthropic.AnthropicChatOptions;
+import org.springframework.ai.anthropic.api.AnthropicApi;
+
 import org.springframework.ai.azure.openai.AzureOpenAiChatModel;
 import org.springframework.ai.azure.openai.AzureOpenAiChatOptions;
 import org.springframework.ai.azure.openai.AzureOpenAiEmbeddingModel;
@@ -59,7 +63,7 @@ public class LLMProvider {
                     embeddingModel = new OpenAiEmbeddingModel(geminiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder()
                                     .model(embedModelName)
-                                    .dimensions(768)
+                                    .dimensions(1024)
                                     .build(),
                             RetryTemplate.builder().build());
 
@@ -79,7 +83,7 @@ public class LLMProvider {
                     embeddingModel = new OpenAiEmbeddingModel(openAiApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder()
                                     .model(embedModelName)
-                                    .dimensions(768)
+                                    .dimensions(1024)
                                     .build(),
                             RetryTemplate.builder().build());
 
@@ -106,7 +110,7 @@ public class LLMProvider {
                     embeddingModel = new OpenAiEmbeddingModel(compatApi, MetadataMode.EMBED,
                             OpenAiEmbeddingOptions.builder()
                                     .model(embedModelName)
-                                    .dimensions(768)
+                                    .dimensions(1024)
                                     .build(),
                             RetryTemplate.builder().build());
 
@@ -134,6 +138,29 @@ public class LLMProvider {
                     chatModel = AzureOpenAiChatModel.builder()
                             .openAIClientBuilder(azClientBuilder)
                             .defaultOptions(AzureOpenAiChatOptions.builder().deploymentName(chatModelName).build())
+                            .observationRegistry(ObservationRegistry.NOOP)
+                            .build();
+                    break;
+                case "CUSTOM":
+                    // CUSTOM provider: Exposes OpenAI-compatible API via proxy
+                    String customBaseUrl = (baseUrl == null || baseUrl.isBlank())
+                            ? "http://dummy-llm-endpoint.local"
+                            : baseUrl;
+                    log.info("CUSTOM provider: using OpenAi-compatible API with baseUrl={}", customBaseUrl);
+
+                    OpenAiApi customApi = OpenAiApi.builder().baseUrl(customBaseUrl).apiKey(apiKey).build();
+
+                    embeddingModel = new OpenAiEmbeddingModel(customApi, MetadataMode.EMBED,
+                            OpenAiEmbeddingOptions.builder()
+                                    .model(embedModelName)
+                                    .dimensions(1024)
+                                    .build(),
+                            RetryTemplate.builder().build());
+
+                    chatModel = OpenAiChatModel.builder()
+                            .openAiApi(customApi)
+                            .defaultOptions(OpenAiChatOptions.builder().model(chatModelName).build())
+                            .retryTemplate(RetryTemplate.builder().build())
                             .observationRegistry(ObservationRegistry.NOOP)
                             .build();
                     break;

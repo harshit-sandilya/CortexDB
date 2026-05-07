@@ -19,6 +19,7 @@ class LLMApiProvider(str, Enum):
     ANTHROPIC = "ANTHROPIC"
     AZURE = "AZURE"
     OPENROUTER = "OPENROUTER"
+    CUSTOM = "CUSTOM"
 
 
 class ConverserRole(str, Enum):

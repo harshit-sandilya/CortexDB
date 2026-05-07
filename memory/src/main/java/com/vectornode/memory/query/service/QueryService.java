@@ -219,16 +219,35 @@ public class QueryService {
                 List<Object[]> rows = entityRepository.findSimilarEntitiesWithScore(vectorString, request.getLimit());
 
                 List<QueryResponse.SearchResult> results = rows.stream()
-                                .map(row -> QueryResponse.SearchResult.builder()
-                                                .id((UUID) row[0])
-                                                .content((String) row[1])
-                                                .score(((Number) row[4]).doubleValue())
-                                                .type("ENTITY")
-                                                .metadata(Map.of(
-                                                                "entityType",
-                                                                Objects.requireNonNullElse(row[2], "UNKNOWN"),
-                                                                "description", Objects.requireNonNullElse(row[3], "")))
-                                                .build())
+                                .map(row -> {
+                                    // Handle UUID/String casting for entity ID (PostgreSQL native query issue)
+                                    Object idObj = row[0];
+                                    UUID entityId;
+                                    try {
+                                        if (idObj instanceof UUID) {
+                                            entityId = (UUID) idObj;
+                                        } else if (idObj instanceof String) {
+                                            entityId = UUID.fromString((String) idObj);
+                                        } else {
+                                            log.warn("Unexpected entity ID type: {}, skipping", idObj.getClass().getName());
+                                            return null;
+                                        }
+                                    } catch (Exception e) {
+                                        log.error("Failed to parse entity ID: {}", idObj, e);
+                                        return null;
+                                    }
+                                    return QueryResponse.SearchResult.builder()
+                                                    .id(entityId)
+                                                    .content((String) row[1])
+                                                    .score(((Number) row[4]).doubleValue())
+                                                    .type("ENTITY")
+                                                    .metadata(Map.of(
+                                                                    "entityType",
+                                                                    Objects.requireNonNullElse(row[2], "UNKNOWN"),
+                                                                    "description", Objects.requireNonNullElse(row[3], "")))
+                                                    .build();
+                                })
+                                .filter(Objects::nonNull)
                                 .toList();
 
                 long totalTime = System.currentTimeMillis() - startTime;
@@ -672,44 +691,110 @@ public class QueryService {
                 String classificationPrompt = """
                                 Analyze this query and classify the user's intent into exactly one of these two categories:
 
-                                PROMPT: The user is asking about their personal conversation history, past facts, episodic memory, or personalized context.
-                                DOCUMENT: The user is asking for reference information from an uploaded document, manual, or knowledge base.
+                                PROMPT: Simple text-based queries that should use direct semantic search on text chunks.
+                                       Use for: factual questions, general knowledge, short answers, when no document structure is needed.
+                                       Examples: "What is Kubernetes?", "Which company created Java?", "How does React work?"
+                                DOCUMENT: Queries that require hierarchical document traversal (PageIndex).
+                                         Use ONLY for: ingested documents (PDFs, manuals) with clear section structure.
+                                         Examples: "Explain section 3.2 of the Kubernetes manual", "Navigate to the API reference in the docs"
 
                                 Output ONLY the word PROMPT or DOCUMENT.
+                                Default to PROMPT if unsure - most queries should use simple semantic search.
 
                                 Query: "%s"
                                 """
                                 .formatted(request.getQuery());
 
-                String classification = LLMProvider.callLLM(classificationPrompt).trim().toUpperCase();
-                log.info("Agentic Router classified query as: {}", classification);
+                String classification = "DOCUMENT";
+                try {
+                        String llmResponse = LLMProvider.callLLM(classificationPrompt);
+                        if (llmResponse != null) {
+                                classification = llmResponse.trim().toUpperCase();
+                        }
+                        log.info("Agentic Router classified query as: {}", classification);
+                } catch (Exception e) {
+                        log.warn("LLM error during classification (rate limit?), defaulting to DOCUMENT: {}", e.getMessage());
+                }
 
                 List<QueryResponse.SearchResult> retrievedContext;
 
                 // 2. Routed Execution
+                // Note: Most queries should use PROMPT (simple semantic search)
+                // DOCUMENT (PageIndex) is only for hierarchical document traversal
                 if ("PROMPT".equals(classification)) {
-                        retrievedContext = executePromptSearch(request);
+                    log.info("Using SimpleMEM search (direct semantic search on text chunks)");
+                    retrievedContext = executePromptSearch(request);
                 } else {
-                        retrievedContext = executeDocumentSearch(request);
+                    log.info("Using PageIndex traversal (for hierarchical documents)");
+                    retrievedContext = executeDocumentSearch(request);
                 }
 
-                // 3. Final Generation
-                StringBuilder contextBuilder = new StringBuilder();
-                for (QueryResponse.SearchResult result : retrievedContext) {
-                        contextBuilder.append("- ").append(result.getContent()).append("\n");
+                // 3. Final Generation (Optional for Benchmark)
+                String finalAnswer = null;
+                if (request.isGenerateAnswer()) {
+                        // Build structured context with separate sections for chunks,
+                        // entity metadata, and relation metadata
+                        StringBuilder contextChunks = new StringBuilder();
+                        StringBuilder entityKnowledge = new StringBuilder();
+                        StringBuilder relationKnowledge = new StringBuilder();
+
+                        for (QueryResponse.SearchResult result : retrievedContext) {
+                            switch (result.getType()) {
+                                case "CONTEXT", "CHUNK" -> contextChunks
+                                        .append("- ").append(result.getContent()).append("\n");
+
+                                case "ENTITY_METADATA", "LINKED_ENTITY", "SIMILAR_ENTITY" -> {
+                                    Map<String, Object> meta = result.getMetadata() != null ? result.getMetadata() : Map.of();
+                                    entityKnowledge
+                                        .append("- Entity: ").append(result.getContent())
+                                        .append(" | Metadata: ").append(meta.getOrDefault("dbMetadata", "{}"))
+                                        .append("\n");
+                                }
+
+                                case "RELATION_METADATA", "RELATION_2HOP" -> {
+                                    Map<String, Object> meta = result.getMetadata() != null ? result.getMetadata() : Map.of();
+                                    relationKnowledge
+                                        .append("- ").append(result.getContent())
+                                        .append(" | Metadata: ").append(meta.getOrDefault("dbMetadata", "{}"))
+                                        .append("\n");
+                                }
+
+                                default -> contextChunks
+                                        .append("- ").append(result.getContent()).append("\n");
+                            }
+                        }
+
+                        // Compose structured prompt with all three knowledge sources
+                        StringBuilder fullContext = new StringBuilder();
+
+                        if (!contextChunks.isEmpty()) {
+                            fullContext.append("Retrieved Contexts:\n").append(contextChunks).append("\n");
+                        }
+                        if (!entityKnowledge.isEmpty()) {
+                            fullContext.append("Entity Knowledge:\n").append(entityKnowledge).append("\n");
+                        }
+                        if (!relationKnowledge.isEmpty()) {
+                            fullContext.append("Entity Relationships:\n").append(relationKnowledge).append("\n");
+                        }
+
+                        String finalPrompt = """
+                                        Answer the user's question using ONLY the provided context. \
+                                        Use the entity knowledge and relationships to enrich your answer where relevant. \
+                                        If the context does not contain the answer, say "I don't know based on my memory."
+
+                                        %s
+
+                                        Question: "%s"
+                                        """
+                                        .formatted(fullContext.toString(), request.getQuery());
+
+                        try {
+                                finalAnswer = LLMProvider.callLLM(finalPrompt);
+                        } catch (Exception e) {
+                                log.warn("LLM failed to generate final answer: {}", e.getMessage());
+                                finalAnswer = "I'm sorry, I could not generate an answer at this time due to an AI error.";
+                        }
                 }
-
-                String finalPrompt = """
-                                Answer the user's question using ONLY the provided context. If the context does not contain the answer, say "I don't know based on my memory."
-
-                                Context:
-                                %s
-
-                                Question: "%s"
-                                """
-                                .formatted(contextBuilder.toString(), request.getQuery());
-
-                String finalAnswer = LLMProvider.callLLM(finalPrompt);
 
                 long totalTime = System.currentTimeMillis() - startTime;
                 log.info("Agentic Router completed in {}ms", totalTime);
@@ -719,37 +804,157 @@ public class QueryService {
                 return QueryResponse.builder()
                                 .query(request.getQuery())
                                 .results(retrievedContext)
+                                .finalAnswer(finalAnswer)
                                 .processingTimeMs(totalTime)
                                 .build();
         }
 
         /**
-         * SimpleMem Hybrid Search (Vector + Keyword)
+         * SimpleMem Hybrid Search with LLM-based Entity Extraction and Graph Traversal.
+         *
+         * Flow:
+         * 1. Vector search on contexts via contextRepository.findSimilarWithScore()
+         * 2. Extract entity names from the query text using an LLM call
+         * 3. Look up each extracted entity in the entities table
+         * 4. If found, return the entity metadata (type, description) from the entities table
+         * 5. 1-hop graph traversal: find entities directly connected to the current entity
+         *    and return the relation metadata (relationType, edgeWeight) from the relations table
+         *
+         * Returns three categories of results:
+         *   - CONTEXT chunks (from vector search)
+         *   - ENTITY_METADATA (type + description for each recognized entity)
+         *   - RELATION_METADATA (relation details for each 1-hop connected entity)
          */
         private List<QueryResponse.SearchResult> executePromptSearch(QueryRequest request) {
-                log.info("Executing SimpleMEM Hybrid Search");
-                float[] embedding = LLMProvider.getEmbedding(request.getQuery());
-                String vectorString = toVectorString(embedding);
-
-                // We use the existing hybridSearch functionality or similar logic.
-                // For now, we perform a standard semantic search on contexts, which inherently
-                // searches SimpleMem chunks.
-                // Optional: filter by metadata keywords if needed, but vector search covers the
-                // baseline.
-
-                List<Object[]> contextRows = contextRepository.findSimilarWithScore(vectorString, request.getLimit());
+                log.info("Executing SimpleMEM Hybrid Search with LLM Entity Extraction & Graph Traversal");
                 List<QueryResponse.SearchResult> results = new ArrayList<>();
 
-                for (Object[] row : contextRows) {
+                try {
+                    // ── Step 1: Hybrid Vector Search (Chunks + Vector Entities) ────────
+                    // We increase the limit inside the hybrid request to gather deeper graph context
+                    QueryRequest hybridReq = new QueryRequest();
+                    hybridReq.setQuery(request.getQuery());
+                    hybridReq.setLimit(request.getLimit() * 2);
+                    
+                    QueryResponse hybridResponse = hybridSearch(hybridReq);
+                    results.addAll(hybridResponse.getResults());
+
+                    log.info("Hybrid search injected {} base context elements", hybridResponse.getResults().size());
+
+                    // ── Step 2: Extract entities from the query via LLM ───────────────
+                    String entityExtractionPrompt = """
+                            Extract all named entities (people, organizations, technologies, concepts, \
+                            places, products, events, etc.) from the following query.
+
+                            Return ONLY a comma-separated list of entity names, nothing else.
+                            If there are no entities, return "NONE".
+
+                            Query: "%s"
+                            """.formatted(request.getQuery());
+
+                    String llmResponse = LLMProvider.callLLM(entityExtractionPrompt);
+                    List<String> extractedEntityNames = parseExtractedEntityNames(llmResponse);
+
+                    log.info("LLM extracted {} entities from query: {}", extractedEntityNames.size(), extractedEntityNames);
+
+                    // ── Step 3 & 4: Look up each entity and retrieve metadata ─────────
+                    for (String entityName : extractedEntityNames) {
+                        Optional<RagEntity> entityOpt = entityRepository.findByNameIgnoreCase(entityName.trim());
+
+                        if (entityOpt.isEmpty()) {
+                            log.debug("Entity '{}' not found in database, skipping", entityName);
+                            continue;
+                        }
+
+                        RagEntity entity = entityOpt.get();
+                        log.info("Found entity '{}' (id={}, type={})", entity.getName(), entity.getId(), entity.getType());
+
+                        // Add the actual metadata JSONB from the entities table
+                        String entityMetadataStr = entity.getMetadata() != null
+                                ? entity.getMetadata().toString() : "{}";
+
                         results.add(QueryResponse.SearchResult.builder()
-                                        .id((UUID) row[0])
-                                        .content((String) row[1])
-                                        .score(((Number) row[3]).doubleValue())
-                                        .type("SIMPLE_MEM_CHUNK")
-                                        .build());
+                                .id(entity.getId())
+                                .content(entity.getName())
+                                .score(1.0) // Exact match from LLM extraction
+                                .type("ENTITY_METADATA")
+                                .metadata(Map.of("dbMetadata", entityMetadataStr))
+                                .build());
+
+                        // ── Step 5: 1-hop graph traversal ─────────────────────────────
+                        // Find outgoing relations (current entity → connected entity)
+                        List<Object[]> outgoingRelations = relationRepository.findOutgoingRelations(entity.getId());
+                        for (Object[] rel : outgoingRelations) {
+                            String relationType = (String) rel[0];
+                            String targetEntityName = (String) rel[1];
+                            double edgeWeight = ((Number) rel[2]).doubleValue();
+                            String relationMetadataStr = rel[3] != null ? rel[3].toString() : "{}";
+
+                            results.add(QueryResponse.SearchResult.builder()
+                                    .content(entity.getName() + " -> " + targetEntityName)
+                                    .score(edgeWeight)
+                                    .type("RELATION_METADATA")
+                                    .metadata(Map.of("dbMetadata", relationMetadataStr))
+                                    .build());
+                        }
+
+                        // Find incoming relations (connected entity → current entity)
+                        List<Object[]> incomingRelations = relationRepository.findIncomingRelations(entity.getId());
+                        for (Object[] rel : incomingRelations) {
+                            String sourceEntityName = (String) rel[0];
+                            String relationType = (String) rel[1];
+                            double edgeWeight = ((Number) rel[2]).doubleValue();
+                            String relationMetadataStr = rel[3] != null ? rel[3].toString() : "{}";
+
+                            results.add(QueryResponse.SearchResult.builder()
+                                    .content(sourceEntityName + " -> " + entity.getName())
+                                    .score(edgeWeight)
+                                    .type("RELATION_METADATA")
+                                    .metadata(Map.of("dbMetadata", relationMetadataStr))
+                                    .build());
+                        }
+
+                        // ── Step 5.5: 2-hop graph traversal ─────────────────────────────
+                        List<String> twoHopConnections = relationRepository.findTwoHopConnections(entity.getId());
+                        for (String targetEntityName : twoHopConnections) {
+                            results.add(QueryResponse.SearchResult.builder()
+                                    .content(entity.getName() + " -> [Intermediate] -> " + targetEntityName)
+                                    .score(0.5) // Lower weight for 2-hop
+                                    .type("RELATION_2HOP")
+                                    .metadata(Map.of("hopCount", 2))
+                                    .build());
+                        }
+
+                        log.info("Graph traversal for '{}': {} outgoing, {} incoming, {} 2-hop relations",
+                                entity.getName(), outgoingRelations.size(), incomingRelations.size(), twoHopConnections.size());
+                    }
+
+                    log.info("GraphRAG Hybrid Search complete — {} total results", results.size());
+
+                } catch (Exception e) {
+                    log.warn("Error during prompt search, falling back to partial results: {}", e.getMessage());
                 }
 
                 return results;
+        }
+
+        /**
+         * Parses the LLM response from entity extraction into a list of entity names.
+         * Expects a comma-separated list or "NONE".
+         */
+        private List<String> parseExtractedEntityNames(String llmResponse) {
+                if (llmResponse == null || llmResponse.isBlank() || llmResponse.trim().equalsIgnoreCase("NONE")) {
+                    return List.of();
+                }
+
+                List<String> names = new ArrayList<>();
+                for (String name : llmResponse.split(",")) {
+                    String trimmed = name.trim();
+                    if (!trimmed.isEmpty()) {
+                        names.add(trimmed);
+                    }
+                }
+                return names;
         }
 
         /**
@@ -764,19 +969,51 @@ public class QueryService {
                 // relevant DOCUMENT_SECTION entity,
                 // then traverse its children.
 
-                float[] embedding = LLMProvider.getEmbedding(request.getQuery());
-                String vectorString = toVectorString(embedding);
-
-                // Vector search to find the closest entry point
-                List<Object[]> entityRows = entityRepository.findSimilarEntitiesWithScore(vectorString, 5);
                 List<QueryResponse.SearchResult> results = new ArrayList<>();
 
-                if (entityRows.isEmpty())
+                try {
+                    float[] embedding = LLMProvider.getEmbedding(request.getQuery());
+                    String vectorString = toVectorString(embedding);
+
+                    // Vector search to find the closest entry point
+                    List<Object[]> entityRows = entityRepository.findSimilarEntitiesWithScore(vectorString, 5);
+
+                    if (entityRows.isEmpty())
                         return results;
 
-                // Traverse down from the best matching entity
-                UUID bestEntityId = (UUID) entityRows.get(0)[0];
-                traversePageIndex(bestEntityId, request.getQuery(), results, 0, 3); // Max depth 3
+                    // Traverse down from the best matching entity
+                    // Handle both UUID and String representations (PostgreSQL native query returns String)
+                    Object idObj = entityRows.get(0)[0];
+                    log.info("DEBUG: entityRows.get(0)[0] type: {}, value: {}", idObj.getClass().getName(), idObj);
+                    UUID bestEntityId;
+                    if (idObj instanceof UUID) {
+                        bestEntityId = (UUID) idObj;
+                    } else if (idObj instanceof String) {
+                        bestEntityId = UUID.fromString((String) idObj);
+                    } else {
+                        log.warn("Unexpected entity ID type: {}, trying to cast anyway", idObj.getClass().getName());
+                        // Try casting to String and parsing
+                        try {
+                            bestEntityId = UUID.fromString(idObj.toString());
+                        } catch (Exception e) {
+                            log.error("Failed to parse entity ID: {}", idObj, e);
+                            throw new IllegalStateException("Cannot parse entity ID from: " + idObj, e);
+                        }
+                    }
+                    traversePageIndex(bestEntityId, request.getQuery(), results, 0, 3); // Max depth 3
+                } catch (ClassCastException e) {
+                    log.warn("ClassCastException during document search (UUID casting issue): {}", e.getMessage());
+                    // Fallback to empty results if casting fails
+                } catch (Exception e) {
+                    log.warn("LLM failed during document search (rate limit/embedding error?), falling back to empty results: {}", e.getMessage());
+                    // Fallback to empty results if LLM fails
+                }
+
+                // If document search returned no results, fallback to simple semantic search
+                if (results.isEmpty()) {
+                    log.info("Document search returned no results, falling back to SimpleMEM search");
+                    return executePromptSearch(request);
+                }
 
                 return results;
         }
@@ -790,9 +1027,31 @@ public class QueryService {
                 // 1. Add current node's context to accumulation
                 List<Object[]> contexts = entityRepository.findContextsForEntity(currentEntityId);
                 for (Object[] row : contexts) {
+                        // Handle UUID/String casting for context ID (PostgreSQL native query returns UUIDs)
+                        Object contextIdObj = row[0];
+                        UUID contextId;
+                        if (contextIdObj instanceof UUID) {
+                            contextId = (UUID) contextIdObj;
+                        } else if (contextIdObj instanceof String) {
+                            contextId = UUID.fromString((String) contextIdObj);
+                        } else {
+                            log.warn("Unexpected context ID type: {}, skipping", contextIdObj.getClass().getName());
+                            continue; // Skip this context if we can't parse the ID
+                        }
+                        // Handle potential UUID casting for content as well (native query may return UUIDs)
+                        Object contentObj = row[1];
+                        String content;
+                        if (contentObj instanceof String) {
+                            content = (String) contentObj;
+                        } else if (contentObj instanceof UUID) {
+                            content = contentObj.toString(); // Convert UUID to String
+                        } else {
+                            log.warn("Unexpected content type: {}, converting to string", contentObj.getClass().getName());
+                            content = contentObj != null ? contentObj.toString() : "null";
+                        }
                         accumulation.add(QueryResponse.SearchResult.builder()
-                                        .id((UUID) row[0])
-                                        .content((String) row[1])
+                                        .id(contextId)
+                                        .content(content)
                                         .score(0.0) // Score not applicable for direct tree traversal node fetch
                                         .type("DOCUMENT_NODE")
                                         .build());
@@ -839,8 +1098,8 @@ public class QueryService {
                                                         currentDepth + 1, maxDepth);
                                 }
                         }
-                } catch (NumberFormatException e) {
-                        log.warn("LLM failed to output a valid branch index during traversal: {}", e.getMessage());
+                } catch (Exception e) {
+                        log.warn("LLM failed or rate limited during branch traversal: {}", e.getMessage());
                 }
         }
 }

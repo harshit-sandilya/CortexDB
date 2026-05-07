@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,10 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Listens to PostgreSQL NOTIFY events on the 'rag_events' channel.
  * Fire-and-forget dispatch to IngestionWorker for async processing.
  * 
- * Expected notification payloads:
- * KB_CREATED: {"type": "KB_CREATED", "id": "uuid", "content": "text content"}
- * CONTEXT_CREATED: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid",
- * "text_chunk": "chunk text"}
+ * Expected notification payloads (Claim Check pattern — content fetched by ID):
+ * KB_CREATED: {"type": "KB_CREATED", "id": "uuid", "converser": "USER"}
+ * CONTEXT_CREATED: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid"}
  */
 @Component
 @Slf4j
@@ -35,6 +35,8 @@ public class PostgresNotificationListener {
 
     private final DataSource dataSource;
     private final IngestionWorker ingestionWorker;
+    private final com.vectornode.memory.query.repository.KnowledgeBaseRepository knowledgeBaseRepository;
+    private final com.vectornode.memory.query.repository.ContextRepository contextRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -132,16 +134,20 @@ public class PostgresNotificationListener {
     }
 
     /**
-     * Fire-and-forget: Dispatch KB processing to worker based on converser role.
-     * Payload: {"type": "KB_CREATED", "id": "uuid", "converser": "USER", "content":
-     * "text"}
+     * Claim Check: Fetch KB content by ID, then dispatch to worker.
+     * Payload only contains: {"type": "KB_CREATED", "id": "uuid", "converser": "USER"}
      */
     private void handleKbCreated(JsonNode json) {
         UUID kbId = UUID.fromString(json.get("id").asText());
-        String content = json.get("content").asText();
-
-        // Default to USER if converser is missing from legacy payloads
         String converser = json.has("converser") ? json.get("converser").asText() : "USER";
+
+        // Fetch content from database by ID (Claim Check pattern)
+        Optional<com.vectornode.memory.entity.KnowledgeBase> kbOpt = knowledgeBaseRepository.findById(kbId);
+        if (kbOpt.isEmpty()) {
+            log.warn("KB_CREATED notification received but record not found: {}", kbId);
+            return;
+        }
+        String content = kbOpt.get().getContent();
 
         if ("DOCUMENT".equals(converser)) {
             log.info("Dispatching KB_CREATED for id: {} to Document Pipeline (fire-and-forget)", kbId);
@@ -153,18 +159,22 @@ public class PostgresNotificationListener {
     }
 
     /**
-     * Fire-and-forget: Dispatch Context processing to worker.
-     * Payload: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid",
-     * "text_chunk": "text"}
+     * Claim Check: Fetch Context text by ID, then dispatch to worker.
+     * Payload only contains: {"type": "CONTEXT_CREATED", "id": "uuid", "kb_id": "uuid"}
      */
     private void handleContextCreated(JsonNode json) {
         UUID contextId = UUID.fromString(json.get("id").asText());
         UUID kbId = UUID.fromString(json.get("kb_id").asText());
-        String textChunk = json.get("text_chunk").asText();
+
+        // Fetch text chunk from database by ID (Claim Check pattern)
+        Optional<com.vectornode.memory.entity.Context> ctxOpt = contextRepository.findById(contextId);
+        if (ctxOpt.isEmpty()) {
+            log.warn("CONTEXT_CREATED notification received but record not found: {}", contextId);
+            return;
+        }
+        String textChunk = ctxOpt.get().getTextChunk();
 
         log.info("Dispatching CONTEXT_CREATED for id: {} (fire-and-forget)", contextId);
-
-        // Fire-and-forget - don't wait for result
         ingestionWorker.processContext(contextId, kbId, textChunk);
     }
 

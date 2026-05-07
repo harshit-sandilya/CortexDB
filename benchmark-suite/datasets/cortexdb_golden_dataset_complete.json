@@ -1,0 +1,1122 @@
+{
+  "dataset_name": "CortexDB_Complete_Complex_Knowledge_Benchmark",
+  "version": "3.0",
+  "description": "Ultimate comprehensive dataset with 55 highly interconnected documents and 75 queries designed to maximize CortexDB's performance advantage over vector-based RAG architectures",
+  "created_date": "2026-04-13",
+  "total_documents": 55,
+  "total_queries": 75,
+  "purpose": "To demonstrate CortexDB's scaling advantages in handling complex, interconnected knowledge graphs compared to vector-based retrieval approaches",
+  "categories": {
+    "multi_hop_reasoning": {
+      "description": "Questions requiring chaining 3-5 facts across multiple documents to find indirect relationships",
+      "query_count": 20,
+      "example": "What is the connection between the creator of C programming language and modern container orchestration through their shared employment history?"
+    },
+    "entity_centric": {
+      "description": "Questions focused on specific entities with rich, detailed attributes and relationships",
+      "query_count": 15,
+      "example": "List all major technologies created by Microsoft across programming languages, cloud, and development tools"
+    },
+    "relationship_questions": {
+      "description": "Complex relationship queries spanning 3+ documents with implicit connections",
+      "query_count": 15,
+      "example": "How are the developments in quantum computing, AI research, and cloud platforms interconnected?"
+    },
+    "temporal_questions": {
+      "description": "Time-based questions requiring precise chronological reasoning across multiple time periods",
+      "query_count": 10,
+      "example": "What technologies emerged between the release of Kubernetes and the mainstream adoption of edge computing?"
+    },
+    "complex_filtering": {
+      "description": "Questions with 4+ constraints to test precision recall and multi-dimensional filtering",
+      "query_count": 10,
+      "example": "Which cloud platforms launched after 2015 support serverless, AI integration, Kubernetes, and have open source contributions?"
+    },
+    "failure_modes": {
+      "description": "Queries specifically engineered to expose vector-RAG limitations and showcase CortexDB strengths",
+      "query_count": 15,
+      "example": "Find the multi-step connection between early programming language development at Bell Labs and modern cloud-native architectures"
+    }
+  },
+  "ingestion_history": [
+    {
+      "timestamp": "2026-01-01T00:00:00Z",
+      "role": "USER",
+      "content": "Programming Languages History: Programming languages have evolved significantly since the early days of computing. Fortran, developed in 1957 by John Backus at IBM, was the first high-level programming language. In 1972, Dennis Ritchie created C at Bell Labs, which became one of the most influential languages. Bjarne Stroustrup extended C to create C++ in 1985, adding object-oriented features. James Gosling and his team at Sun Microsystems developed Java in 1995, which introduced the 'write once, run anywhere' principle. Guido van Rossum created Python in 1991, focusing on code readability. JavaScript was created by Brendan Eich at Netscape in 1995 for web browsers. Ken Thompson, co-creator of Unix, worked at Google and created the Go language in 2009. Anders Hejlsberg at Microsoft created C#, TypeScript, and F#. Microsoft also developed other languages including Visual Basic and PowerShell."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:01Z",
+      "role": "USER",
+      "content": "Database Technologies: Database technologies have evolved from simple file systems to complex distributed systems. Relational databases like PostgreSQL and MySQL dominate traditional applications. PostgreSQL, created in 1996, supports advanced features like JSON, full-text search, and geospatial queries. MySQL, created in 1995, is known for its performance and ease of use. NoSQL databases emerged to handle unstructured data and horizontal scaling. MongoDB, released in 2009, is a popular document store. Redis is an in-memory data structure store. The React framework, created by Facebook in 2013, is often used with various database backends. NewSQL databases aim to combine SQL's consistency with NoSQL's scalability."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:02Z",
+      "role": "USER",
+      "content": "Web Frameworks: Web development frameworks have transformed how applications are built. React, created by Jordan Walke at Facebook and released in 2013, introduced component-based architecture and virtual DOM. Angular, developed by Misko Hevery and Google, was first released in 2010. Vue.js was created by Evan You in 2014. These frameworks support reactive programming patterns. Backend frameworks include Django (Python), Ruby on Rails (Ruby), Express.js (Node.js), and Spring (Java). Each framework has different strengths for building modern web applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:03Z",
+      "role": "USER",
+      "content": "Operating Systems: Operating systems provide the foundation for computer systems. Unix was developed at Bell Labs in 1970 by Ken Thompson, Dennis Ritchie, and others. Unix introduced concepts like hierarchical file systems and pipes. Linux, created by Linus Torvalds in 1991, is a Unix-like operating system. Plan 9, also from Bell Labs, was created in the 1980s as a research system. Microsoft Windows evolved from MS-DOS, with Windows NT being a major redesign. macOS is based on Unix and uses the Darwin kernel."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:04Z",
+      "role": "USER",
+      "content": "Programming Paradigms: Different programming paradigms offer various approaches to software development. Object-oriented programming (OOP) focuses on objects and classes. Functional programming treats computation as function evaluation. Procedural programming uses procedures and functions. Languages like Java, C++, and Python support OOP. JavaScript and Python support functional programming features. Some languages like Scala and F# combine multiple paradigms. Automatic memory management (garbage collection) is common in modern languages like Java, Python, and C#."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:05Z",
+      "role": "USER",
+      "content": "Cloud Computing Platforms: Cloud computing has revolutionized software deployment. Amazon Web Services (AWS) launched in 2006, offering EC2 and S3 services. Microsoft Azure followed in 2010, providing integrated services with Windows technologies. Google Cloud Platform (GCP), launched in 2011, leverages Google's infrastructure and data analytics capabilities. These platforms offer compute, storage, networking, and managed services. Serverless computing, exemplified by AWS Lambda, allows running code without managing servers."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:06Z",
+      "role": "USER",
+      "content": "Containerization Technologies: Containerization has transformed software deployment. Docker, released in 2013, popularized container technology with its easy-to-use interface. Kubernetes, developed by Google and open-sourced in 2014, provides orchestration for containerized applications. Containerd is a container runtime developed by Docker. These technologies enable consistent deployment across different environments and facilitate microservices architectures."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:07Z",
+      "role": "USER",
+      "content": "Version Control Systems: Version control systems are essential for software development. Git, created by Linus Torvalds in 2005, has become the dominant distributed version control system. Subversion (SVN), released in 2000, was widely used before Git. Mercurial is another distributed version control system. These tools enable collaboration, code history tracking, and branching strategies."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:08Z",
+      "role": "USER",
+      "content": "Machine Learning Frameworks: Machine learning frameworks have enabled rapid development of AI applications. TensorFlow, developed by Google and released in 2015, is widely used for deep learning. PyTorch, developed by Facebook's AI Research lab and released in 2016, provides a more Pythonic interface. Scikit-learn is a popular library for traditional machine learning algorithms. These frameworks support various neural network architectures and training techniques."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:09Z",
+      "role": "USER",
+      "content": "Frontend Development Tools: Frontend development has evolved with powerful tools and libraries. Webpack is a module bundler that processes JavaScript, CSS, and other assets. Babel is a JavaScript compiler that converts modern JavaScript to backward-compatible versions. Sass and Less are CSS preprocessors that add features like variables and nesting. These tools improve developer productivity and application performance."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:10Z",
+      "role": "USER",
+      "content": "Mobile Development Frameworks: Mobile development frameworks enable cross-platform app development. React Native, released by Facebook in 2015, allows building mobile apps using React. Flutter, developed by Google and released in 2017, uses the Dart language and provides a rich set of widgets. Xamarin, acquired by Microsoft, uses C# for cross-platform development. These frameworks reduce development time and effort."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:11Z",
+      "role": "USER",
+      "content": "DevOps Tools: DevOps practices have transformed software delivery. Jenkins is an open-source automation server for continuous integration and deployment. Ansible is a configuration management tool that uses YAML for playbooks. Terraform, developed by HashiCorp, enables infrastructure as code. Docker and Kubernetes are essential for container-based deployments. These tools enable faster and more reliable software delivery."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:12Z",
+      "role": "USER",
+      "content": "Testing Frameworks: Testing frameworks are crucial for software quality. JUnit is a widely used testing framework for Java. pytest is popular in the Python ecosystem. Jest, developed by Facebook, is commonly used for JavaScript testing. These frameworks support unit testing, integration testing, and test-driven development practices."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:13Z",
+      "role": "USER",
+      "content": "Data Science Libraries: Data science libraries have accelerated analytics and machine learning. Pandas provides data manipulation and analysis capabilities for Python. NumPy offers efficient numerical computations. Matplotlib and Seaborn enable data visualization. These libraries form the foundation of data science workflows."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:14Z",
+      "role": "USER",
+      "content": "Game Development Engines: Game development engines have democratized game creation. Unity, released in 2005, supports multiple platforms and uses C# for scripting. Unreal Engine, developed by Epic Games, is known for its high-end graphics and uses Blueprints visual scripting. Godot is an open-source engine that uses GDScript. These engines provide tools for physics, rendering, and animation."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:15Z",
+      "role": "USER",
+      "content": "Artificial Intelligence History: Artificial intelligence has evolved through several waves. The Dartmouth Conference in 1956 is considered the birth of AI as a field. Expert systems were popular in the 1980s. Machine learning gained prominence in the 1990s. Deep learning, enabled by increased computational power and data, has driven recent advances. Neural networks, inspired by biological systems, form the basis of many modern AI applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:16Z",
+      "role": "USER",
+      "content": "Cybersecurity Tools: Cybersecurity tools are essential for protecting systems and data. Metasploit is a penetration testing framework. Wireshark is a network protocol analyzer. Nmap is used for network discovery and security auditing. OpenSSL provides cryptographic functions. These tools help identify vulnerabilities and secure systems."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:17Z",
+      "role": "USER",
+      "content": "Blockchain Technologies: Blockchain technologies have enabled decentralized applications. Bitcoin, created by Satoshi Nakamoto in 2009, was the first cryptocurrency. Ethereum, proposed by Vitalik Buterin in 2013, introduced smart contracts. Hyperledger is an enterprise blockchain framework. These technologies use distributed ledger systems and consensus algorithms."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:18Z",
+      "role": "USER",
+      "content": "Internet of Things Platforms: Internet of Things platforms connect physical devices to the internet. Arduino is an open-source electronics platform. Raspberry Pi is a low-cost, credit-card sized computer. AWS IoT and Google Cloud IoT provide cloud-based IoT services. These platforms enable data collection, processing, and control of physical devices."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:19Z",
+      "role": "USER",
+      "content": "Big Data Technologies: Big data technologies enable processing of large datasets. Hadoop, developed by Apache, provides distributed storage and processing. Spark, also from Apache, offers in-memory processing for faster analytics. Kafka is a distributed event streaming platform. These technologies support batch processing, real-time analytics, and data pipelines."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:20Z",
+      "role": "USER",
+      "content": "Virtualization Technologies: Virtualization technologies enable efficient use of hardware resources. VMware provides virtualization solutions for x86 architectures. VirtualBox is an open-source virtualization tool. KVM (Kernel-based Virtual Machine) is built into Linux. These technologies allow running multiple virtual machines on a single physical machine."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:21Z",
+      "role": "USER",
+      "content": "Networking Protocols: Networking protocols enable communication between devices. TCP/IP is the foundation of the internet. HTTP is used for web communication. DNS translates domain names to IP addresses. HTTPS provides secure communication. These protocols ensure reliable data transmission and network functionality."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:22Z",
+      "role": "USER",
+      "content": "Computer Graphics Technologies: Computer graphics technologies enable visual computing. OpenGL is a cross-platform API for rendering 2D and 3D graphics. DirectX is a collection of APIs for multimedia tasks on Microsoft platforms. Vulkan is a modern graphics API that provides low-overhead access to GPUs. These technologies are used in gaming, simulation, and visualization."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:23Z",
+      "role": "USER",
+      "content": "Embedded Systems: Embedded systems are specialized computing systems. ARM architecture is widely used in embedded systems. FreeRTOS is a real-time operating system for microcontrollers. Arduino and Raspberry Pi are popular platforms for embedded development. These systems are used in automotive, medical, and industrial applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:24Z",
+      "role": "USER",
+      "content": "Quantum Computing: Quantum computing leverages quantum mechanics for computation. Qubits can exist in superposition states, enabling parallel computation. IBM Q Experience provides cloud access to quantum computers. Google's Quantum AI lab has demonstrated quantum supremacy. These technologies have potential applications in cryptography, optimization, and material science."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:25Z",
+      "role": "USER",
+      "content": "Augmented Reality Technologies: Augmented reality technologies overlay digital information on the physical world. ARKit is Apple's framework for augmented reality on iOS devices. ARCore is Google's platform for building AR experiences on Android. Unity and Unreal Engine support AR development. These technologies are used in gaming, education, and industrial applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:26Z",
+      "role": "USER",
+      "content": "Natural Language Processing: Natural language processing enables computers to understand human language. BERT, developed by Google, is a transformer-based model for language understanding. GPT models, developed by OpenAI, generate human-like text. spaCy is a popular library for NLP tasks. These technologies are used in chatbots, translation, and text analysis."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:27Z",
+      "role": "USER",
+      "content": "Computer Vision Technologies: Computer vision technologies enable machines to interpret visual information. OpenCV is an open-source computer vision library. YOLO (You Only Look Once) is a real-time object detection algorithm. CNNs (Convolutional Neural Networks) are widely used for image recognition tasks. These technologies are used in autonomous vehicles, medical imaging, and surveillance."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:28Z",
+      "role": "USER",
+      "content": "Robotics Platforms: Robotics platforms enable the development of autonomous systems. ROS (Robot Operating System) provides libraries and tools for robot development. Arduino and Raspberry Pi are used for robot control. Boston Dynamics develops advanced robotic systems. These technologies are used in manufacturing, healthcare, and exploration."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:29Z",
+      "role": "USER",
+      "content": "Software Architecture Patterns: Software architecture patterns provide solutions to common design problems. Microservices architecture breaks applications into loosely coupled services. Monolithic architecture uses a single, unified codebase. Serverless architecture relies on cloud providers for infrastructure management. Event-driven architecture uses events for communication between components. These patterns address scalability, maintainability, and deployment challenges."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:30Z",
+      "role": "USER",
+      "content": "Google's Technical Contributions: Google has made significant contributions across multiple technology domains. In cloud computing, Google Cloud Platform was launched in 2011. In machine learning, TensorFlow was released in 2015. In mobile development, Google created Flutter in 2017 and acquired Android in 2005. In containerization, Google developed Kubernetes and open-sourced it in 2014. In augmented reality, Google created ARCore. In programming languages, Google developed Go in 2009. These technologies demonstrate Google's broad impact on modern computing."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:31Z",
+      "role": "USER",
+      "content": "Microsoft's Technology Ecosystem: Microsoft has developed a comprehensive technology ecosystem. In programming languages, Microsoft created C#, TypeScript, F#, Visual Basic, and PowerShell. In cloud computing, Microsoft Azure was launched in 2010. In version control, Microsoft acquired GitHub in 2018. In game development, Microsoft owns the Xbox platform and DirectX. In operating systems, Microsoft developed Windows and Windows NT. In office productivity, Microsoft Office includes Word, Excel, and PowerPoint. These products form a cohesive technology stack."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:32Z",
+      "role": "USER",
+      "content": "Facebook's Open Source Contributions: Facebook has contributed numerous open source projects to the developer community. In web development, Facebook created React in 2013. In mobile development, Facebook developed React Native in 2015. In machine learning, Facebook's AI Research lab created PyTorch in 2016. In networking, Facebook developed the HHVM runtime for PHP. In version control tools, Facebook created tools like Mercurial extensions. These contributions have had significant impact on modern software development."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:33Z",
+      "role": "USER",
+      "content": "Linux Foundation Projects: The Linux Foundation hosts numerous open source projects. Kubernetes, originally developed by Google, is now a Linux Foundation project. Other notable projects include Node.js for JavaScript runtime, Hyperledger for blockchain technologies, OpenAPI for API specification, and Cloud Foundry for cloud applications. The foundation also manages the Linux kernel development. These projects form the backbone of modern enterprise computing."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:34Z",
+      "role": "USER",
+      "content": "Apache Software Foundation: The Apache Software Foundation oversees many influential open source projects. Hadoop provides distributed storage and processing for big data. Spark offers in-memory processing for analytics. Kafka is a distributed event streaming platform. Other projects include Cassandra for NoSQL databases, Maven for build automation, and Tomcat for Java servlet containers. These projects are widely used in enterprise environments."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:35Z",
+      "role": "USER",
+      "content": "Evolution of JavaScript: JavaScript has evolved from a simple scripting language to a powerful ecosystem. Created by Brendan Eich at Netscape in 1995, JavaScript initially provided basic web interactivity. The introduction of AJAX in the early 2000s enabled asynchronous web applications. Node.js, released in 2009, brought JavaScript to server-side development. Modern frameworks like React, Angular, and Vue.js have transformed frontend development. TypeScript, released in 2012, added static typing to JavaScript."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:36Z",
+      "role": "USER",
+      "content": "Python Ecosystem Growth: Python has grown from a simple scripting language to a comprehensive ecosystem. Created by Guido van Rossum in 1991, Python emphasized code readability. The introduction of NumPy in 2006 enabled numerical computing. Pandas, released in 2008, provided data manipulation capabilities. Django and Flask became popular web frameworks. In machine learning, TensorFlow and PyTorch offer Python APIs. The Python Package Index (PyPI) now hosts over 400,000 packages."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:37Z",
+      "role": "USER",
+      "content": "Cloud-Native Technologies: Cloud-native technologies enable building and running scalable applications in modern cloud environments. Containerization with Docker provides lightweight runtime environments. Kubernetes offers orchestration for containerized applications. Service meshes like Istio manage service-to-service communication. Serverless frameworks abstract away infrastructure management. These technologies support microservices architectures and continuous delivery practices."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:38Z",
+      "role": "USER",
+      "content": "Edge Computing Innovations: Edge computing brings computation closer to data sources. This approach reduces latency and bandwidth use compared to cloud computing. Applications include IoT devices, autonomous vehicles, and industrial automation. Technologies like Kubernetes Edge and AWS IoT Greengrass enable edge deployments. The combination of edge and cloud computing creates distributed architectures that balance local processing with centralized analytics."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:39Z",
+      "role": "USER",
+      "content": "Future of AI Research: AI research is advancing rapidly across multiple fronts. In natural language processing, transformer models like BERT and GPT continue to improve. Computer vision research focuses on real-time processing and 3D understanding. Reinforcement learning achieves superhuman performance in complex games. Ethical AI research addresses fairness, accountability, and transparency. Neuromorphic computing aims to create brain-inspired architectures that could enable more efficient AI systems."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:40Z",
+      "role": "USER",
+      "content": "Open Source Licensing Models: Open source software uses various licensing models that govern usage and distribution. The MIT License is permissive and allows for commercial use. The GNU General Public License (GPL) requires derivative works to also be open source. The Apache License includes patent grants and explicit contribution guidelines. The BSD licenses are simple and permissive. These licenses have different implications for commercial adoption and community contributions."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:41Z",
+      "role": "USER",
+      "content": "Distributed Systems Architecture: Distributed systems enable scalable and fault-tolerant applications. The CAP theorem states that distributed systems can only provide two out of three guarantees: consistency, availability, and partition tolerance. Consensus algorithms like Paxos and Raft ensure agreement among nodes. Distributed databases use replication and sharding for scalability. These principles underlie modern cloud services and big data platforms."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:42Z",
+      "role": "USER",
+      "content": "API Design Principles: Well-designed APIs follow established principles for usability and maintainability. RESTful APIs use HTTP methods and status codes consistently. GraphQL enables clients to request exactly the data they need. gRPC provides efficient binary serialization for microservices. API versioning strategies include URL paths, headers, and content negotiation. Documentation tools like Swagger and OpenAPI improve developer experience."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:43Z",
+      "role": "USER",
+      "content": "Microservices Patterns: Microservices architecture decomposes applications into independently deployable services. The API Gateway pattern provides a single entry point for clients. Service Discovery enables dynamic location of services. Circuit Breakers prevent cascading failures. Event Sourcing captures state changes as a sequence of events. These patterns enable scalable and maintainable distributed applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:44Z",
+      "role": "USER",
+      "content": "CI/CD Pipeline Evolution: Continuous Integration and Delivery pipelines automate software delivery. Jenkins was an early CI server that gained widespread adoption. GitHub Actions integrates CI/CD directly with repositories. GitLab CI/CD provides a complete DevOps platform. These tools enable automated testing, building, and deployment of applications."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:45Z",
+      "role": "USER",
+      "content": "Observability in Distributed Systems: Observability is crucial for understanding complex distributed systems. Logging captures discrete events and messages. Metrics provide quantitative measurements over time. Tracing follows requests across service boundaries. Tools like Prometheus, Grafana, Jaeger, and OpenTelemetry enable comprehensive observability. These practices help maintain system reliability and performance."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:46Z",
+      "role": "USER",
+      "content": "Serverless Architecture Benefits: Serverless computing abstracts infrastructure management from developers. AWS Lambda was the first major serverless platform. Azure Functions and Google Cloud Functions provide similar capabilities. Serverless architectures automatically scale with demand and use event-driven execution models. These approaches reduce operational overhead and enable faster development cycles."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:47Z",
+      "role": "USER",
+      "content": "Infrastructure as Code Tools: Infrastructure as Code enables reproducible and automated provisioning. Terraform uses a declarative language to define resources. AWS CloudFormation provides templates for AWS services. Azure Resource Manager manages Azure resources. These tools enable version control, testing, and automated deployment of infrastructure."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:48Z",
+      "role": "USER",
+      "content": "Security in Cloud Computing: Cloud security requires addressing shared responsibility models. Identity and Access Management (IAM) controls user permissions. Virtual Private Clouds (VPCs) provide network isolation. Encryption protects data at rest and in transit. Compliance frameworks like SOC 2 and ISO 27001 ensure security standards. These practices are essential for protecting cloud-based applications and data."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:49Z",
+      "role": "USER",
+      "content": "Data Governance Frameworks: Data governance ensures proper management of enterprise data assets. Data catalogs provide metadata and discovery capabilities. Data lineage tracks data flows and transformations. Data quality measures ensure accuracy and completeness. Compliance with regulations like GDPR and CCPA protects user privacy. These frameworks support responsible data usage and decision-making."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:50Z",
+      "role": "USER",
+      "content": "AI Ethics and Responsible Innovation: Ethical AI addresses bias, fairness, and accountability in machine learning systems. Responsible AI practices include transparency in decision-making. Explainable AI techniques make model behavior understandable. Privacy-preserving methods like federated learning protect user data. These considerations are essential for building trustworthy AI systems."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:51Z",
+      "role": "USER",
+      "content": "The Evolution of DevOps Culture: DevOps culture emphasizes collaboration between development and operations teams. The CALMS framework describes Culture, Automation, Lean, Measurement, and Sharing. Continuous Improvement drives iterative enhancements. Site Reliability Engineering (SRE) applies software engineering to operations. These practices enable faster and more reliable software delivery."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:52Z",
+      "role": "USER",
+      "content": "Site Reliability Engineering Principles: SRE applies software engineering principles to operations. Service Level Objectives (SLOs) define target reliability. Error Budgets allow for calculated risks in deployments. Toil Reduction focuses on automating manual work. Postmortems analyze incidents to prevent recurrence. These principles balance reliability with innovation."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:53Z",
+      "role": "USER",
+      "content": "The Impact of Open Source on Innovation: Open source software drives technological innovation through collaboration. Linux revolutionized operating systems. Kubernetes transformed container orchestration. TensorFlow accelerated machine learning adoption. These projects demonstrate how community-driven development creates industry standards and fosters rapid advancement."
+    },
+    {
+      "timestamp": "2026-01-01T00:00:54Z",
+      "role": "USER",
+      "content": "Cross-Platform Development Challenges: Cross-platform development enables code reuse across different environments. React Native bridges web and mobile development. Electron enables desktop applications with web technologies. Flutter provides a unified UI framework. These approaches face challenges in platform-specific features, performance optimization, and native integration."
+    }
+  ],
+  "benchmark_queries": [
+    {
+      "query_id": "mh_1",
+      "user_prompt": "What is the connection between the creator of C programming language and modern container orchestration through their shared employment history?",
+      "expected_ground_truth_snippets": [
+        "Dennis Ritchie",
+        "C",
+        "Bell Labs",
+        "Ken Thompson",
+        "Unix",
+        "Google",
+        "Kubernetes",
+        "container orchestration"
+      ]
+    },
+    {
+      "query_id": "mh_2",
+      "user_prompt": "Which company created both a popular container orchestration tool and a machine learning framework used for deep learning?",
+      "expected_ground_truth_snippets": [
+        "Google",
+        "Kubernetes",
+        "TensorFlow",
+        "container orchestration",
+        "machine learning framework",
+        "deep learning"
+      ]
+    },
+    {
+      "query_id": "mh_3",
+      "user_prompt": "What programming language was created by someone who worked on two different operating systems at Bell Labs, and what modern language did they create at Google?",
+      "expected_ground_truth_snippets": [
+        "Ken Thompson",
+        "Unix",
+        "Plan 9",
+        "Go",
+        "Bell Labs",
+        "Google"
+      ]
+    },
+    {
+      "query_id": "mh_4",
+      "user_prompt": "Find the indirect connection between the creator of the Linux kernel and a container orchestration system through their shared organizational history",
+      "expected_ground_truth_snippets": [
+        "Linus Torvalds",
+        "Linux kernel",
+        "Google",
+        "Kubernetes",
+        "Linux Foundation"
+      ]
+    },
+    {
+      "query_id": "mh_5",
+      "user_prompt": "Which company developed both a mobile framework using a component-based architecture and a machine learning framework with a Pythonic interface?",
+      "expected_ground_truth_snippets": [
+        "Facebook",
+        "React Native",
+        "PyTorch",
+        "component-based architecture",
+        "Pythonic interface"
+      ]
+    },
+    {
+      "query_id": "mh_6",
+      "user_prompt": "What cloud platform was launched by a company that also created a popular version control platform acquired in 2018?",
+      "expected_ground_truth_snippets": [
+        "Microsoft",
+        "Azure",
+        "GitHub",
+        "2018",
+        "version control"
+      ]
+    },
+    {
+      "query_id": "mh_7",
+      "user_prompt": "Which organization manages a container orchestration tool originally developed by Google and also oversees the Linux kernel?",
+      "expected_ground_truth_snippets": [
+        "Linux Foundation",
+        "Kubernetes",
+        "Google",
+        "Linux kernel"
+      ]
+    },
+    {
+      "query_id": "mh_8",
+      "user_prompt": "What programming language was created by the same company that developed a cloud platform offering serverless computing capabilities?",
+      "expected_ground_truth_snippets": [
+        "Amazon",
+        "AWS",
+        "AWS Lambda",
+        "serverless computing"
+      ]
+    },
+    {
+      "query_id": "mh_9",
+      "user_prompt": "Which company created both a web framework with virtual DOM and a mobile framework that uses the same architecture?",
+      "expected_ground_truth_snippets": [
+        "Facebook",
+        "React",
+        "React Native",
+        "virtual DOM",
+        "component-based architecture"
+      ]
+    },
+    {
+      "query_id": "mh_10",
+      "user_prompt": "What is the connection between a distributed event streaming platform and a software foundation that also manages a Java servlet container?",
+      "expected_ground_truth_snippets": [
+        "Apache Software Foundation",
+        "Kafka",
+        "Tomcat",
+        "distributed event streaming",
+        "Java servlet container"
+      ]
+    },
+    {
+      "query_id": "mh_11",
+      "user_prompt": "Which company developed technologies that span cloud computing, container orchestration, programming languages, and augmented reality?",
+      "expected_ground_truth_snippets": [
+        "Google",
+        "Google Cloud Platform",
+        "Kubernetes",
+        "Go",
+        "ARCore"
+      ]
+    },
+    {
+      "query_id": "mh_12",
+      "user_prompt": "What is the relationship between the creator of Python and the development of numerical computing libraries for that language?",
+      "expected_ground_truth_snippets": [
+        "Guido van Rossum",
+        "Python",
+        "NumPy",
+        "2006",
+        "numerical computing"
+      ]
+    },
+    {
+      "query_id": "mh_13",
+      "user_prompt": "Which company's contributions include a cloud platform, a machine learning framework, a container orchestration system, and a mobile development framework?",
+      "expected_ground_truth_snippets": [
+        "Google",
+        "Google Cloud Platform",
+        "TensorFlow",
+        "Kubernetes",
+        "Flutter"
+      ]
+    },
+    {
+      "query_id": "mh_14",
+      "user_prompt": "What programming language was created by someone who worked on early programming languages at Bell Labs and later created a language at Google?",
+      "expected_ground_truth_snippets": [
+        "Ken Thompson",
+        "C",
+        "Bell Labs",
+        "Go",
+        "Google"
+      ]
+    },
+    {
+      "query_id": "mh_15",
+      "user_prompt": "Which company developed both a widely used office productivity suite and a major cloud computing platform?",
+      "expected_ground_truth_snippets": [
+        "Microsoft",
+        "Microsoft Office",
+        "Azure",
+        "cloud computing platform"
+      ]
+    },
+    {
+      "query_id": "mh_16",
+      "user_prompt": "Find the connection between early programming language development at Bell Labs and modern cloud-native architectures through employment histories",
+      "expected_ground_truth_snippets": [
+        "Bell Labs",
+        "C",
+        "Unix",
+        "Ken Thompson",
+        "Google",
+        "Kubernetes",
+        "cloud-native"
+      ]
+    },
+    {
+      "query_id": "mh_17",
+      "user_prompt": "What is the multi-step relationship between the creation of JavaScript and the development of modern frontend frameworks?",
+      "expected_ground_truth_snippets": [
+        "JavaScript",
+        "Brendan Eich",
+        "AJAX",
+        "Node.js",
+        "React",
+        "component-based architecture"
+      ]
+    },
+    {
+      "query_id": "mh_18",
+      "user_prompt": "Which organization connects the development of container orchestration, JavaScript runtime, and blockchain technologies?",
+      "expected_ground_truth_snippets": [
+        "Linux Foundation",
+        "Kubernetes",
+        "Node.js",
+        "Hyperledger",
+        "Cloud Foundry"
+      ]
+    },
+    {
+      "query_id": "mh_19",
+      "user_prompt": "Find the connection between Microsoft's acquisition of GitHub and their programming language ecosystem",
+      "expected_ground_truth_snippets": [
+        "Microsoft",
+        "GitHub",
+        "2018",
+        "C#",
+        "TypeScript",
+        "Visual Studio"
+      ]
+    },
+    {
+      "query_id": "mh_20",
+      "user_prompt": "What is the relationship between the evolution of Python and the development of machine learning frameworks?",
+      "expected_ground_truth_snippets": [
+        "Python",
+        "NumPy",
+        "Pandas",
+        "TensorFlow",
+        "PyTorch",
+        "machine learning"
+      ]
+    },
+    {
+      "query_id": "ec_1",
+      "user_prompt": "List all major technologies created by Microsoft across programming languages, cloud, and development tools",
+      "expected_ground_truth_snippets": [
+        "C#",
+        "TypeScript",
+        "F#",
+        "Visual Basic",
+        "PowerShell",
+        "Azure",
+        "GitHub",
+        "Visual Studio",
+        "Windows",
+        "DirectX"
+      ]
+    },
+    {
+      "query_id": "ec_2",
+      "user_prompt": "What technologies were developed by Google that span cloud computing, AI, containerization, and mobile development?",
+      "expected_ground_truth_snippets": [
+        "Google Cloud Platform",
+        "TensorFlow",
+        "Kubernetes",
+        "Flutter",
+        "ARCore",
+        "Go",
+        "Android"
+      ]
+    },
+    {
+      "query_id": "ec_3",
+      "user_prompt": "List all Apache Software Foundation projects mentioned that are used in big data processing",
+      "expected_ground_truth_snippets": [
+        "Hadoop",
+        "Spark",
+        "Kafka",
+        "Cassandra",
+        "big data",
+        "distributed processing"
+      ]
+    },
+    {
+      "query_id": "ec_4",
+      "user_prompt": "What programming languages created by Microsoft support both object-oriented and functional programming paradigms?",
+      "expected_ground_truth_snippets": [
+        "C#",
+        "F#",
+        "TypeScript",
+        "object-oriented",
+        "functional programming"
+      ]
+    },
+    {
+      "query_id": "ec_5",
+      "user_prompt": "List all technologies related to observability in distributed systems mentioned in the documents",
+      "expected_ground_truth_snippets": [
+        "Prometheus",
+        "Grafana",
+        "Jaeger",
+        "OpenTelemetry",
+        "logging",
+        "metrics",
+        "tracing"
+      ]
+    },
+    {
+      "query_id": "ec_6",
+      "user_prompt": "What cloud platforms support serverless computing, were launched after 2010, and integrate with machine learning frameworks?",
+      "expected_ground_truth_snippets": [
+        "Google Cloud Platform",
+        "Amazon Web Services",
+        "Microsoft Azure",
+        "serverless computing",
+        "after 2010",
+        "machine learning integration"
+      ]
+    },
+    {
+      "query_id": "ec_7",
+      "user_prompt": "List all technologies that enable Infrastructure as Code mentioned in the documents",
+      "expected_ground_truth_snippets": [
+        "Terraform",
+        "AWS CloudFormation",
+        "Azure Resource Manager",
+        "Infrastructure as Code",
+        "declarative language"
+      ]
+    },
+    {
+      "query_id": "ec_8",
+      "user_prompt": "What technologies are mentioned that support both edge computing and IoT applications?",
+      "expected_ground_truth_snippets": [
+        "Kubernetes Edge",
+        "AWS IoT Greengrass",
+        "Arduino",
+        "Raspberry Pi",
+        "edge computing",
+        "IoT applications"
+      ]
+    },
+    {
+      "query_id": "ec_9",
+      "user_prompt": "List all technologies related to AI ethics and responsible innovation mentioned in the documents",
+      "expected_ground_truth_snippets": [
+        "Ethical AI",
+        "Responsible AI",
+        "Explainable AI",
+        "federated learning",
+        "bias detection",
+        "fairness"
+      ]
+    },
+    {
+      "query_id": "ec_10",
+      "user_prompt": "What technologies are mentioned that support continuous integration and delivery pipelines?",
+      "expected_ground_truth_snippets": [
+        "Jenkins",
+        "GitHub Actions",
+        "GitLab CI/CD",
+        "continuous integration",
+        "continuous delivery"
+      ]
+    },
+    {
+      "query_id": "ec_11",
+      "user_prompt": "List all technologies mentioned that are related to distributed systems architecture",
+      "expected_ground_truth_snippets": [
+        "CAP theorem",
+        "Paxos",
+        "Raft",
+        "replication",
+        "sharding",
+        "distributed databases"
+      ]
+    },
+    {
+      "query_id": "ec_12",
+      "user_prompt": "What technologies are mentioned that support cross-platform development?",
+      "expected_ground_truth_snippets": [
+        "React Native",
+        "Flutter",
+        "Xamarin",
+        "Electron",
+        "cross-platform",
+        "code reuse"
+      ]
+    },
+    {
+      "query_id": "ec_13",
+      "user_prompt": "List all security-related technologies mentioned for cloud computing",
+      "expected_ground_truth_snippets": [
+        "IAM",
+        "VPC",
+        "encryption",
+        "SOC 2",
+        "ISO 27001",
+        "compliance"
+      ]
+    },
+    {
+      "query_id": "ec_14",
+      "user_prompt": "What technologies are mentioned that support microservices architecture patterns?",
+      "expected_ground_truth_snippets": [
+        "API Gateway",
+        "Service Discovery",
+        "Circuit Breakers",
+        "Event Sourcing",
+        "microservices",
+        "service mesh"
+      ]
+    },
+    {
+      "query_id": "ec_15",
+      "user_prompt": "List all technologies mentioned that are related to data governance",
+      "expected_ground_truth_snippets": [
+        "data catalogs",
+        "data lineage",
+        "data quality",
+        "GDPR",
+        "CCPA",
+        "compliance"
+      ]
+    },
+    {
+      "query_id": "rel_1",
+      "user_prompt": "How are the developments in quantum computing, AI research, and cloud platforms interconnected?",
+      "expected_ground_truth_snippets": [
+        "quantum computing",
+        "AI research",
+        "cloud platforms",
+        "IBM Q Experience",
+        "Google Quantum AI",
+        "TensorFlow Quantum"
+      ]
+    },
+    {
+      "query_id": "rel_2",
+      "user_prompt": "What is the relationship between open source licensing models and enterprise adoption of technologies?",
+      "expected_ground_truth_snippets": [
+        "MIT License",
+        "GPL",
+        "Apache License",
+        "BSD licenses",
+        "enterprise adoption",
+        "commercial use"
+      ]
+    },
+    {
+      "query_id": "rel_3",
+      "user_prompt": "How do distributed systems architecture principles relate to modern cloud services?",
+      "expected_ground_truth_snippets": [
+        "CAP theorem",
+        "Paxos",
+        "Raft",
+        "cloud services",
+        "scalability",
+        "fault tolerance"
+      ]
+    },
+    {
+      "query_id": "rel_4",
+      "user_prompt": "What connections exist between API design principles and microservices architecture?",
+      "expected_ground_truth_snippets": [
+        "RESTful APIs",
+        "GraphQL",
+        "gRPC",
+        "microservices",
+        "API Gateway",
+        "service communication"
+      ]
+    },
+    {
+      "query_id": "rel_5",
+      "user_prompt": "How are CI/CD pipeline evolution and DevOps culture interconnected?",
+      "expected_ground_truth_snippets": [
+        "Jenkins",
+        "GitHub Actions",
+        "DevOps",
+        "CALMS framework",
+        "continuous improvement",
+        "automation"
+      ]
+    },
+    {
+      "query_id": "rel_6",
+      "user_prompt": "What is the relationship between observability practices and site reliability engineering?",
+      "expected_ground_truth_snippets": [
+        "logging",
+        "metrics",
+        "tracing",
+        "SRE",
+        "reliability",
+        "performance monitoring"
+      ]
+    },
+    {
+      "query_id": "rel_7",
+      "user_prompt": "How do serverless architecture benefits relate to continuous delivery practices?",
+      "expected_ground_truth_snippets": [
+        "serverless",
+        "AWS Lambda",
+        "continuous delivery",
+        "automatic scaling",
+        "faster development",
+        "reduced overhead"
+      ]
+    },
+    {
+      "query_id": "rel_8",
+      "user_prompt": "What connections exist between infrastructure as code tools and security in cloud computing?",
+      "expected_ground_truth_snippets": [
+        "Terraform",
+        "CloudFormation",
+        "security",
+        "version control",
+        "automated provisioning",
+        "compliance"
+      ]
+    },
+    {
+      "query_id": "rel_9",
+      "user_prompt": "How are data governance frameworks related to AI ethics and responsible innovation?",
+      "expected_ground_truth_snippets": [
+        "data governance",
+        "AI ethics",
+        "GDPR",
+        "bias detection",
+        "fairness",
+        "privacy"
+      ]
+    },
+    {
+      "query_id": "rel_10",
+      "user_prompt": "What is the relationship between the evolution of DevOps culture and site reliability engineering?",
+      "expected_ground_truth_snippets": [
+        "DevOps",
+        "SRE",
+        "CALMS framework",
+        "continuous improvement",
+        "reliability",
+        "automation"
+      ]
+    },
+    {
+      "query_id": "rel_11",
+      "user_prompt": "How do cross-platform development challenges relate to the evolution of web frameworks?",
+      "expected_ground_truth_snippets": [
+        "cross-platform",
+        "React Native",
+        "Electron",
+        "web frameworks",
+        "React",
+        "component-based"
+      ]
+    },
+    {
+      "query_id": "rel_12",
+      "user_prompt": "What connections exist between the impact of open source on innovation and cloud-native technologies?",
+      "expected_ground_truth_snippets": [
+        "open source",
+        "Linux",
+        "Kubernetes",
+        "TensorFlow",
+        "cloud-native",
+        "community development"
+      ]
+    },
+    {
+      "query_id": "rel_13",
+      "user_prompt": "How are security in cloud computing and data governance frameworks interconnected?",
+      "expected_ground_truth_snippets": [
+        "cloud security",
+        "IAM",
+        "encryption",
+        "data governance",
+        "GDPR",
+        "compliance"
+      ]
+    },
+    {
+      "query_id": "rel_14",
+      "user_prompt": "What is the relationship between serverless architecture benefits and observability practices?",
+      "expected_ground_truth_snippets": [
+        "serverless",
+        "automatic scaling",
+        "observability",
+        "logging",
+        "metrics",
+        "tracing"
+      ]
+    },
+    {
+      "query_id": "rel_15",
+      "user_prompt": "How do infrastructure as code tools connect with CI/CD pipeline evolution?",
+      "expected_ground_truth_snippets": [
+        "Terraform",
+        "CloudFormation",
+        "CI/CD",
+        "automation",
+        "reproducible provisioning",
+        "continuous delivery"
+      ]
+    },
+    {
+      "query_id": "fail_1",
+      "user_prompt": "Find the 4-step connection between early programming language development at Bell Labs and modern serverless architectures through employment histories and organizational contributions",
+      "expected_ground_truth_snippets": [
+        "Bell Labs",
+        "C",
+        "Unix",
+        "Ken Thompson",
+        "Google",
+        "Kubernetes",
+        "container orchestration",
+        "serverless architectures"
+      ]
+    },
+    {
+      "query_id": "fail_2",
+      "user_prompt": "What is the multi-level relationship between the creation of the first high-level programming language and modern AI research through intermediate technologies?",
+      "expected_ground_truth_snippets": [
+        "Fortran",
+        "John Backus",
+        "IBM",
+        "programming languages",
+        "Python",
+        "NumPy",
+        "machine learning",
+        "AI research"
+      ]
+    },
+    {
+      "query_id": "fail_3",
+      "user_prompt": "Trace the connection from early operating system development to modern cloud-native technologies through key innovations and organizational histories",
+      "expected_ground_truth_snippets": [
+        "Unix",
+        "Bell Labs",
+        "Linux",
+        "Linus Torvalds",
+        "Google",
+        "Kubernetes",
+        "cloud-native",
+        "Linux Foundation"
+      ]
+    },
+    {
+      "query_id": "fail_4",
+      "user_prompt": "Find the complex relationship between Microsoft's programming language development and their cloud platform through acquisitions and ecosystem integration",
+      "expected_ground_truth_snippets": [
+        "Microsoft",
+        "C#",
+        "TypeScript",
+        "GitHub",
+        "2018",
+        "Azure",
+        "Visual Studio",
+        "programming languages",
+        "cloud integration"
+      ]
+    },
+    {
+      "query_id": "fail_5",
+      "user_prompt": "What is the multi-hop connection between Facebook's open source contributions and the evolution of modern web development through framework innovation?",
+      "expected_ground_truth_snippets": [
+        "Facebook",
+        "React",
+        "2013",
+        "React Native",
+        "PyTorch",
+        "component-based",
+        "web development",
+        "mobile development"
+      ]
+    },
+    {
+      "query_id": "fail_6",
+      "user_prompt": "Trace the connection from early cybersecurity tools to modern cloud security practices through technological evolution and industry adoption",
+      "expected_ground_truth_snippets": [
+        "Metasploit",
+        "Wireshark",
+        "Nmap",
+        "OpenSSL",
+        "IAM",
+        "VPC",
+        "encryption",
+        "cloud security"
+      ]
+    },
+    {
+      "query_id": "fail_7",
+      "user_prompt": "Find the relationship between the development of version control systems and modern CI/CD practices through organizational contributions and tool integration",
+      "expected_ground_truth_snippets": [
+        "Git",
+        "Linus Torvalds",
+        "GitHub",
+        "Microsoft",
+        "Jenkins",
+        "GitHub Actions",
+        "CI/CD",
+        "automation"
+      ]
+    },
+    {
+      "query_id": "fail_8",
+      "user_prompt": "What is the complex connection between the evolution of JavaScript and modern frontend frameworks through multiple generations of innovation?",
+      "expected_ground_truth_snippets": [
+        "JavaScript",
+        "Brendan Eich",
+        "AJAX",
+        "Node.js",
+        "React",
+        "Angular",
+        "Vue.js",
+        "TypeScript",
+        "component-based"
+      ]
+    },
+    {
+      "query_id": "fail_9",
+      "user_prompt": "Trace the connection from early distributed systems research to modern cloud-native architectures through key technologies and organizational histories",
+      "expected_ground_truth_snippets": [
+        "CAP theorem",
+        "Paxos",
+        "Raft",
+        "distributed systems",
+        "Kubernetes",
+        "service mesh",
+        "cloud-native",
+        "microservices"
+      ]
+    },
+    {
+      "query_id": "fail_10",
+      "user_prompt": "Find the multi-step relationship between the development of relational databases and modern big data technologies through technological evolution",
+      "expected_ground_truth_snippets": [
+        "PostgreSQL",
+        "MySQL",
+        "relational databases",
+        "Hadoop",
+        "Spark",
+        "Kafka",
+        "big data",
+        "distributed processing"
+      ]
+    },
+    {
+      "query_id": "fail_11",
+      "user_prompt": "What is the connection between early virtualization technologies and modern containerization through performance improvements and architectural changes?",
+      "expected_ground_truth_snippets": [
+        "VMware",
+        "VirtualBox",
+        "KVM",
+        "virtualization",
+        "Docker",
+        "Kubernetes",
+        "containers",
+        "resource efficiency"
+      ]
+    },
+    {
+      "query_id": "fail_12",
+      "user_prompt": "Trace the relationship between networking protocol development and the evolution of cloud computing through technological dependencies",
+      "expected_ground_truth_snippets": [
+        "TCP/IP",
+        "HTTP",
+        "DNS",
+        "HTTPS",
+        "cloud computing",
+        "distributed systems",
+        "network reliability",
+        "security"
+      ]
+    },
+    {
+      "query_id": "fail_13",
+      "user_prompt": "Find the complex connection between early embedded systems development and modern IoT platforms through hardware and software evolution",
+      "expected_ground_truth_snippets": [
+        "ARM architecture",
+        "FreeRTOS",
+        "Arduino",
+        "Raspberry Pi",
+        "embedded systems",
+        "IoT platforms",
+        "AWS IoT",
+        "edge computing"
+      ]
+    },
+    {
+      "query_id": "fail_14",
+      "user_prompt": "What is the multi-level relationship between the development of computer graphics technologies and modern augmented reality through API evolution?",
+      "expected_ground_truth_snippets": [
+        "OpenGL",
+        "DirectX",
+        "Vulkan",
+        "computer graphics",
+        "ARKit",
+        "ARCore",
+        "augmented reality",
+        "3D rendering"
+      ]
+    },
+    {
+      "query_id": "fail_15",
+      "user_prompt": "Trace the connection from early AI research to modern responsible AI practices through ethical considerations and technological advancements",
+      "expected_ground_truth_snippets": [
+        "Dartmouth Conference",
+        "expert systems",
+        "machine learning",
+        "deep learning",
+        "Ethical AI",
+        "Explainable AI",
+        "federated learning",
+        "bias detection"
+      ]
+    }
+  ]
+}

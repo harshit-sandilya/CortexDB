@@ -148,3 +148,18 @@ package-lock.json
 .cache/
 tmp/
 temp/
+
+# ========================
+# ONNX Models (too large for git)
+# ========================
+src/main/resources/model-onnx/
+
+# ========================
+# Scripts (local dev tools / large datasets)
+# ========================
+scripts/
+
+# ========================
+# AI assistant config
+# ========================
+.claude/

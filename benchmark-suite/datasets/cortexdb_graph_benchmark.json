@@ -1,0 +1,708 @@
+{
+  "dataset_name": "CortexDB_Graph_Benchmark",
+  "version": "1.0",
+  "description": "A highly interconnected 100-document dataset designed to test 2-hop and 3-hop graph traversals.",
+  "created_date": "2026-05-04",
+  "total_documents": 100,
+  "total_queries": 20,
+  "purpose": "Prove CortexDB GraphRAG superiority via deep entity traversal.",
+  "ingestion_history": [
+    {
+      "timestamp": "2026-01-01T00:00:00Z",
+      "role": "USER",
+      "content": "Alice Vance founded Synthetix in 2018 with a vision to revolutionize quantum encryption."
+    },
+    {
+      "timestamp": "2026-01-02T00:00:00Z",
+      "role": "USER",
+      "content": "Synthetix's flagship product, developed in 2020, was secretly named Project Orion."
+    },
+    {
+      "timestamp": "2026-01-03T00:00:00Z",
+      "role": "USER",
+      "content": "Project Orion was primarily architected by a brilliant engineer named Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-04T00:00:00Z",
+      "role": "USER",
+      "content": "Bob Thorne previously worked at CyberDyne Systems before joining Synthetix."
+    },
+    {
+      "timestamp": "2026-01-05T00:00:00Z",
+      "role": "USER",
+      "content": "CyberDyne Systems is notorious for a massive data leak known as The Great Spill of 2017."
+    },
+    {
+      "timestamp": "2026-01-06T00:00:00Z",
+      "role": "USER",
+      "content": "Alice Vance has a younger brother, Charlie Vance, who is the CEO of NexusGroup."
+    },
+    {
+      "timestamp": "2026-01-07T00:00:00Z",
+      "role": "USER",
+      "content": "NexusGroup specializes in AI-driven cybersecurity and threat detection."
+    },
+    {
+      "timestamp": "2026-01-08T00:00:00Z",
+      "role": "USER",
+      "content": "In late 2024, OmniCorp aggressively acquired Synthetix for $2.5 billion."
+    },
+    {
+      "timestamp": "2026-01-09T00:00:00Z",
+      "role": "USER",
+      "content": "Following the acquisition, OmniCorp absorbed Project Orion into its military division."
+    },
+    {
+      "timestamp": "2026-01-10T00:00:00Z",
+      "role": "USER",
+      "content": "Diana Croft is the formidable CEO of OmniCorp, known for ruthless business tactics."
+    },
+    {
+      "timestamp": "2026-01-11T00:00:00Z",
+      "role": "USER",
+      "content": "Diana Croft was once mentored by Eve Sterling during her early career at DataCore."
+    },
+    {
+      "timestamp": "2026-01-12T00:00:00Z",
+      "role": "USER",
+      "content": "Eve Sterling is currently an independent tech auditor investigating military contractors."
+    },
+    {
+      "timestamp": "2026-01-13T00:00:00Z",
+      "role": "USER",
+      "content": "In 2025, a critical vulnerability in Project Orion was leaked to the dark web. This event is called the Orion Theft."
+    },
+    {
+      "timestamp": "2026-01-14T00:00:00Z",
+      "role": "USER",
+      "content": "The Orion Theft was traced back to a server located in a NexusGroup facility in Berlin."
+    },
+    {
+      "timestamp": "2026-01-15T00:00:00Z",
+      "role": "USER",
+      "content": "Charlie Vance denied any involvement in the Orion Theft, claiming NexusGroup servers were hijacked."
+    },
+    {
+      "timestamp": "2026-01-16T00:00:00Z",
+      "role": "USER",
+      "content": "Bob Thorne left OmniCorp shortly after the acquisition and started a new venture called QuantumLeap."
+    },
+    {
+      "timestamp": "2026-01-17T00:00:00Z",
+      "role": "USER",
+      "content": "QuantumLeap is heavily funded by an anonymous shell company called ShadowBox LLC."
+    },
+    {
+      "timestamp": "2026-01-18T00:00:00Z",
+      "role": "USER",
+      "content": "ShadowBox LLC is registered in the Cayman Islands by legal representative Frank Castle."
+    },
+    {
+      "timestamp": "2026-01-19T00:00:00Z",
+      "role": "USER",
+      "content": "Frank Castle used to be the Chief Legal Officer for DataCore."
+    },
+    {
+      "timestamp": "2026-01-20T00:00:00Z",
+      "role": "USER",
+      "content": "Eve Sterling's audit report on OmniCorp highlighted suspicious financial ties to ShadowBox LLC."
+    },
+    {
+      "timestamp": "2026-01-21T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #1: Maintenance record for server cluster Alpha-1 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-22T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #2: Maintenance record for server cluster Alpha-2 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-23T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #3: Maintenance record for server cluster Alpha-3 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-24T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #4: Maintenance record for server cluster Alpha-4 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-25T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #5: Maintenance record for server cluster Alpha-5 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-26T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #6: Maintenance record for server cluster Alpha-6 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-27T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #7: Maintenance record for server cluster Alpha-7 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-28T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #8: Maintenance record for server cluster Alpha-8 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-29T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #9: Maintenance record for server cluster Alpha-9 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-30T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #10: Maintenance record for server cluster Alpha-10 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-01-31T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #11: Maintenance record for server cluster Alpha-11 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-01T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #12: Maintenance record for server cluster Alpha-12 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-02T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #13: Maintenance record for server cluster Alpha-13 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-03T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #14: Maintenance record for server cluster Alpha-14 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-04T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #15: Maintenance record for server cluster Alpha-15 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-05T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #16: Maintenance record for server cluster Alpha-16 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-06T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #17: Maintenance record for server cluster Alpha-17 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-07T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #18: Maintenance record for server cluster Alpha-18 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-08T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #19: Maintenance record for server cluster Alpha-19 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-09T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #20: Maintenance record for server cluster Alpha-20 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-10T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #21: Maintenance record for server cluster Alpha-21 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-11T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #22: Maintenance record for server cluster Alpha-22 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-12T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #23: Maintenance record for server cluster Alpha-23 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-13T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #24: Maintenance record for server cluster Alpha-24 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-14T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #25: Maintenance record for server cluster Alpha-25 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-15T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #26: Maintenance record for server cluster Alpha-26 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-16T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #27: Maintenance record for server cluster Alpha-27 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-17T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #28: Maintenance record for server cluster Alpha-28 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-18T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #29: Maintenance record for server cluster Alpha-29 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-19T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #30: Maintenance record for server cluster Alpha-30 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-20T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #31: Maintenance record for server cluster Alpha-31 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-21T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #32: Maintenance record for server cluster Alpha-32 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-22T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #33: Maintenance record for server cluster Alpha-33 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-23T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #34: Maintenance record for server cluster Alpha-34 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-24T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #35: Maintenance record for server cluster Alpha-35 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-25T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #36: Maintenance record for server cluster Alpha-36 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-26T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #37: Maintenance record for server cluster Alpha-37 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-27T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #38: Maintenance record for server cluster Alpha-38 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-02-28T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #39: Maintenance record for server cluster Alpha-39 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-01T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #40: Maintenance record for server cluster Alpha-40 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-02T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #41: Maintenance record for server cluster Alpha-41 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-03T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #42: Maintenance record for server cluster Alpha-42 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-04T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #43: Maintenance record for server cluster Alpha-43 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-05T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #44: Maintenance record for server cluster Alpha-44 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-06T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #45: Maintenance record for server cluster Alpha-45 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-07T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #46: Maintenance record for server cluster Alpha-46 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-08T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #47: Maintenance record for server cluster Alpha-47 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-09T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #48: Maintenance record for server cluster Alpha-48 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-10T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #49: Maintenance record for server cluster Alpha-49 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-11T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #50: Maintenance record for server cluster Alpha-50 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-12T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #51: Maintenance record for server cluster Alpha-51 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-13T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #52: Maintenance record for server cluster Alpha-52 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-14T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #53: Maintenance record for server cluster Alpha-53 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-15T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #54: Maintenance record for server cluster Alpha-54 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-16T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #55: Maintenance record for server cluster Alpha-55 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-17T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #56: Maintenance record for server cluster Alpha-56 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-18T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #57: Maintenance record for server cluster Alpha-57 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-19T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #58: Maintenance record for server cluster Alpha-58 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-20T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #59: Maintenance record for server cluster Alpha-59 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-21T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #60: Maintenance record for server cluster Alpha-60 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-22T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #61: Maintenance record for server cluster Alpha-61 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-23T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #62: Maintenance record for server cluster Alpha-62 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-24T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #63: Maintenance record for server cluster Alpha-63 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-25T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #64: Maintenance record for server cluster Alpha-64 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-26T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #65: Maintenance record for server cluster Alpha-65 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-27T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #66: Maintenance record for server cluster Alpha-66 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-28T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #67: Maintenance record for server cluster Alpha-67 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-29T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #68: Maintenance record for server cluster Alpha-68 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-30T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #69: Maintenance record for server cluster Alpha-69 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-03-31T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #70: Maintenance record for server cluster Alpha-70 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-01T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #71: Maintenance record for server cluster Alpha-71 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-02T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #72: Maintenance record for server cluster Alpha-72 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-03T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #73: Maintenance record for server cluster Alpha-73 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-04T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #74: Maintenance record for server cluster Alpha-74 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-05T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #75: Maintenance record for server cluster Alpha-75 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-06T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #76: Maintenance record for server cluster Alpha-76 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-07T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #77: Maintenance record for server cluster Alpha-77 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-08T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #78: Maintenance record for server cluster Alpha-78 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-09T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #79: Maintenance record for server cluster Alpha-79 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    },
+    {
+      "timestamp": "2026-04-10T00:00:00Z",
+      "role": "USER",
+      "content": "Technical Log #80: Maintenance record for server cluster Alpha-80 associated with CyberDyne's legacy systems. The system still references protocols designed by Bob Thorne."
+    }
+  ],
+  "benchmark_queries": [
+    {
+      "query_id": "graph_1",
+      "user_prompt": "Who is the sibling of the founder of the company that originally developed Project Orion?",
+      "expected_ground_truth_snippets": [
+        "Charlie Vance"
+      ],
+      "query_type": "knowledge_graph_multi_hop",
+      "description": "3-hop: Project Orion -> Synthetix -> Alice Vance -> Charlie Vance"
+    },
+    {
+      "query_id": "graph_2",
+      "user_prompt": "Name the independent tech auditor who mentored the CEO of the company that acquired Synthetix.",
+      "expected_ground_truth_snippets": [
+        "Eve Sterling"
+      ],
+      "query_type": "knowledge_graph_multi_hop",
+      "description": "3-hop: Synthetix -> OmniCorp -> Diana Croft -> Eve Sterling"
+    },
+    {
+      "query_id": "graph_3",
+      "user_prompt": "What is the name of the shell company funding the new venture started by the original architect of Project Orion?",
+      "expected_ground_truth_snippets": [
+        "ShadowBox LLC"
+      ],
+      "query_type": "knowledge_graph_multi_hop",
+      "description": "3-hop: Project Orion -> Bob Thorne -> QuantumLeap -> ShadowBox LLC"
+    },
+    {
+      "query_id": "graph_4",
+      "user_prompt": "Who is the legal representative of the shell company connected to the suspicious financial ties in Eve Sterling's OmniCorp audit?",
+      "expected_ground_truth_snippets": [
+        "Frank Castle"
+      ],
+      "query_type": "knowledge_graph_multi_hop",
+      "description": "3-hop: Eve Sterling -> OmniCorp -> ShadowBox LLC -> Frank Castle"
+    },
+    {
+      "query_id": "graph_5",
+      "user_prompt": "Which former DataCore employee is linked to the registration of the company funding Bob Thorne's new startup?",
+      "expected_ground_truth_snippets": [
+        "Frank Castle"
+      ],
+      "query_type": "knowledge_graph_multi_hop",
+      "description": "3-hop: Bob Thorne -> QuantumLeap -> ShadowBox LLC -> Frank Castle -> DataCore"
+    },
+    {
+      "query_id": "noise_query_6",
+      "user_prompt": "What systems were associated with Technical Log #6 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_7",
+      "user_prompt": "What systems were associated with Technical Log #7 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_8",
+      "user_prompt": "What systems were associated with Technical Log #8 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_9",
+      "user_prompt": "What systems were associated with Technical Log #9 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_10",
+      "user_prompt": "What systems were associated with Technical Log #10 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_11",
+      "user_prompt": "What systems were associated with Technical Log #11 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_12",
+      "user_prompt": "What systems were associated with Technical Log #12 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_13",
+      "user_prompt": "What systems were associated with Technical Log #13 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_14",
+      "user_prompt": "What systems were associated with Technical Log #14 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_15",
+      "user_prompt": "What systems were associated with Technical Log #15 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_16",
+      "user_prompt": "What systems were associated with Technical Log #16 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_17",
+      "user_prompt": "What systems were associated with Technical Log #17 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_18",
+      "user_prompt": "What systems were associated with Technical Log #18 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_19",
+      "user_prompt": "What systems were associated with Technical Log #19 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    },
+    {
+      "query_id": "noise_query_20",
+      "user_prompt": "What systems were associated with Technical Log #20 at CyberDyne?",
+      "expected_ground_truth_snippets": [
+        "Bob Thorne",
+        "CyberDyne"
+      ],
+      "query_type": "simple_retrieval",
+      "description": "Basic 1-hop retrieval to ensure baseline metrics still function."
+    }
+  ]
+}

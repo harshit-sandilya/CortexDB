@@ -24,6 +24,7 @@ class LLMProviderTest {
     private static String apiKey;
     private static String chatModel;
     private static String embedModel;
+    private static String baseUrl;
     private static Map<String, String> envVars;
     private static boolean envLoaded = false;
 
@@ -62,6 +63,7 @@ class LLMProviderTest {
         apiKey = resolveVar("LLM_API_KEY", null);
         chatModel = resolveVar("LLM_CHAT_MODEL", null);
         embedModel = resolveVar("LLM_EMBED_MODEL", null);
+        baseUrl = resolveVar("LLM_BASE_URL", null);
 
         // Legacy fallback: if LLM_API_KEY not found, try GEMINI_API_KEY
         if (apiKey == null || apiKey.isEmpty()) {
@@ -117,7 +119,7 @@ class LLMProviderTest {
 
         // Constructor should not throw an exception
         assertDoesNotThrow(() -> {
-            new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+            new LLMProvider(provider, apiKey, baseUrl, chatModel, embedModel);
         }, "LLMProvider should initialize successfully with " + provider + " using separate chat and embed models");
     }
 
@@ -129,10 +131,12 @@ class LLMProviderTest {
         String customBaseUrl;
         if (provider.equalsIgnoreCase("GEMINI")) {
             customBaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai/";
-        } else if (provider.equalsIgnoreCase("OPENROUTER"))
+        } else if (provider.equalsIgnoreCase("OPENROUTER")) {
             customBaseUrl = "https://openrouter.ai/api";
-        else if (provider.equalsIgnoreCase("AZURE")) {
+        } else if (provider.equalsIgnoreCase("AZURE")) {
             customBaseUrl = "https://cortexdb.openai.azure.com/";
+        } else if (provider.equalsIgnoreCase("CUSTOM")) {
+            customBaseUrl = baseUrl; // Use the base URL from .env
         } else { // Default, likely for OPENAI
             customBaseUrl = "https://api.openai.com/v1/";
         }
@@ -149,7 +153,7 @@ class LLMProviderTest {
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new LLMProvider("UNSUPPORTED_PROVIDER", apiKey, null, chatModel, embedModel));
+                () -> new LLMProvider("UNSUPPORTED_PROVIDER", apiKey, baseUrl, chatModel, embedModel));
 
         assertTrue(exception.getMessage().contains("Unsupported provider"));
     }
@@ -159,7 +163,7 @@ class LLMProviderTest {
     void shouldThrowExceptionForNullApiKey() {
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> new LLMProvider(provider, null, null, chatModel, embedModel));
+                () -> new LLMProvider(provider, null, baseUrl, chatModel, embedModel));
 
         assertNotNull(exception.getMessage());
     }
@@ -170,7 +174,7 @@ class LLMProviderTest {
         assumeApiKeyPresent();
 
         // Initialize provider with SEPARATE chat and embedding models
-        new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+        new LLMProvider(provider, apiKey, baseUrl, chatModel, embedModel);
 
         String testText = "This is a test sentence for embedding generation.";
 
@@ -190,7 +194,7 @@ class LLMProviderTest {
         assumeApiKeyPresent();
 
         // Initialize provider with SEPARATE chat and embedding models
-        new LLMProvider(provider, apiKey, null, chatModel, embedModel);
+        new LLMProvider(provider, apiKey, baseUrl, chatModel, embedModel);
 
         String prompt = "Reply with exactly one word: Hello";
 
@@ -211,13 +215,13 @@ class LLMProviderTest {
 
         // Test lowercase
         assertDoesNotThrow(() -> {
-            new LLMProvider(provider.toLowerCase(), apiKey, null, chatModel, embedModel);
+            new LLMProvider(provider.toLowerCase(), apiKey, baseUrl, chatModel, embedModel);
         }, "Provider should accept lowercase");
 
         // Test mixed case
         String mixedCase = provider.substring(0, 1).toUpperCase() + provider.substring(1).toLowerCase();
         assertDoesNotThrow(() -> {
-            new LLMProvider(mixedCase, apiKey, null, chatModel, embedModel);
+            new LLMProvider(mixedCase, apiKey, baseUrl, chatModel, embedModel);
         }, "Provider should accept mixed case");
     }
 
@@ -277,7 +281,7 @@ class LLMProviderTest {
     @DisplayName("Provider constants should be valid")
     void providerConstantsShouldBeValid() {
         // Test valid provider strings
-        String[] validProviders = { "GEMINI", "OPENAI", "ANTHROPIC", "AZURE", "OPENROUTER" };
+        String[] validProviders = { "GEMINI", "OPENAI", "ANTHROPIC", "AZURE", "OPENROUTER", "CUSTOM" };
 
         for (String p : validProviders) {
             assertNotNull(p);
@@ -292,7 +296,7 @@ class LLMProviderTest {
 
         // The 4-parameter constructor should still work (uses same model for both)
         assertDoesNotThrow(() -> {
-            new LLMProvider(provider, apiKey, null, embedModel);
+            new LLMProvider(provider, apiKey, baseUrl, embedModel);
         }, "Legacy 4-parameter constructor should still work");
     }
 

@@ -1,0 +1,225 @@
+{
+  "dataset_version": "2.0",
+  "description": "Realistic benchmark dataset with semantic distractors to stress-test retrieval quality",
+  "ingestion_history": [
+    {
+      "timestamp": "2026-03-01T09:00:00Z",
+      "role": "USER",
+      "content": "I am building a Java application with Spring Boot for the backend."
+    },
+    {
+      "timestamp": "2026-03-01T09:01:00Z",
+      "role": "USER",
+      "content": "We migrated our production database from MySQL to PostgreSQL last month."
+    },
+    {
+      "timestamp": "2026-03-02T10:00:00Z",
+      "role": "USER",
+      "content": "For the frontend we are using React with TypeScript and Vite as the build tool."
+    },
+    {
+      "timestamp": "2026-03-02T11:00:00Z",
+      "role": "USER",
+      "content": "My previous project was a Python Flask API with a MongoDB backend."
+    },
+    {
+      "timestamp": "2026-03-03T08:30:00Z",
+      "role": "USER",
+      "content": "We deployed the application on AWS using ECS Fargate containers."
+    },
+    {
+      "timestamp": "2026-03-03T09:00:00Z",
+      "role": "USER",
+      "content": "The authentication system uses JWT tokens with a 24 hour expiration."
+    },
+    {
+      "timestamp": "2026-03-04T14:00:00Z",
+      "role": "USER",
+      "content": "I configured Redis as a caching layer to speed up frequent queries."
+    },
+    {
+      "timestamp": "2026-03-04T15:00:00Z",
+      "role": "USER",
+      "content": "Our team follows a two week sprint cycle with standups every morning."
+    },
+    {
+      "timestamp": "2026-03-05T10:00:00Z",
+      "role": "USER",
+      "content": "The CI pipeline runs on GitHub Actions with automated test execution."
+    },
+    {
+      "timestamp": "2026-03-05T11:00:00Z",
+      "role": "USER",
+      "content": "I enjoy hiking in the mountains on weekends when the weather is nice."
+    },
+    {
+      "timestamp": "2026-03-06T09:00:00Z",
+      "role": "USER",
+      "content": "We use pgvector extension in PostgreSQL for storing and searching vector embeddings."
+    },
+    {
+      "timestamp": "2026-03-06T10:00:00Z",
+      "role": "USER",
+      "content": "The embedding model we use is text-embedding-ada-002 from OpenAI with 1536 dimensions."
+    },
+    {
+      "timestamp": "2026-03-07T08:00:00Z",
+      "role": "USER",
+      "content": "My colleague Sarah handles the DevOps pipeline and infrastructure provisioning."
+    },
+    {
+      "timestamp": "2026-03-07T09:00:00Z",
+      "role": "USER",
+      "content": "We started using Kubernetes last quarter but switched back to ECS for simplicity."
+    },
+    {
+      "timestamp": "2026-03-08T11:00:00Z",
+      "role": "USER",
+      "content": "The API rate limit is set to 100 requests per minute per user."
+    },
+    {
+      "timestamp": "2026-03-08T14:00:00Z",
+      "role": "USER",
+      "content": "I read a Python tutorial about Django REST framework last night for fun."
+    },
+    {
+      "timestamp": "2026-03-09T09:00:00Z",
+      "role": "USER",
+      "content": "Database backups run every 6 hours and are stored in S3 with lifecycle policies."
+    },
+    {
+      "timestamp": "2026-03-09T10:00:00Z",
+      "role": "USER",
+      "content": "We integrated Sentry for error tracking and Datadog for application monitoring."
+    },
+    {
+      "timestamp": "2026-03-10T08:00:00Z",
+      "role": "USER",
+      "content": "The search functionality uses cosine similarity with a threshold of 0.75."
+    },
+    {
+      "timestamp": "2026-03-10T09:00:00Z",
+      "role": "USER",
+      "content": "My favorite programming language is Rust but I mostly write Java at work."
+    },
+    {
+      "timestamp": "2026-03-11T10:00:00Z",
+      "role": "USER",
+      "content": "We had a database outage last Tuesday that lasted about 45 minutes."
+    },
+    {
+      "timestamp": "2026-03-11T11:00:00Z",
+      "role": "USER",
+      "content": "Spring Boot version 3.2 introduced support for virtual threads which we enabled."
+    },
+    {
+      "timestamp": "2026-03-12T09:00:00Z",
+      "role": "USER",
+      "content": "The payment integration uses Stripe API for processing credit card transactions."
+    },
+    {
+      "timestamp": "2026-03-12T10:00:00Z",
+      "role": "USER",
+      "content": "Our MongoDB instance in the old project was hosted on Atlas with a shared cluster."
+    },
+    {
+      "timestamp": "2026-03-13T08:00:00Z",
+      "role": "USER",
+      "content": "Logging is handled by SLF4J with Logback and logs are shipped to CloudWatch."
+    }
+  ],
+  "benchmark_queries": [
+    {
+      "query_id": "q1",
+      "user_prompt": "What backend framework am I using?",
+      "expected_ground_truth_snippets": [
+        "Java application with Spring Boot"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "Python Flask API",
+        "Django REST framework"
+      ],
+      "minimum_acceptable_recall": 0.8
+    },
+    {
+      "query_id": "q2",
+      "user_prompt": "What technology did I use in my previous project?",
+      "expected_ground_truth_snippets": [
+        "Python Flask API with a MongoDB backend"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "Java application with Spring Boot",
+        "Django REST framework"
+      ],
+      "minimum_acceptable_recall": 0.8
+    },
+    {
+      "query_id": "q3",
+      "user_prompt": "Where is the application deployed?",
+      "expected_ground_truth_snippets": [
+        "AWS using ECS Fargate containers"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "Kubernetes"
+      ],
+      "minimum_acceptable_recall": 0.8
+    },
+    {
+      "query_id": "q4",
+      "user_prompt": "How does the vector search work?",
+      "expected_ground_truth_snippets": [
+        "pgvector extension in PostgreSQL",
+        "cosine similarity with a threshold of 0.75",
+        "text-embedding-ada-002 from OpenAI"
+      ],
+      "distractors_that_should_not_rank_first": [],
+      "minimum_acceptable_recall": 0.6
+    },
+    {
+      "query_id": "q5",
+      "user_prompt": "What database are we using now?",
+      "expected_ground_truth_snippets": [
+        "migrated our production database from MySQL to PostgreSQL"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "MongoDB backend",
+        "MongoDB instance in the old project was hosted on Atlas"
+      ],
+      "minimum_acceptable_recall": 0.8
+    },
+    {
+      "query_id": "q6",
+      "user_prompt": "Tell me about authentication",
+      "expected_ground_truth_snippets": [
+        "JWT tokens with a 24 hour expiration"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "Stripe API",
+        "API rate limit"
+      ],
+      "minimum_acceptable_recall": 0.8
+    },
+    {
+      "query_id": "q7",
+      "user_prompt": "What happened with the infrastructure recently?",
+      "expected_ground_truth_snippets": [
+        "database outage last Tuesday",
+        "switched back to ECS for simplicity"
+      ],
+      "distractors_that_should_not_rank_first": [],
+      "minimum_acceptable_recall": 0.6
+    },
+    {
+      "query_id": "q8",
+      "user_prompt": "What monitoring tools do we use?",
+      "expected_ground_truth_snippets": [
+        "Sentry for error tracking and Datadog for application monitoring"
+      ],
+      "distractors_that_should_not_rank_first": [
+        "CloudWatch",
+        "Logback"
+      ],
+      "minimum_acceptable_recall": 0.8
+    }
+  ]
+}

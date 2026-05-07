@@ -6,9 +6,9 @@ COPY src ./src
 RUN mvn dependency:tree -Dincludes=org.springframework.boot:spring-boot-actuator
 RUN mvn package -D skipTests
 
-FROM eclipse-temurin:21-alpine
+FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN addgroup --system spring && adduser --system --ingroup spring spring
+RUN groupadd --system spring && useradd --system --gid spring spring
 USER spring
 
 COPY --from=build /app/target/*.jar app.jar

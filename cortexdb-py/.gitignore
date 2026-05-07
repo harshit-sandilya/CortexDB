@@ -38,3 +38,5 @@ ENV/
 # Project specific
 logs/
 *.log
+.claude/
+changes.txt

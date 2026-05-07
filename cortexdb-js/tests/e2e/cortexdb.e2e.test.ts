@@ -7,9 +7,10 @@
  *
  * Environment variables (loaded from .env automatically):
  *   CORTEXDB_URL      — CortexDB server URL (default: http://localhost:8080)
- *   GEMINI_API_KEY    — Gemini API key
- *   GEMINI_CHAT_MODEL — Chat model name (default: gemini-2.0-flash)
- *   GEMINI_EMBED_MODEL— Embed model name (default: gemini-embedding-001)
+ *   LLM_API_KEY       — LLM API key
+ *   LLM_PROVIDER      — LLM provider (default: GEMINI)
+ *   LLM_CHAT_MODEL    — Chat model name (default: gemini-2.0-flash)
+ *   LLM_EMBED_MODEL   — Embed model name (default: gemini-embedding-001)
  *
  * Run with:
  *   npm run test:e2e
@@ -64,9 +65,9 @@ describe("E2E — SetupAPI", () => {
     e2e("configure() succeeds with a valid LLM provider", async () => {
         const db = new CortexDB(BASE_URL);
         const provider = (process.env["LLM_PROVIDER"] ?? "GEMINI") as LLMApiProvider;
-        const chatModel = process.env["LLM_CHAT_MODEL"] ?? process.env["GEMINI_CHAT_MODEL"] ?? "gemini-2.0-flash";
-        const embedModel = process.env["LLM_EMBED_MODEL"] ?? process.env["GEMINI_EMBED_MODEL"] ?? "gemini-embedding-001";
-        const apiKey = process.env["LLM_API_KEY"] ?? process.env["GEMINI_API_KEY"];
+        const chatModel = process.env["LLM_CHAT_MODEL"] ?? "gemini-2.0-flash";
+        const embedModel = process.env["LLM_EMBED_MODEL"] ?? "gemini-embedding-001";
+        const apiKey = process.env["LLM_API_KEY"];
 
         const resp = await db.setup.configure(provider, chatModel, embedModel, apiKey);
         expect(resp.success).toBe(true);

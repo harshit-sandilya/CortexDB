@@ -406,8 +406,8 @@ class QueryServiceTest {
         QueryResponse response = queryService.routeQuery(request);
 
         assertNotNull(response);
-        // Classification LLM call + Final generation LLM call
-        llmProviderMock.verify(() -> LLMProvider.callLLM(anyString()), Mockito.times(2));
+        // Classification LLM call + Extraction LLM call + Final generation LLM call
+        llmProviderMock.verify(() -> LLMProvider.callLLM(anyString()), Mockito.times(3));
         // Verify we hit the prompt branch
         verify(contextRepository).findSimilarWithScore(anyString(), anyInt());
         // Answer logic is mocked to return PROMPT for both calls in this simplified test structure,
